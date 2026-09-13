@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 01 · The Linux Filesystem ｜ Linux 文件系统</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --text-2: #6e6e73;
+    --accent: #0071e3;
+    --accent-2: #2997ff;
+    --border: #d2d2d7;
+    --code-bg: #1d1d1f;
+    --code-text: #f5f5f7;
+    --ok: #248a3d;
+    --warn: #b25000;
+    --err: #d70015;
+    --callout-tip: #e8f5ee;
+    --callout-warn: #fff4e0;
+    --callout-err: #fdecec;
+    --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --text: #f5f5f7;
+    --text-2: #a1a1a6;
+    --accent: #0a84ff;
+    --accent-2: #409cff;
+    --border: #3a3a3c;
+    --code-bg: #0d0d0f;
+    --code-text: #f5f5f7;
+    --ok: #30d158;
+    --warn: #ff9f0a;
+    --err: #ff453a;
+    --callout-tip: #1a2b20;
+    --callout-warn: #2b2412;
+    --callout-err: #2b1517;
+    --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  /* Theme toggle */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar button {
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer;
+  }
+  /* Hero */
+  .hero {
+    background: var(--card); border: 1px solid var(--border); border-radius: 18px;
+    padding: 32px 28px; margin-top: 24px;
+  }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 2.5%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  /* Sections */
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  /* Callouts */
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  /* Code */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    border-radius: 12px; padding: 16px 18px; overflow-x: auto;
+    font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+    font-size: 14px; line-height: 1.6;
+  }
+  pre .c { color: #8e8e93; }
+  pre .o { color: #30d158; }  /* output in dark code block always green-ish */
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  /* SVG */
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  /* Lab */
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  /* Details / answer key */
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  /* Quiz */
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  /* STOP block */
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 深色模式</button>
+  <button onclick="window.print()">🖨 打印 / 存 PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- ============ 0. HERO ============ -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 01 · Part I · Linux Foundations</div>
+    <h1>The Linux Filesystem</h1>
+    <p class="sub">Linux 文件系统 —— 用一棵树管理一切</p>
+    <div class="progress-label"><span>课程进度</span><span>01 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">难度</div><div class="v">★☆☆☆☆ Beginner</div></div>
+      <div class="item"><div class="k">时长</div><div class="v">60–80 min</div></div>
+      <div class="item"><div class="k">交付物</div><div class="v">RNA 测序项目目录树</div></div>
+      <div class="item"><div class="k">前置知识</div><div class="v">无（零基础）</div></div>
+    </div>
+  </div>
+
+  <!-- ============ 1. MISSION CONTEXT ============ -->
+  <section>
+    <h2><span class="num">01</span> 任务背景 · Mission Context</h2>
+    <div class="card">
+      <p>今天早上，南京医科大学附属医院测序中心收到了一台测序仪跑完的数据：<strong>20 个 FASTQ 文件</strong>，来自 8 位前列腺癌患者的肿瘤与正常组织样本。</p>
+      <p>你是实验室的生信工程师。主管只交代了一句话：<em>「把数据放对地方，三个月后我们还要能找到谁是谁。」</em></p>
+      <p>你打开终端，第一件事<strong>不是</strong>分析数据，而是先搞清楚：<strong>这台 Ubuntu 服务器的文件到底是怎么组织的？</strong></p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>数据乱 → 需要组织文件 → 用 Linux 文件系统命令（<code>pwd</code> / <code>ls</code> / <code>cd</code> / <code>mkdir</code>）。</p>
+    </div>
+  </section>
+
+  <!-- ============ 2. KNOWLEDGE ============ -->
+  <section>
+    <h2><span class="num">02</span> 知识 · Knowledge（≤20%）</h2>
+    <p class="muted">本课只有 3 个概念。每个概念：中文 + 英文 + 心智模型 + 图 + 语法 + 实例 + 常见错误。</p>
+
+    <!-- 概念 1 -->
+    <h3>概念 1 · Linux 文件系统是一棵树</h3>
+    <div class="card">
+      <p><strong>中文：</strong>Linux 没有 Windows 的 C 盘、D 盘。一切从根目录 <code>/</code> 开始，所有硬盘、文件夹、U 盘都「挂载」到这一棵树的某个分支上。</p>
+      <p><strong>English:</strong> Linux has no drive letters. Everything starts from the root <code>/</code>, and every disk or folder is mounted somewhere on this single tree.</p>
+      <div class="diagram">
+        <svg width="520" height="300" viewBox="0 0 520 300" xmlns="http://www.w3.org/2000/svg">
+          <style>.l{stroke:#8e8e93;stroke-width:2;fill:none}.bx{fill:#0071e3}.tx{font:14px -apple-system,sans-serif;fill:#1d1d1f}.lab{font:11px -apple-system,sans-serif;fill:#6e6e73}</style>
+          <line class="l" x1="260" y1="40" x2="260" y2="80"/>
+          <line class="l" x1="260" y1="80" x2="70" y2="140"/><line class="l" x1="260" y1="80" x2="180" y2="140"/><line class="l" x1="260" y1="80" x2="290" y2="140"/><line class="l" x1="260" y1="80" x2="400" y2="140"/><line class="l" x1="260" y1="80" x2="470" y2="140"/>
+          <rect class="bx" x="230" y="12" width="60" height="28" rx="6"/><text class="tx" x="260" y="31" text-anchor="middle" fill="#fff" font-weight="700">/</text>
+          <rect class="bx" x="25" y="140" width="90" height="28" rx="6"/><text x="70" y="159" text-anchor="middle" fill="#fff">/home</text>
+          <rect class="bx" x="135" y="140" width="90" height="28" rx="6"/><text x="180" y="159" text-anchor="middle" fill="#fff">/etc</text>
+          <rect class="bx" x="245" y="140" width="90" height="28" rx="6"/><text x="290" y="159" text-anchor="middle" fill="#fff">/var</text>
+          <rect class="bx" x="355" y="140" width="90" height="28" rx="6"/><text x="400" y="159" text-anchor="middle" fill="#fff">/tmp</text>
+          <rect class="bx" x="425" y="140" width="90" height="28" rx="6"/><text x="470" y="159" text-anchor="middle" fill="#fff">/usr</text>
+          <text class="lab" x="70" y="185" text-anchor="middle">用户家目录</text>
+          <text class="lab" x="180" y="185" text-anchor="middle">配置文件</text>
+          <text class="lab" x="290" y="185" text-anchor="middle">日志/数据</text>
+          <text class="lab" x="400" y="185" text-anchor="middle">临时文件</text>
+          <text class="lab" x="470" y="185" text-anchor="middle">软件程序</text>
+          <line class="l" x1="70" y1="168" x2="70" y2="220"/><rect class="bx" x="15" y="220" width="110" height="28" rx="6" fill="#2997ff"/><text x="70" y="239" text-anchor="middle" fill="#fff">/home/user</text>
+          <text class="lab" x="70" y="268" text-anchor="middle">你的家目录 ~</text>
+        </svg>
+      </div>
+      <p><strong>语法：</strong><code>ls /</code> 查看根目录下有什么。</p>
+      <p><strong>实例：</strong><code>/home/user</code> 是你登录后默认待的地方，缩写为 <code>~</code>。</p>
+      <div class="callout warn"><div class="tag">常见错误</div><p>把根目录 <code>/</code> 和 root 用户的家目录 <code>/root</code> 搞混。它们不是一回事：<code>/</code> 是整棵树的顶点，<code>/root</code> 只是超级用户 root 的家目录。</p></div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>概念 2 · 绝对路径 vs 相对路径</h3>
+    <div class="card">
+      <p><strong>中文：</strong>定位一个文件有两种说法：从根目录 <code>/</code> 出发说全称叫<strong>绝对路径</strong>；从你「现在站的位置」出发叫<strong>相对路径</strong>。</p>
+      <p><strong>English:</strong> An <strong>absolute path</strong> starts from <code>/</code>; a <strong>relative path</strong> starts from where you currently are.</p>
+      <div class="grid2">
+        <div>
+          <p><strong>心智模型：</strong>导航时——<code>.</code> = 我在这，<code>..</code> = 上一层，<code>~</code> = 家目录。</p>
+          <p><strong>语法：</strong></p>
+          <pre><code>pwd        <span class="c"># 我在哪？print working directory</span>
+cd /home   <span class="c"># 绝对路径：从根出发</span>
+cd ..      <span class="c"># 相对路径：回上一层</span>
+cd ~       <span class="c"># 回家目录</span></code></pre>
+        </div>
+        <div>
+          <p><strong>实例：</strong>你现在在 <code>/home/user/data</code>：</p>
+          <ul>
+            <li>绝对路径指向样本：<code>/home/user/data/raw/patient001.fastq.gz</code></li>
+            <li>相对路径指向样本：<code>raw/patient001.fastq.gz</code></li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout warn"><div class="tag">常见错误</div><p>以为 <code>~</code> 是根目录。实际上 <code>~</code> 是你自己的家目录（如 <code>/home/user</code>），而根目录是 <code>/</code>。</p></div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>概念 3 · 查看与创建：ls / mkdir / touch</h3>
+    <div class="card">
+      <p><strong>中文：</strong>管理文件的第一步是<strong>看</strong>（<code>ls</code>）和<strong>建</strong>（<code>mkdir</code> 建目录、<code>touch</code> 建空文件）。</p>
+      <p><strong>English:</strong> First <strong>see</strong> with <code>ls</code>, then <strong>create</strong> with <code>mkdir</code> (directories) and <code>touch</code> (empty files).</p>
+      <p><strong>语法：</strong></p>
+      <pre><code>ls -l       <span class="c"># 长格式：权限 属主 属组 大小 时间 名字</span>
+ls -a       <span class="c"># 含隐藏文件（以 . 开头）</span>
+mkdir -p a/b/c   <span class="c"># 递归创建多级目录</span>
+touch patient001.fastq.gz   <span class="c"># 创建空文件</span></code></pre>
+      <p><strong>实例：</strong>读一段 <code>ls -l</code> 输出：</p>
+      <pre><code>-rw-r--r-- 1 user user 0 Sep  8 10:00 patient001.fastq.gz
+drwxr-xr-x 2 user user 4096 Sep  8 10:00 raw_data
+<span class="c"># 第一个字符 - 是普通文件，d 是目录</span></code></pre>
+      <div class="callout warn"><div class="tag">常见错误</div><p><code>mkdir</code> 创建已存在的目录会报错 <code>File exists</code>；<code>touch</code> 不会报错，但只创建<strong>空</strong>文件（大小 0），不是用来写内容的。</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 3. GUIDED PRACTICE ============ -->
+  <section>
+    <h2><span class="num">03</span> 引导练习 · Guided Practice</h2>
+    <div class="card">
+      <p>跟着敲。每条命令后面立刻看它为什么这样。</p>
+      <pre><code>pwd                          <span class="c"># 输出你的当前位置，例如 /home/user</span>
+mkdir RNA_Project            <span class="c"># 建一个项目目录</span>
+cd RNA_Project               <span class="c"># 进入它</span>
+touch patient001.fastq.gz    <span class="c"># 建一个空文件模拟测序数据</span>
+ls                           <span class="c"># 看到 patient001.fastq.gz</span>
+ls -l                        <span class="c"># 长格式：看到大小 0、时间、权限</span></code></pre>
+      <p class="muted">关键：<code>mkdir</code> 建目录，<code>touch</code> 建空文件，<code>cd</code> 移动位置，<code>ls</code> 验证。四件套是后面所有课的起点。</p>
+    </div>
+  </section>
+
+  <!-- ============ 4. INTENSIVE LAB ============ -->
+  <section>
+    <h2><span class="num">04</span> 实战实验 · Intensive Lab（核心）</h2>
+    <p class="muted">16 道题，逐级递进。每题含：目标 / 提示 / 验证 / 预期结果。<strong>答案在最后单独一节，先别翻。</strong></p>
+
+    <h3>Level 1 · 基础（Foundation）</h3>
+    <div class="task">
+      <div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">查看你当前在哪个目录。</div>
+      <div class="field"><b>Hint</b>：用一个命令打印当前工作目录。</div>
+      <div class="field"><b>Verification</b>：输出以 <code>/home/</code> 开头。</div>
+    </div>
+    <div class="task">
+      <div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">在家目录下创建一个名为 <code>sequencing_center</code> 的目录。</div>
+      <div class="field"><b>Hint</b>：<code>mkdir</code>。先 <code>cd ~</code> 回家。</div>
+      <div class="field"><b>Verification</b>：<code>ls ~</code> 能看到 <code>sequencing_center</code>。</div>
+    </div>
+    <div class="task">
+      <div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">用 <code>ls -a</code> 查看当前目录的隐藏文件。</div>
+      <div class="field"><b>Hint</b>：隐藏文件以 <code>.</code> 开头，比如 <code>.bashrc</code>。</div>
+      <div class="field"><b>Verification</b>：输出里能看到 <code>.</code> 和 <code>..</code> 两个条目。</div>
+    </div>
+    <div class="task">
+      <div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">创建三个空文件：<code>sample1.txt</code>、<code>sample2.txt</code>、<code>sample3.txt</code>。</div>
+      <div class="field"><b>Hint</b>：<code>touch</code> 可以一次接多个文件名。</div>
+      <div class="field"><b>Verification</b>：<code>ls</code> 看到三个文件。</div>
+    </div>
+
+    <h3>Level 2 · 整合（Integration）</h3>
+    <div class="task">
+      <div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">用一条命令创建多级目录 <code>data/raw/2026</code>。</div>
+      <div class="field"><b>Hint</b>：<code>mkdir -p</code> 会顺带创建不存在的父目录。</div>
+      <div class="field"><b>Verification</b>：<code>ls data/raw</code> 能看到 <code>2026</code>。</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">进入 <code>data/raw/2026</code>，再用相对路径回到 <code>data</code>。</div>
+      <div class="field"><b>Hint</b>：<code>..</code> 表示上一层，连着用两次 <code>../..</code>。</div>
+      <div class="field"><b>Verification</b>：<code>pwd</code> 输出以 <code>/data</code> 结尾。</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">分别用<strong>绝对路径</strong>和<strong>相对路径</strong>两次进入同一个目录，验证结果一样。</div>
+      <div class="field"><b>Hint</b>：绝对路径从 <code>/</code> 开始；相对路径从当前目录开始。</div>
+      <div class="field"><b>Verification</b>：两次 <code>pwd</code> 输出完全相同。</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">把 <code>sample1.txt</code> 复制成 <code>sample1_backup.txt</code>。</div>
+      <div class="field"><b>Hint</b>：<code>cp 源文件 目标文件</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls</code> 两个文件都在。</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">把 <code>sample3.txt</code> 重命名为 <code>sample3_final.txt</code>。</div>
+      <div class="field"><b>Hint</b>：<code>mv</code> 既能移动也能重命名。</div>
+      <div class="field"><b>Verification</b>：<code>sample3.txt</code> 消失，新名字出现。</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">用 <code>file</code> 命令查看 <code>sample1.txt</code> 是什么类型。</div>
+      <div class="field"><b>Hint</b>：<code>file 文件名</code>。</div>
+      <div class="field"><b>Verification</b>：输出类似 <code>sample1.txt: empty</code>。</div>
+    </div>
+
+    <h3>Level 3 · 工程（Engineering）</h3>
+    <div class="task">
+      <div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal">搭建 RNA 项目目录骨架：<code>raw_data</code>、<code>trimmed</code>、<code>aligned</code>、<code>results</code> 四个子目录，一条命令完成。</div>
+      <div class="field"><b>Hint</b>：<code>mkdir</code> 一次接多个目录名。</div>
+      <div class="field"><b>Verification</b>：<code>ls</code> 看到四个目录。</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">在 <code>raw_data</code> 下为 8 位患者各建一个子目录（patient01 … patient08）。</div>
+      <div class="field"><b>Hint</b>：用 <code>mkdir raw_data/patient{01..08}</code> 花括号展开。</div>
+      <div class="field"><b>Verification</b>：<code>ls raw_data</code> 看到 8 个 patient 目录。</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal">进入 <code>raw_data/patient01</code>，用相对路径在 <code>patient01</code> 里建一个空文件 <code>tumor.fastq.gz</code>。</div>
+      <div class="field"><b>Hint</b>：当前已在 patient01 内，直接 <code>touch tumor.fastq.gz</code> 即可。</div>
+      <div class="field"><b>Verification</b>：<code>ls</code> 看到 <code>tumor.fastq.gz</code>。</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal">建一个空目录 <code>empty_dir</code>，再用 <code>rmdir</code> 删掉它。</div>
+      <div class="field"><b>Hint</b>：<code>rmdir</code> 只能删空目录。</div>
+      <div class="field"><b>Verification</b>：<code>empty_dir</code> 消失。</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">删除一个<strong>非空</strong>目录（先建一个带文件的目录，再整体删掉）。</div>
+      <div class="field"><b>Hint</b>：<code>rm -r</code> 递归删除。</div>
+      <div class="field"><b>Verification</b>：<code>ls</code> 里该目录消失。</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal">搭建完整目录树并<strong>一次性验证</strong>：<code>RNA_Project/raw_data/patient01/</code> 存在，且 <code>pwd</code> 能定位到它。</div>
+      <div class="field"><b>Hint</b>：先 <code>mkdir -p</code> 建好路径，再 <code>cd</code> 进入。</div>
+      <div class="field"><b>Verification</b>：<code>pwd</code> 输出以 <code>/RNA_Project/raw_data/patient01</code> 结尾。</div>
+    </div>
+  </section>
+
+  <!-- ============ 5. DEBUG CHALLENGE ============ -->
+  <section>
+    <h2><span class="num">05</span> 排错挑战 · Debug Challenge</h2>
+    <p class="muted">5 个真实会遇到的报错。先自己想，再点开看答案。</p>
+
+    <details>
+      <summary>调试 1 · <code>mkdir /root/x</code> → <code>Permission denied</code></summary>
+      <div class="ans"><p><strong>原因：</strong>你试图在 <code>/root</code>（超级用户的家目录）里建目录，但你的普通用户没有写权限。</p><p><strong>解决：</strong>别在 <code>/root</code> 下操作；用你自己的 <code>~/</code> 或 <code>/tmp</code>。</p></div>
+    </details>
+    <details>
+      <summary>调试 2 · <code>lss</code> → <code>command not found</code></summary>
+      <div class="ans"><p><strong>原因：</strong>拼写错误，没有 <code>lss</code> 这个命令，正确的是 <code>ls</code>。</p><p><strong>解决：</strong>检查拼写；用 <code>Tab</code> 键自动补全。</p></div>
+    </details>
+    <details>
+      <summary>调试 3 · <code>cd /data</code> → <code>No such file or directory</code></summary>
+      <div class="ans"><p><strong>原因：</strong><code>/data</code> 这个绝对路径不存在。你可能想进的是 <code>~/data</code>（家目录下的 data）。</p><p><strong>解决：</strong>分清绝对路径和相对路径；先 <code>ls</code> 确认目标存在。</p></div>
+    </details>
+    <details>
+      <summary>调试 4 · 写文件报 <code>No space left on device</code></summary>
+      <div class="ans"><p><strong>原因：</strong>磁盘满了（或超出配额 quota）。</p><p><strong>解决：</strong>用 <code>df -h</code> 查看磁盘使用；清理 <code>/tmp</code> 或大文件。</p></div>
+    </details>
+    <details>
+      <summary>调试 5 · <code>mkdir a/b/c</code> → <code>No such file or directory</code></summary>
+      <div class="ans"><p><strong>原因：</strong>父目录 <code>a/b</code> 不存在，普通 <code>mkdir</code> 不会自动创建父目录。</p><p><strong>解决：</strong>用 <code>mkdir -p a/b/c</code>。</p></div>
+    </details>
+  </section>
+
+  <!-- ============ 6. ENGINEERING SCENARIOS ============ -->
+  <section>
+    <h2><span class="num">06</span> 工程场景 · Engineering Scenarios</h2>
+    <div class="card">
+      <p><strong>场景 1：</strong>测序中心有 500 个样本文件，名字是 <code>SRR12345678_1.fastq.gz</code> 这种。你怎么组织目录，让三个月后还能一眼找到某个样本？（提示：按项目 / 日期 / 样本分三层。）</p>
+      <details><summary>参考思路</summary><div class="ans"><p>三层结构：<code>project/date/sample/</code>，例如 <code>TCGA_PRAD/2026-09-08/SRR12345678/</code>。目录名即元数据，文件名里保留原始 ID。</p></div></details>
+    </div>
+    <div class="card">
+      <p><strong>场景 2：</strong>你会用 <code>rm</code> 删除文件。它<strong>不可恢复</strong>。设计三条你自己的「防误删」规则。</p>
+      <details><summary>参考思路</summary><div class="ans"><p>① 删前先 <code>ls</code> 确认；② 重要数据先 <code>cp</code> 备份；③ 用 <code>rm -i</code>（删除前询问）或先 <code>mv</code> 到 <code>/tmp</code> 观察几天再删。</p></div></details>
+    </div>
+    <div class="card">
+      <p><strong>场景 3：</strong>为 6 位研究员设计一套目录：每个人只能在自己的目录里操作，且能共享一个公共数据目录。先用目录结构描述你的方案（权限细节到 Lesson 03 才学）。</p>
+      <details><summary>参考思路</summary><div class="ans"><p><code>/data/shared/</code>（公共）+ <code>/data/users/{zhang,wang,li,...}/</code>（每人一个）。公共目录只读，个人目录可写。</p></div></details>
+    </div>
+  </section>
+
+  <!-- ============ 7. BOSS FIGHT ============ -->
+  <section>
+    <h2><span class="num">07</span> Boss 战 · Boss Fight（15 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>独立搭建一个完整的 RNA 测序项目目录系统，要求可度量。</p>
+      <p><strong>验收标准（必须全部满足）：</strong></p>
+      <ul>
+        <li>项目根目录 <code>RNA_Pipeline/</code> 下含 <code>raw_data/</code>、<code>trimmed/</code>、<code>aligned/</code>、<code>results/</code>、<code>logs/</code> 五个子目录。</li>
+        <li><code>raw_data/</code> 下为 8 位患者各建一个子目录。</li>
+        <li>用 <code>touch</code> 在患者 01 目录下创建 <code>tumor.fastq.gz</code> 和 <code>normal.fastq.gz</code> 两个文件。</li>
+        <li>用 <code>pwd</code> 定位到患者 01 目录并截图。</li>
+        <li>用 <code>ls -R</code> 递归列出整棵树并截图。</li>
+      </ul>
+      <p class="muted">完成后把两张截图和命令放进 <code>github/lesson01/</code>，并 git push。</p>
+    </div>
+  </section>
+
+  <!-- ============ 8. CHECKPOINTS ============ -->
+  <section>
+    <h2><span class="num">08</span> 检查点 · Checkpoints</h2>
+    <table>
+      <tr><th>时间</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 15 min</td><td>说出 <code>pwd</code> <code>ls</code> <code>cd</code> <code>mkdir</code> 各是干什么的</td></tr>
+      <tr><td>⏱ 35 min</td><td>独立完成 Level 1 + Level 2 的全部练习</td></tr>
+      <tr><td>⏱ 55 min</td><td>用一条命令建出多级目录，并解释绝对/相对路径</td></tr>
+      <tr><td>⏱ 75 min</td><td>完成 Boss 战，git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- ============ 9. ANSWER KEY ============ -->
+  <section>
+    <h2><span class="num">09</span> 答案 · Answer Key</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div><p>答案只在你卡住时看。</p></div>
+    <details>
+      <summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>pwd</code>（输出 <code>/home/user</code>）。</p>
+        <p><b>Lab 2：</b><code>cd ~ &amp;&amp; mkdir sequencing_center</code>。</p>
+        <p><b>Lab 3：</b><code>ls -a</code>。</p>
+        <p><b>Lab 4：</b><code>touch sample1.txt sample2.txt sample3.txt</code>。</p>
+        <p><b>Lab 5：</b><code>mkdir -p data/raw/2026</code>。</p>
+        <p><b>Lab 6：</b><code>cd data/raw/2026 &amp;&amp; cd ../..</code>。</p>
+        <p><b>Lab 7：</b>绝对 <code>cd /home/user/data</code>；相对 <code>cd ~/data</code>。</p>
+        <p><b>Lab 8：</b><code>cp sample1.txt sample1_backup.txt</code>。</p>
+        <p><b>Lab 9：</b><code>mv sample3.txt sample3_final.txt</code>。</p>
+        <p><b>Lab 10：</b><code>file sample1.txt</code>（输出 <code>empty</code>）。</p>
+        <p><b>Lab 11：</b><code>mkdir raw_data trimmed aligned results</code>。</p>
+        <p><b>Lab 12：</b><code>mkdir raw_data/patient{01..08}</code>。</p>
+        <p><b>Lab 13：</b><code>cd raw_data/patient01 &amp;&amp; touch tumor.fastq.gz</code>。</p>
+        <p><b>Lab 14：</b><code>mkdir empty_dir &amp;&amp; rmdir empty_dir</code>。</p>
+        <p><b>Lab 15：</b><code>mkdir -p tmp_dir/sub &amp;&amp; touch tmp_dir/sub/f &amp;&amp; rm -r tmp_dir</code>。</p>
+        <p><b>Lab 16：</b><code>mkdir -p RNA_Project/raw_data/patient01 &amp;&amp; cd RNA_Project/raw_data/patient01</code>。</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- ============ 10. ANKI DECK ============ -->
+  <section>
+    <h2><span class="num">10</span> Anki 卡组 · Anki Deck</h2>
+    <p class="muted">三类共 20 张：Commands / Concepts / Debugging。导入 Anki 时 Front 为正面，Back 为反面。</p>
+
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>pwd</td><td>print working directory — 打印当前目录</td></tr>
+      <tr><td>ls</td><td>list — 列出目录内容（-l 长格式 / -a 含隐藏 / -h 人类可读）</td></tr>
+      <tr><td>cd</td><td>change directory — 切换目录（cd .. 上一层 / cd ~ 回家）</td></tr>
+      <tr><td>mkdir</td><td>make directory — 建目录（-p 递归创建父目录）</td></tr>
+      <tr><td>touch</td><td>创建空文件 / 更新文件时间戳</td></tr>
+      <tr><td>cp</td><td>copy — 复制（-r 递归复制目录）</td></tr>
+      <tr><td>mv</td><td>move — 移动或重命名</td></tr>
+      <tr><td>rm</td><td>remove — 删除（-r 递归 / -f 强制），不可恢复</td></tr>
+      <tr><td>rmdir</td><td>删除空目录（只能删空目录）</td></tr>
+      <tr><td>file</td><td>查看文件类型</td></tr>
+    </table>
+
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>Linux 文件系统的根是什么？</td><td><code>/</code> 根目录，整棵树从这里开始</td></tr>
+      <tr><td>绝对路径 vs 相对路径</td><td>绝对从 <code>/</code> 开始；相对从当前目录开始</td></tr>
+      <tr><td><code>.</code> 和 <code>..</code> 分别代表什么？</td><td><code>.</code> 当前目录，<code>..</code> 上一层</td></tr>
+      <tr><td><code>~</code> 代表什么？</td><td>当前用户的家目录，如 <code>/home/user</code></td></tr>
+      <tr><td><code>/etc</code> 放什么？</td><td>系统配置文件</td></tr>
+      <tr><td><code>/var</code> 放什么？</td><td>日志和可变数据</td></tr>
+    </table>
+
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>command not found</code> 通常是什么原因？</td><td>命令拼写错误（如 lss 应为 ls）</td></tr>
+      <tr><td><code>mkdir a/b/c</code> 报 No such file 怎么办？</td><td>用 <code>mkdir -p a/b/c</code> 自动建父目录</td></tr>
+      <tr><td><code>Permission denied</code> 常见场景？</td><td>在 <code>/root</code> 等无写权限目录操作</td></tr>
+      <tr><td><code>No space left on device</code> 怎么办？</td><td><code>df -h</code> 查磁盘，清理 <code>/tmp</code></td></tr>
+    </table>
+  </section>
+
+  <!-- ============ 11. INTERACTIVE QUIZ ============ -->
+  <section>
+    <h2><span class="num">11</span> 小测 · Quick Quiz</h2>
+    <div class="quiz" id="q1">
+      <p class="q">哪个命令显示你当前所在的目录？</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this, 1)">ls</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this, 1)">pwd</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this, 1)">cd</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">要一次创建多级不存在的目录 a/b/c，用哪个？</p>
+      <button class="opt" data-c="1" onclick="answer('q2', this, 1)">mkdir -p a/b/c</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this, 1)">mkdir a/b/c</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this, 1)">touch -p a/b/c</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q"><code>~</code> 指代什么？</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this, 1)">根目录</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this, 1)">当前目录</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this, 1)">家目录</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- ============ 12. GITHUB + STOP ============ -->
+  <section>
+    <h2><span class="num">12</span> GitHub 作业 · Homework</h2>
+    <div class="card">
+      <p>在 <code>github/lesson01/</code> 里有四个文件：<code>commands.sh</code>（今天所有命令）、<code>notes.md</code>、<code>answers.md</code>、<code>README.md</code>。</p>
+      <p>Git 流程：</p>
+      <pre><code>git add .
+git commit -m "Lesson 01: The Linux Filesystem"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>今天的命令和 Boss 战项目还没推上 GitHub，这节课就<strong>不算完成</strong>。</p>
+      <p>现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+  }
+  function answer(qid, el, correctIdx) {
+    const quiz = document.getElementById(qid);
+    const opts = quiz.querySelectorAll('button.opt');
+    opts.forEach((o, i) => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    const fb = quiz.querySelector('.fb');
+    fb.textContent = (el.dataset.c === '1') ? '✅ 正确！' : '❌ 再想想：' + (correctIdx === 1 ? 'pwd 是 print working directory。' : '查看上面的 Knowledge 部分。');
+  }
+</script>
+</body>
+</html>
