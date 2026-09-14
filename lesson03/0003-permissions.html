@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 03 · Permissions ｜ Linux 权限</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 7.5%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 深色模式</button>
+  <button onclick="window.print()">🖨 打印 / 存 PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 03 · Part I · Linux Foundations</div>
+    <h1>Permissions</h1>
+    <p class="sub">权限 —— 用 rwx / chmod / chown 守护测序数据</p>
+    <div class="progress-label"><span>课程进度</span><span>03 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">难度</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">时长</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">交付物</div><div class="v">给共享测序目录设好权限</div></div>
+      <div class="item"><div class="k">前置知识</div><div class="v">Lesson 01–02（ls -l / 路径 / 通配符）</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> 任务背景 · Mission Context</h2>
+    <div class="card">
+      <p>上周你搭好的 <code>RNA_Pipeline</code> 目录被主管放上了<strong>共享服务器</strong>。昨天出事了：一位研究员手滑，<code>rm</code> 掉了几个病人的原始 <code>fastq.gz</code>——因为整个目录<strong>所有人都能写</strong>，谁都能删谁的文件。</p>
+      <p>主管给你下了三条硬要求：</p>
+      <ul>
+        <li>🥶 原始测序数据 <code>raw_data/</code>：<strong>所有人能读，但只有你能改</strong>——防止再被误删。</li>
+        <li>👥 结果目录 <code>results/</code>：<strong>你和主管能写，其他人只能读</strong>。</li>
+        <li>⚙️ 一个脚本 <code>run_pipeline.sh</code>：必须能<strong>被执行</strong>。</li>
+      </ul>
+      <p>要完成这些，你必须搞清楚 Linux 权限体系的三个问题：<strong>谁能访问</strong>（属主/属组/其他人）、<strong>能做什么</strong>（读/写/执行）、<strong>怎么改</strong>（<code>chmod</code>/<code>chown</code>/<code>chgrp</code>）。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>数据要共享、但不能被乱改 → 需要精细控制「谁能读写执行」→ 用 rwx 权限位（读）+ <code>chmod</code>（改）+ <code>chown</code>/<code>chgrp</code>（属主属组）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> 知识 · Knowledge（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 个概念。每个：中文 + 英文 + 心智模型 + SVG + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>概念 1 · 权限三元组：属主 / 属组 / 其他人 × 读写执行</h3>
+    <div class="card">
+      <p><strong>中文：</strong>每个文件或目录，系统把它能访问的人分成三类——<strong>属主</strong>（owner，创建者）、<strong>属组</strong>（group，同组成员）、<strong>其他人</strong>（others，除前两者外的所有人）。每一类人分别拥有三种能力：<strong>读</strong>（r，看内容）、<strong>写</strong>（w，改内容）、<strong>执行</strong>（x，运行/进入）。</p>
+      <p><strong>English:</strong> Every file/directory has three classes of access — <em>owner</em>, <em>group</em>, <em>others</em> — each with <em>read (r)</em>, <em>write (w)</em>, <em>execute (x)</em> permissions.</p>
+
+      <div class="diagram">
+        <svg width="620" height="200" viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg">
+          <style>.cell{font:18px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:13px -apple-system,sans-serif;fill:#6e6e73}.grp{font:14px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.o{fill:#0071e3}.g{fill:#34c759}.e{fill:#ff9f0a}.ty{fill:#8e8e93}</style>
+          <text class="ty" x="0" y="28" font-size="14" font-family="SF Mono,Consolas,monospace">-</text>
+          <rect class="o" x="30" y="8" width="46" height="46" rx="8"/><text class="cell" x="53" y="38" text-anchor="middle">r</text>
+          <rect class="g" x="78" y="8" width="46" height="46" rx="8"/><text class="cell" x="101" y="38" text-anchor="middle">w</text>
+          <rect class="e" x="126" y="8" width="46" height="46" rx="8"/><text class="cell" x="149" y="38" text-anchor="middle">x</text>
+          <rect class="o" x="184" y="8" width="46" height="46" rx="8"/><text class="cell" x="207" y="38" text-anchor="middle">r</text>
+          <rect class="g" x="232" y="8" width="46" height="46" rx="8"/><text class="cell" x="255" y="38" text-anchor="middle">-</text>
+          <rect class="e" x="280" y="8" width="46" height="46" rx="8"/><text class="cell" x="303" y="38" text-anchor="middle">x</text>
+          <rect class="o" x="338" y="8" width="46" height="46" rx="8"/><text class="cell" x="361" y="38" text-anchor="middle">r</text>
+          <rect class="g" x="386" y="8" width="46" height="46" rx="8"/><text class="cell" x="409" y="38" text-anchor="middle">-</text>
+          <rect class="e" x="434" y="8" width="46" height="46" rx="8"/><text class="cell" x="457" y="38" text-anchor="middle">-</text>
+          <text class="grp" x="53" y="76" text-anchor="middle">owner 属主</text>
+          <text class="grp" x="207" y="76" text-anchor="middle">group 属组</text>
+          <text class="grp" x="361" y="76" text-anchor="middle">others 其他人</text>
+          <text class="lab" x="30" y="100">10 个字符 = 1 个类型位 + 3 × (rwx)</text>
+          <text class="lab" x="30" y="122">类型位：- 文件 · d 目录 · l 软链接</text>
+          <text class="lab" x="30" y="148">每组的 r=读 w=写 x=执行，缺的用 - 占位</text>
+          <text class="lab" x="30" y="174">上面这个例子 = rwxr-xr-x = 755</text>
+        </svg>
+      </div>
+
+      <p><strong>语法（读权限）：</strong></p>
+      <pre><code>ls -l patient01.bam
+<span class="c"># -rw-r--r-- 1 user bioinfo 1256000 Sep 10 09:30 patient01.bam</span>
+<span class="c">#  │└┬─┘└┬─┘└┬─┘  │  │       │</span>
+<span class="c">#  │ 属主 属组 其他  链接 属主  属组   大小    时间   名字</span></code></pre>
+
+      <p><strong>实例：</strong><code>-rw-r--r--</code> 表示：属主可读可写不可执行（<code>rw-</code>）、属组只读（<code>r--</code>）、其他人只读（<code>r--</code>）。这是 Linux 新建文件的默认权限（umask 022 的结果）。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 目录的 r/w/x 含义完全不同</div>
+        <p>同一组 <code>rwx</code>，作用在<strong>文件</strong>和作用在<strong>目录</strong>上意思不一样，这是新手最常踩的坑：</p>
+        <table>
+          <tr><th>权限</th><th>对文件</th><th>对目录</th></tr>
+          <tr><td><code>r</code> 读</td><td>能看文件内容（<code>cat</code>）</td><td>能列出目录里的文件名（<code>ls</code>）</td></tr>
+          <tr><td><code>w</code> 写</td><td>能改文件内容</td><td>能新建 / 删除 / 重命名目录里的文件</td></tr>
+          <tr><td><code>x</code> 执行</td><td>能作为程序运行</td><td>能进入目录（<code>cd</code>）、能访问里面的文件</td></tr>
+        </table>
+        <p>关键：<strong>没有 <code>x</code> 的目录，你连 <code>cd</code> 都进不去</strong>，哪怕你是属主、哪怕有 <code>r</code>。这就是 Boss 战里要埋的坑。</p>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>共享服务器上几十个研究员同时干活，<strong>数据的价值远高于便利</strong>。权限就是那道闸门：测序原始数据一旦 <code>rm</code> 掉就永久丢失（几万元的重测序成本）。权限设计的好坏，直接决定「会不会再发生昨天那种事故」。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念延续 Lesson 01 的 <code>ls -l</code> 第一列（当时只说「- 文件、d 目录」，今天把后面 9 位吃透）；同时为 Lesson 04「User &amp; Group」铺垫——你今天先知道有「属主/属组」这两类人，下一课学怎么创建用户和组。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>概念 2 · chmod：改权限（符号模式 + 八进制模式）</h3>
+    <div class="card">
+      <p><strong>中文：</strong><code>chmod</code>（change mode）修改权限。两种写法：<strong>符号模式</strong>（<code>u/g/o/a</code> + <code>+/-/=</code> + <code>r/w/x</code>）和<strong>八进制模式</strong>（把每组权限换算成 0–7 的一个数字）。</p>
+      <p><strong>English:</strong> <code>chmod</code> changes permissions, either symbolically (<code>u/g/o/a</code> + <code>+/-/=</code> + <code>r/w/x</code>) or in octal (one digit 0–7 per class).</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.cell{font:16px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:13px -apple-system,sans-serif;fill:#6e6e73}.dig{font:20px "SF Mono",Consolas,monospace;fill:#1d1d1f;font-weight:700}.o{fill:#0071e3}.g{fill:#34c759}.e{fill:#ff9f0a}</style>
+          <text class="lab" x="10" y="24">r = 4</text>
+          <text class="lab" x="90" y="24">w = 2</text>
+          <text class="lab" x="170" y="24">x = 1</text>
+          <rect class="o" x="10" y="40" width="52" height="44" rx="8"/><text class="cell" x="36" y="68" text-anchor="middle">r=4</text>
+          <rect class="g" x="66" y="40" width="52" height="44" rx="8"/><text class="cell" x="92" y="68" text-anchor="middle">w=2</text>
+          <rect class="e" x="122" y="40" width="52" height="44" rx="8"/><text class="cell" x="148" y="68" text-anchor="middle">x=1</text>
+          <text class="lab" x="188" y="68">4+2+1 = 7 (rwx)</text>
+          <text class="dig" x="240" y="60">755</text>
+          <text class="lab" x="300" y="46">= 属主 rwx</text>
+          <text class="lab" x="300" y="66">= 属组 r-x (4+0+1=5)</text>
+          <text class="lab" x="300" y="86">= 其他 r-x (5)</text>
+          <rect class="o" x="470" y="40" width="120" height="44" rx="8"/><text class="cell" x="530" y="68" text-anchor="middle">rwxr-xr-x</text>
+          <text class="lab" x="10" y="120">常用八进制速记：</text>
+          <text class="lab" x="10" y="142">644 = rw-r--r--（普通文件默认）</text>
+          <text class="lab" x="10" y="164">600 = rw-------（私有文件） · 700 = rwx------（私有目录）</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>chmod u+x run_pipeline.sh      <span class="c"># 符号：给属主(u)加(+)执行(x)</span>
+chmod g-w patient01.bam        <span class="c"># 符号：去掉属组(g)的写(-w)</span>
+chmod a=r patient01.bam        <span class="c"># 符号：所有人(=)设为只读(r)，= 会覆盖</span>
+chmod 644 patient01.bam        <span class="c"># 八进制：属主 rw-，组 r--，其他 r--</span>
+chmod 755 run_pipeline.sh      <span class="c"># 八进制：rwxr-xr-x，脚本常用</span>
+chmod -R g+r raw_data/         <span class="c"># -R 递归：目录和里面所有文件一起改</span></code></pre>
+
+      <p><strong>符号模式角色记忆：</strong><code>u</code>=user 属主、<code>g</code>=group 属组、<code>o</code>=others 其他人、<code>a</code>=all 所有人（默认）。运算符：<code>+</code> 加权限、<code>-</code> 减权限、<code>=</code> 精确设为某权限（会覆盖原有的）。</p>
+
+      <p><strong>实例：</strong>脚本刚建好时是 <code>644</code>（没有 x），必须 <code>chmod +x</code> 才能 <code>./run_pipeline.sh</code> 运行。数据文件设 <code>644</code> 让所有人能读但只有你能写。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><code>chmod -R</code> 会把目录里<strong>每一个文件</strong>都改成同样的权限——如果你对 <code>raw_data/</code> 跑了 <code>chmod -R 777</code>，等于把安全门全拆了。</li>
+          <li>符号模式里 <code>+</code> 是「叠加」，<code>=</code> 是「覆盖」。<code>chmod g=rwx</code> 会把组的原有权限整个替换成 rwx，而不是「再加一点」。</li>
+          <li>只有<strong>属主</strong>（或 root）能改权限。你不是属主时，<code>chmod</code> 会报 <code>Operation not permitted</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">进阶提示（初学者可跳过）· 特殊位 setuid / setgid / sticky</div>
+        <p>八进制第一位数字可以塞「特殊权限」：<code>4</code>=setuid、<code>2</code>=setgid、<code>1</code>=sticky。最实用的是 <strong>sticky bit</strong>（<code>1</code>）：<code>/tmp</code> 目录就是 <code>1777</code>——谁都能往里写，但<strong>只有文件属主能删自己的文件</strong>。共享数据目录设 sticky 能防止「你能写就能删别人文件」的悲剧。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>今天先掌握 <code>u/g/o/a</code> 与 644/755/600/700 这几种最常见组合；sticky bit 在 Boss 战里实战一次。Lesson 07（grep）里你会用 <code>chmod +x</code> 让检索脚本跑起来。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>概念 3 · chown / chgrp：改属主与属组</h3>
+    <div class="card">
+      <p><strong>中文：</strong>文件<strong>属于</strong>某个用户（属主）和某个组（属组）。<code>chown</code>（change owner）改属主，<code>chgrp</code>（change group）改属组，<code>chown user:group</code> 一次同时改两个。</p>
+      <p><strong>English:</strong> A file <em>belongs to</em> a user and a group. <code>chown</code> changes the owner, <code>chgrp</code> changes the group, and <code>chown user:group</code> changes both at once.</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.lab{font:13px -apple-system,sans-serif;fill:#6e6e73}.t{font:15px "SF Mono",Consolas,monospace;fill:#1d1d1f}.arr{stroke:#0071e3;stroke-width:2;fill:none;marker-end:url(#ah)}</style>
+          <defs><marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#0071e3"/></marker></defs>
+          <rect x="30" y="40" width="180" height="90" rx="12" fill="#f0f4fb" stroke="#0071e3"/>
+          <text class="t" x="50" y="72">patient01.bam</text>
+          <text class="lab" x="50" y="98">属主 owner: user</text>
+          <text class="lab" x="50" y="118">属组 group: user</text>
+          <line class="arr" x1="230" y1="70" x2="420" y2="50"/>
+          <line class="arr" x1="230" y1="100" x2="420" y2="110"/>
+          <text class="t" x="430" y="50">chown user:bioinfo</text>
+          <text class="t" x="430" y="112">→ 属主 user · 属组 bioinfo</text>
+          <text class="lab" x="30" y="150">chown user file      只改属主</text>
+          <text class="lab" x="30" y="170">chown :bioinfo file  只改属组（等价 chgrp bioinfo file）</text>
+          <text class="lab" x="360" y="150">chown -R user:bioinfo dir/  递归改整棵目录树</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>chown user:bioinfo patient01.bam    <span class="c"># 属主 user，属组 bioinfo</span>
+chgrp bioinfo patient01.bam         <span class="c"># 只改属组为 bioinfo</span>
+chown -R user:bioinfo results/      <span class="c"># 递归改 results/ 下所有文件和目录</span>
+ls -l patient01.bam                 <span class="c"># 验证：看第 3、4 列</span></code></pre>
+
+      <p><strong>实例：</strong>新同事接手项目，主管把数据属主从你转给他（<code>sudo chown newbie:bioinfo *.bam</code>）；或者把共享目录属组设成 <code>bioinfo</code>，这样整个课题组的成员（都在 bioinfo 组里）就都能按「组权限」访问。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>普通用户不能随便 chown 别人</strong>：把文件属主改成别人（或 root）需要 <code>sudo</code>，否则报 <code>Operation not permitted</code>。这是安全设计——否则你就能把你的文件「嫁祸」给 root。</li>
+          <li>改了属主，<strong>原属主立刻失去控制权</strong>：chown 后，原来的人想再改权限就得看新属主的脸色。</li>
+          <li><code>chown user file</code>（不带冒号）只改属主、<strong>属组不变</strong>；<code>chown :group file</code> 只改属组、属主不变。别以为 <code>chown user</code> 会自动把组也改了。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>团队协作靠的是「<strong>组</strong>」：把数据属组设成 <code>bioinfo</code>，组权限设成 <code>rw</code>，整个课题组就能协作读写，而<strong>组外的人</strong>（其他科室）只能读。这是「让三个月后接手的人一眼看懂谁该有什么权限」的基础设施。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念和概念 1 的「属主/属组」是一体的：概念 1 回答「权限分给谁」，概念 3 回答「怎么换人」。Lesson 04 会正式学 <code>useradd</code>/<code>groupadd</code>，届时你会自己建 <code>bioinfo</code> 组、往组里加人。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> 引导练习 · Guided Practice</h2>
+    <div class="card">
+      <p>跟着敲。先建一个练习目录和文件，边敲边看 <code>ls -l</code> 的变化。</p>
+      <pre><code>mkdir -p perm_demo && cd perm_demo
+touch patient01.bam
+ls -l patient01.bam            <span class="c"># → -rw-r--r--（默认 644）</span>
+
+chmod u+x patient01.bam        <span class="c"># 属主加执行</span>
+ls -l patient01.bam            <span class="c"># → -rwxr--r--（第 4 位从 - 变 x）</span>
+
+chmod 644 patient01.bam        <span class="c"># 八进制设回 rw-r--r--</span>
+chmod g+w patient01.bam        <span class="c"># 组加写</span>
+ls -l patient01.bam            <span class="c"># → -rw-rw-r--</span>
+
+chmod a-x patient01.bam        <span class="c"># 所有人去掉执行</span>
+ls -l patient01.bam            <span class="c"># → -rw-rw-r--（本来就没 x）</span>
+
+mkdir results && chmod 755 results   <span class="c"># 目录：属主 rwx，组/其他 r-x</span>
+ls -ld results                 <span class="c"># -d 看目录本身（不看里面）</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> 实战实验 · Intensive Lab</h2>
+    <p class="muted">16 道题，分三级。先独立完成，答案在本课最后。文件名全部用真实测序风格。</p>
+
+    <h3>Level 1 · Foundation（基础，4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">建一个文件 <code>tumor.vcf</code>，用 <code>ls -l</code> 读出它的默认权限，说出那 10 个字符每个的含义。</div>
+      <div class="field"><b>Hint</b>：<code>touch tumor.vcf && ls -l tumor.vcf</code>。</div>
+      <div class="field"><b>Verification</b>：输出第一个字段长这样 <code>-rw-r--r--</code>。</div>
+      <div class="field"><b>Expected Result</b>：<code>-rw-r--r-- 1 user user 0 ... tumor.vcf</code>（默认 644）。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">给 <code>run_pipeline.sh</code> 加上执行权限。</div>
+      <div class="field"><b>Hint</b>：<code>chmod +x run_pipeline.sh</code>（<code>+x</code> 默认作用于所有人，等价 <code>a+x</code>）。</div>
+      <div class="field"><b>Verification</b>：<code>ls -l</code> 出现三处 <code>x</code>（<code>-rwxr-xr-x</code>）。</div>
+      <div class="field"><b>Expected Result</b>：<code>-rwxr-xr-x</code>（755）。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">用八进制把 <code>patient01.bam</code> 设成 <code>600</code>（只有属主能读写）。</div>
+      <div class="field"><b>Hint</b>：<code>chmod 600 patient01.bam</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls -l</code> 显示 <code>-rw-------</code>。</div>
+      <div class="field"><b>Expected Result</b>：<code>-rw------- 1 user ... patient01.bam</code>。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">用符号模式去掉「其他人」对 <code>patient01.bam</code> 的读权限。</div>
+      <div class="field"><b>Hint</b>：<code>chmod o-r patient01.bam</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls -l</code> 最后一组变成 <code>---</code>（从 <code>r--</code> 变 <code>---</code>）。</div>
+      <div class="field"><b>Expected Result</b>：<code>-rw-------</code>（如果从 600 出发则不变；从 644 出发是 <code>-rw-r-----</code>）。</div></div>
+
+    <h3>Level 2 · Integration（整合，6 题，每题强制组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">建文件 → <code>chmod 644</code> → 用 <code>ls -l</code> 验证，三步连起来（组合 chmod + ls）。</div>
+      <div class="field"><b>Hint</b>：<code>touch normal.bam &amp;&amp; chmod 644 normal.bam &amp;&amp; ls -l normal.bam</code>。</div>
+      <div class="field"><b>Verification</b>：看到 <code>-rw-r--r--</code>。</div>
+      <div class="field"><b>Expected Result</b>：<code>-rw-r--r-- 1 user ... normal.bam</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">用 <code>chmod -R</code> 给 <code>raw_data/</code> 整棵目录树统一设成「属主可读写、组和其他人只读」，再递归验证。</div>
+      <div class="field"><b>Hint</b>：<code>chmod -R 644 raw_data/</code>（但注意目录需要 x 才能进，见 Lab 9）。</div>
+      <div class="field"><b>Verification</b>：<code>ls -lR raw_data/</code> 里每个文件都是 <code>-rw-r--r--</code>。</div>
+      <div class="field"><b>Expected Result</b>：所有文件 <code>644</code>（目录权限另行讨论，这是本 Lab 的思考点）。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">组合 chown + chgrp：把 <code>results/</code> 目录的属主设为自己、属组设为 <code>bioinfo</code>，再 <code>ls -ld</code> 验证（组合 chown + ls）。</div>
+      <div class="field"><b>Hint</b>：<code>chown user:bioinfo results/</code>（组不存在可先 <code>sudo groupadd bioinfo</code>）。</div>
+      <div class="field"><b>Verification</b>：<code>ls -ld results/</code> 第 3 列 = user，第 4 列 = bioinfo。</div>
+      <div class="field"><b>Expected Result</b>：<code>drwxr-xr-x 2 user bioinfo ... results/</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">把八进制 <code>750</code> 用符号模式写出来（等价的两种写法，理解 4/2/1 换算）。</div>
+      <div class="field"><b>Hint</b>：<code>7</code>=rwx、<code>5</code>=r-x、<code>0</code>=---，对应 u/g/o。</div>
+      <div class="field"><b>Verification</b>：<code>chmod u=rwx,g=r-x,o= file</code> 后 <code>ls -l</code> 与 <code>chmod 750 file</code> 结果一致。</div>
+      <div class="field"><b>Expected Result</b>：<code>-rwxr-x---</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">建目录 <code>private/</code> 设成 <code>700</code>，再验证「其他人」能否 <code>ls</code> 和 <code>cd</code>（组合 chmod + 目录权限语义）。</div>
+      <div class="field"><b>Hint</b>：<code>mkdir private &amp;&amp; chmod 700 private</code>；用第二个账号或 <code>sudo -u</code> 模拟别人访问。</div>
+      <div class="field"><b>Verification</b>：属主能进，别人 <code>ls private</code> 报 <code>Permission denied</code>。</div>
+      <div class="field"><b>Expected Result</b>：<code>drwx------ 2 user ... private/</code>，别人无法访问。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">给目录去掉 <code>x</code> 权限，观察自己 <code>cd</code> 会怎样（组合 chmod + cd，理解 x 对目录的含义）。</div>
+      <div class="field"><b>Hint</b>：<code>chmod 600 private</code>（只有 rw，无 x），再 <code>cd private</code>。</div>
+      <div class="field"><b>Verification</b>：<code>cd private</code> 报 <code>Permission denied</code>，哪怕你是属主。</div>
+      <div class="field"><b>Expected Result</b>：报错 → 说明没有 x 的目录无法进入，这就是 Boss 战的坑。</div></div>
+
+    <h3>Level 3 · Engineering（工程，6 题：先制造问题再解决 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：把 <code>run_pipeline.sh</code> 的执行权限弄丢（<code>chmod 644</code>），运行它触发 <code>Permission denied</code>，再 <code>chmod +x</code> 修复并成功运行。</div>
+      <div class="field"><b>Hint</b>：<code>echo 'echo hello' &gt; run_pipeline.sh &amp;&amp; chmod 644 run_pipeline.sh &amp;&amp; ./run_pipeline.sh</code>。</div>
+      <div class="field"><b>Verification</b>：先报 <code>Permission denied</code>，修复后能输出 <code>hello</code>。</div>
+      <div class="field"><b>Expected Result</b>：完整走完「报错 → 定位 → 修复 → 成功」的闭环。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：给当前目录所有 <code>.sh</code> 脚本批量加执行权限。</div>
+      <div class="field"><b>Hint</b>：<code>chmod +x *.sh</code>（通配符来自 Lesson 02）。</div>
+      <div class="field"><b>Verification</b>：<code>ls -l *.sh</code> 每个脚本都有 <code>x</code>。</div>
+      <div class="field"><b>Expected Result</b>：所有 <code>.sh</code> 变 <code>755</code>。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：给共享目录 <code>shared_data/</code> 设「组内可读可写、组外只读」，并让组权限方案在三个月后仍清晰——用 <code>chgrp</code> + 八进制一次到位，<code>ls -ld</code> 留证。</div>
+      <div class="field"><b>Hint</b>：<code>chgrp bioinfo shared_data &amp;&amp; chmod 775 shared_data</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls -ld shared_data</code> 显示 <code>drwxrwxr-x ... bioinfo</code>。</div>
+      <div class="field"><b>Expected Result</b>：属主=组=rwx，其他人=r-x，属组 bioinfo。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>验证失败时的排查步骤</strong>：模拟「别人进不了你的目录」，一步步判断是缺 <code>r</code> 还是缺 <code>x</code>，并用 <code>ls -ld</code> 给出证据。</div>
+      <div class="field"><b>Hint</b>：先 <code>ls -ld 目录</code> 看权限，缺 x → 无法 cd，缺 r → 无法列出。</div>
+      <div class="field"><b>Verification</b>：你能说出「这个目录 <code>-rwx------</code> 别人全无权限，是因为 o 位是 <code>---</code>」这类结论。</div>
+      <div class="field"><b>Expected Result</b>：形成「先看权限位 → 定位缺失项 → 对症 chmod」的排查思路。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">给共享目录设 <strong>sticky bit</strong>（<code>1777</code>），验证「只有文件属主能删自己的文件」。这是防止误删的最后一道保险。</div>
+      <div class="field"><b>Hint</b>：<code>chmod 1777 shared_tmp</code>；<code>ls -ld</code> 看到其他位的 <code>x</code> 变成 <code>t</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls -ld shared_tmp</code> 显示 <code>drwxrwxrwt</code>；两个用户各建文件，A 删 B 的文件报 <code>Operation not permitted</code>。</div>
+      <div class="field"><b>Expected Result</b>：<code>drwxrwxrwt</code>，sticky 生效。</div></div>
+
+    <div class="task"><div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：给一个完整的测序项目目录设定权限策略——<code>raw_data/</code> 只读（防删）、<code>results/</code> 组可写、脚本可执行，全程用 <code>ls -lR</code> 截图留证。</div>
+      <div class="field"><b>Hint</b>：<code>chmod -R 444 raw_data</code>（只读）、<code>chmod -R g+w results</code>、<code>chmod +x *.sh</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls -lR</code> 整棵树权限符合策略。</div>
+      <div class="field"><b>Expected Result</b>：一份清晰的权限方案 + 截图（这就是 Boss 战的预演）。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> 排错挑战 · Debug Challenge</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。每题按 Problem → Think → Answer → Explanation 展开。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>bash: ./run_pipeline.sh: Permission denied</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：运行脚本 <code>./run_pipeline.sh</code>，shell 报 <code>Permission denied</code>。</div>
+        <div class="think">💭 <b>Think</b>：文件存在吗？权限里有没有 <code>x</code>？先别急着 sudo。</div>
+        <div class="step"><b>Answer</b>：<code>ls -l run_pipeline.sh</code> → 看到 <code>-rw-r--r--</code>，缺执行位。执行 <code>chmod +x run_pipeline.sh</code> 再运行。</div>
+        <div class="explain">🧠 <b>Explanation</b>：脚本本质是「要被 shell 读取并执行」的文件，运行它需要 <strong>x 执行权限</strong>。默认新建文件是 644（无 x），所以必须手动加。用 <code>bash run_pipeline.sh</code> 也能跑（它绕过 x，直接让 bash 读文件），但标准做法是加 x 后 <code>./</code> 运行。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>cat patient01.bam: Permission denied</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想查看 <code>patient01.bam</code>，<code>cat</code> 报 <code>Permission denied</code>。</div>
+        <div class="think">💭 <b>Think</b>：是文件本身没读权限，还是它所在的目录没进权限？</div>
+        <div class="step"><b>Answer</b>：<code>ls -l patient01.bam</code> 看文件的读权限；<code>ls -ld</code> 看父目录的 <code>x</code>。文件若 <code>600</code>（只有属主能读）而你不是属主，就无解；若你本可读，多半是父目录缺 <code>x</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：读一个文件要「<strong>沿途每个父目录都有 x</strong>」+「文件本身有 r」。很多人只查文件权限，忘了目录的 x 是「通行证」——没有 x，连路径都走不到文件面前。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>cd results: Permission denied</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>cd results</code> 进不去，报 <code>Permission denied</code>。</div>
+        <div class="think">💭 <b>Think</b>：目录缺了什么？<code>cd</code> 需要目录的哪个权限？</div>
+        <div class="step"><b>Answer</b>：<code>ls -ld results</code> → 若权限是 <code>drw-r--r--</code>（无 x），则无法进入。执行 <code>chmod +x results</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>cd</code> 进目录需要的是<strong>目录的 x（执行/进入）权限</strong>，不是 r。r 只负责「列出文件名」，x 才负责「走进去」。目录没了 x，等于门被焊死。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>chmod: changing permissions of 'raw_data': Operation not permitted</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想给 <code>raw_data</code> 改权限，<code>chmod</code> 报 <code>Operation not permitted</code>。</div>
+        <div class="think">💭 <b>Think</b>：你真的是这个文件的属主吗？</div>
+        <div class="step"><b>Answer</b>：<code>ls -ld raw_data</code> 看属主列。若不是你（比如属主是 root 或别人），你无权 chmod。找属主或 root（<code>sudo chmod ...</code>）。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<strong>只有属主（或 root）能改权限</strong>。这是安全红线——否则任何用户都能把别人的文件改成自己可写。很多共享数据属主是 root 或管理员，普通研究员只能读，改不了。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>rm: cannot remove 'SRR123_1.fastq.gz': Operation not permitted</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：在共享目录里删一个文件，<code>rm</code> 报 <code>Operation not permitted</code>，但目录明明所有人可写。</div>
+        <div class="think">💭 <b>Think</b>：目录有 w 为什么删不掉？看看目录权限最后一位是不是 <code>t</code>？</div>
+        <div class="step"><b>Answer</b>：<code>ls -ld</code> 看到 <code>drwxrwxrwt</code>——这是<strong> sticky bit</strong>（<code>1777</code>）。只有文件属主（或 root）能删这个文件，你删的是别人的文件。</div>
+        <div class="explain">🧠 <b>Explanation</b>：sticky bit 让「能写目录」和「能删别人的文件」解耦。这正是 <code>/tmp</code> 的机制，也是共享数据目录防误删的利器。想删？先让文件属主删，或 <code>sudo rm</code>。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> 工程场景 · Engineering Scenarios</h2>
+    <p class="muted">先写下你自己的方案，再展开看参考答案。每个场景都要想「三个月后的人能否一眼看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>6 个研究员要共用 <code>/data/PRAD/</code> 目录：其中 2 个是负责人（能读写删），另外 4 个只能读不能改。课题组长要求「三个月后新来的人也能一眼看懂谁有什么权限」。你怎么设计？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>用「组」而不是逐个设人：</p>
+        <pre><code>sudo groupadd prad_editors        <span class="c"># 负责人组</span>
+sudo chgrp -R prad_editors /data/PRAD
+chmod -R 775 /data/PRAD           <span class="c"># 组内 rwx，其他人 r-x</span>
+sudo usermod -aG prad_editors lead1 lead2   <span class="c"># 把 2 个负责人加进组</span></code></pre>
+        <p><strong>可交接性</strong>：权限写在「组名」上，不写在人身上。新负责人来了，<code>usermod -aG prad_editors 新同事</code> 一行搞定，不用逐个文件 chown。组名 <code>prad_editors</code> 自带语义（PRAD 项目 · 编辑者）。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>你的 RNA 流程昨天还好好的，今天突然在「写结果」这一步报 <code>Permission denied</code>。没人改过代码。你会从哪几个方向排查权限？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>按「文件 → 目录 → 属主」三层排查：</p>
+        <pre><code>ls -ld results/          <span class="c"># 1. 结果目录还有 w 吗？</span>
+ls -l results/           <span class="c"># 2. 里面的目标文件是什么权限/属主？</span>
+whoami                   <span class="c"># 3. 我是不是用错账号跑了？</span></code></pre>
+        <p>最常见：昨天是 <code>sudo</code> 跑（文件属主变成 root），今天普通用户跑 → 写不进 root 的文件。根因是<strong>属主漂移</strong>，不是权限位被改。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>你想让一个共享目录「谁都能放文件，但谁都不能删别人的文件」。用一个数字 + 一个命令实现，并说明它和 <code>/tmp</code> 的关系。</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p><code>chmod 1777 shared_inbox</code>。第一位 <code>1</code> 是 sticky bit，后三位 <code>777</code> 让所有人可读写执行。效果：谁都能往里写，但只有文件属主能删。这正是 <code>/tmp</code> 的默认权限。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>你离职交接，要把 <code>pipeline/</code> 整棵目录树转给同事 <code>newbie</code>（他属于 <code>bioinfo</code> 组）。一条命令完成属主属组的交接，并保证他之后能正常读写。</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p><code>sudo chown -R newbie:bioinfo pipeline/</code>。<code>-R</code> 递归转移整棵树，<code>newbie:bioinfo</code> 一次设好属主+属组。之后 <code>ls -ld pipeline/</code> 确认第 3、4 列已经变成 newbie 和 bioinfo。</p>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss 战 · Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>给一个共享测序项目 <code>PRAD_project/</code> 设定一套完整、可交接的权限方案，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建目录树：<code>PRAD_project/{raw_data,trimmed,results,logs}</code>。</li>
+        <li><code>raw_data/</code>：设成<strong>只读</strong>（<code>444</code> 文件、目录加 x），防误删。</li>
+        <li><code>results/</code>：属组改成 <code>bioinfo</code>，设 <code>775</code>（组可写、组外只读）。</li>
+        <li><code>logs/</code>：设 <code>1777</code> sticky bit（谁都能写、谁都不能删别人的日志）。</li>
+        <li>一个 <code>run_pipeline.sh</code> 脚本，加执行权限并能运行。</li>
+        <li>用 <code>ls -lR</code> 截图整棵树的最终权限。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>有一个子目录被设成了 <code>600</code>（缺 <code>x</code>），你 <code>cd</code> 进去会报 <code>Permission denied</code>——哪怕你是属主。找到它，用 <code>chmod</code> 修复，并把「你如何发现并修复」的过程截图。</p>
+      </div>
+      <p><strong>验收清单：</strong>目录树 ✅ 三处权限策略 ✅ 脚本可执行 ✅ 埋坑已修复 ✅ 截图 + 命令进 <code>github/lesson03/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> 检查点 · Checkpoints</h2>
+    <table>
+      <tr><th>时间</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>说出 10 字符权限字段每位的含义，会读 <code>ls -l</code></td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2 全部练习（符号/八进制/递归/属主属组）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3 工程题，能排查「目录进不去/删不掉」两类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含埋坑 debug），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> 答案 · Answer Key</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>touch tumor.vcf &amp;&amp; ls -l tumor.vcf</code> → <code>-rw-r--r--</code>。10 字符 = 类型(<code>-</code>) + 属主(<code>rw-</code>) + 属组(<code>r--</code>) + 其他(<code>r--</code>)。</p>
+        <p><b>Lab 2：</b><code>chmod +x run_pipeline.sh</code> → <code>-rwxr-xr-x</code>。</p>
+        <p><b>Lab 3：</b><code>chmod 600 patient01.bam</code> → <code>-rw-------</code>。</p>
+        <p><b>Lab 4：</b><code>chmod o-r patient01.bam</code>（从 644 出发 → <code>-rw-r-----</code>）。</p>
+        <p><b>Lab 5：</b><code>touch normal.bam &amp;&amp; chmod 644 normal.bam &amp;&amp; ls -l normal.bam</code>。</p>
+        <p><b>Lab 6：</b><code>chmod -R 644 raw_data/</code>（注意：文件 644 没问题，目录若也变 644 会丢 x，需 <code>chmod -R u+X</code> 或对目录单独 <code>find -type d -exec chmod 755</code>）。</p>
+        <p><b>Lab 7：</b><code>chown user:bioinfo results/</code> 然后 <code>ls -ld results/</code>。</p>
+        <p><b>Lab 8：</b><code>chmod u=rwx,g=r-x,o= file</code>（等价 <code>chmod 750 file</code>）。</p>
+        <p><b>Lab 9：</b><code>mkdir private &amp;&amp; chmod 700 private</code>，别人 <code>ls private</code> → <code>Permission denied</code>。</p>
+        <p><b>Lab 10：</b><code>chmod 600 private &amp;&amp; cd private</code> → <code>Permission denied</code>（目录缺 x 无法进入）。</p>
+        <p><b>Lab 11：</b><code>chmod 644 run_pipeline.sh</code> → 运行报错 → <code>chmod +x run_pipeline.sh</code> → 成功。</p>
+        <p><b>Lab 12：</b><code>chmod +x *.sh</code>。</p>
+        <p><b>Lab 13：</b><code>chgrp bioinfo shared_data &amp;&amp; chmod 775 shared_data</code>。</p>
+        <p><b>Lab 14：</b><code>ls -ld 目录</code> 看权限位 → 缺 x 则无法 cd，缺 r 则无法列出 → 对症 <code>chmod</code>。</p>
+        <p><b>Lab 15：</b><code>chmod 1777 shared_tmp</code> → <code>ls -ld</code> 显示 <code>drwxrwxrwt</code>，别人删不了你的文件。</p>
+        <p><b>Lab 16：</b><code>chmod -R 444 raw_data</code> + <code>chmod -R g+w results</code> + <code>chmod +x *.sh</code>，<code>ls -lR</code> 留证。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki 卡组 · Anki Deck</h2>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>chmod +x</code></td><td>加执行权限（脚本必备）</td></tr>
+      <tr><td><code>chmod 644</code></td><td>rw-r--r--（文件默认）</td></tr>
+      <tr><td><code>chmod 755</code></td><td>rwxr-xr-x（脚本/目录常用）</td></tr>
+      <tr><td><code>chmod 600</code></td><td>rw-------（私有文件）</td></tr>
+      <tr><td><code>chmod 700</code></td><td>rwx------（私有目录）</td></tr>
+      <tr><td><code>chmod 1777</code></td><td>sticky bit（防删别人文件）</td></tr>
+      <tr><td><code>chmod -R</code></td><td>递归改整棵目录树</td></tr>
+      <tr><td><code>chown user:group</code></td><td>同时改属主和属组</td></tr>
+      <tr><td><code>chgrp group</code></td><td>只改属组</td></tr>
+      <tr><td><code>ls -ld</code></td><td>看目录本身的权限（不是内容）</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>权限三元组是哪三类人？</td><td>属主 owner / 属组 group / 其他人 others</td></tr>
+      <tr><td>r=4 w=2 x=1，rwx 加起来等于？</td><td>7</td></tr>
+      <tr><td>755 展开成什么？</td><td>rwxr-xr-x</td></tr>
+      <tr><td>目录的 x 权限有什么作用？</td><td>进入目录（cd）/ 访问里面文件</td></tr>
+      <tr><td>目录没有 x 会怎样？</td><td>cd 报 Permission denied，哪怕有 r</td></tr>
+      <tr><td>sticky bit 的作用？</td><td>只有文件属主能删自己的文件（/tmp 机制）</td></tr>
+      <tr><td>符号模式 <code>=</code> 和 <code>+</code> 区别？</td><td>= 覆盖，+ 叠加</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>运行脚本报 Permission denied</td><td>缺 x，<code>chmod +x</code></td></tr>
+      <tr><td>cd 目录报 Permission denied</td><td>目录缺 x，<code>chmod +x 目录</code></td></tr>
+      <tr><td>chmod 报 Operation not permitted</td><td>你不是属主（需 root/sudo）</td></tr>
+      <tr><td>能写目录却删不了别人的文件</td><td>sticky bit，只有属主能删</td></tr>
+      <tr><td>读文件报 Permission denied 但文件有 r</td><td>父目录缺 x（沿途通行证）</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> 小测 · Quick Quiz</h2>
+    <div class="quiz" id="q1">
+      <p class="q">八进制 755 的属组权限是什么？</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">rwx</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">r-x</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">r--</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">目录没有 x 权限，会发生什么？</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">能 cd 但不能 ls</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">cd 报 Permission denied</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">没影响</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">想「谁都能写、但谁都不能删别人的文件」，用哪个权限？</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">777</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">755</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">1777</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">符号模式里 <code>chmod g=rwx</code> 的 <code>=</code> 是什么意思？</p>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">把组权限精确设为 rwx（覆盖）</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">在原有基础上再加 rwx</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">给组和属主都加 rwx</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub 作业 · Homework</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson03/</code>，打开 <code>README.md</code> 记录你的费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 03: Permissions"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ 正确！' : '❌ 再想想，看上面的 Knowledge 部分。';
+  }
+</script>
+</body>
+</html>
