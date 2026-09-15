@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 04 · User &amp; Group ｜ Linux 用户与组</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 10%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 深色模式</button>
+  <button onclick="window.print()">🖨 打印 / 存 PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 04 · Part I · Linux Foundations</div>
+    <h1>User &amp; Group</h1>
+    <p class="sub">用户与组 —— 把权限分给「对的人」</p>
+    <div class="progress-label"><span>课程进度</span><span>04 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">难度</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">时长</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">交付物</div><div class="v">给课题组开账号、建组、拉人</div></div>
+      <div class="item"><div class="k">前置知识</div><div class="v">Lesson 03（属主/属组/权限）</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> 任务背景 · Mission Context</h2>
+    <div class="card">
+      <p>上一课你把 <code>PRAD_project/</code> 的权限设好了——<code>results/</code> 属组是 <code>bioinfo</code>、组可写。但主管一看就说：「权限位有了，<strong>人还没就位</strong>。」</p>
+      <p>原来 <code>bioinfo</code> 这个组<strong>根本还不存在</strong>，更别说往里面加人。主管给你三项新任务：</p>
+      <ul>
+        <li>👤 新来了两个研究员 <code>newbie</code> 和 <code>colleague</code>，给他们<strong>开账号</strong>（有家目录、能登录）。</li>
+        <li>👥 建一个 <code>bioinfo</code> 课题组，把这两个人<strong>拉进组</strong>——这样上节课设的「组可写」才真正生效。</li>
+        <li>🔒 设好<strong>密码</strong>，让每个人只能登录自己的账号。</li>
+      </ul>
+      <p>权限是「规则」，用户和组是「执行规则的人」。这一课，你学怎么创建和管理这些人。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>权限要分给「对的人」→ 需要创建用户、建组、把人拉进组 → 用 <code>useradd</code> / <code>groupadd</code> / <code>usermod</code> / <code>passwd</code>（都需 <code>sudo</code>）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> 知识 · Knowledge（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 个概念。每个：中文 + 英文 + 心智模型 + SVG + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>概念 1 · 用户账号：whoami / id / who / getent</h3>
+    <div class="card">
+      <p><strong>中文：</strong>每个能登录系统的人都有一个<strong>账号</strong>。内核其实不认名字，只认数字 <strong>UID</strong>（User ID）；用户名只是给人看的。所有用户信息存在 <code>/etc/passwd</code> 里。</p>
+      <p><strong>English:</strong> Every login identity is a <em>user account</em> with a numeric <em>UID</em>; usernames are for humans. Account info lives in <code>/etc/passwd</code>.</p>
+
+      <div class="diagram">
+        <svg width="620" height="200" viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg">
+          <style>.cell{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:13px -apple-system,sans-serif;fill:#6e6e73}.hdr{font:12px -apple-system,sans-serif;fill:#6e6e73;font-weight:700}.o{fill:#0071e3}</style>
+          <text class="hdr" x="0" y="20">/etc/passwd 一行 = 7 个字段（冒号分隔）</text>
+          <rect class="o" x="0" y="36" width="110" height="34" rx="6"/><text class="cell" x="55" y="58" text-anchor="middle">user</text>
+          <rect class="o" x="114" y="36" width="34" height="34" rx="6"/><text class="cell" x="131" y="58" text-anchor="middle">x</text>
+          <rect class="o" x="152" y="36" width="54" height="34" rx="6"/><text class="cell" x="179" y="58" text-anchor="middle">1000</text>
+          <rect class="o" x="210" y="36" width="54" height="34" rx="6"/><text class="cell" x="237" y="58" text-anchor="middle">1000</text>
+          <rect class="o" x="268" y="36" width="64" height="34" rx="6"/><text class="cell" x="300" y="58" text-anchor="middle">Full Name</text>
+          <rect class="o" x="336" y="36" width="120" height="34" rx="6"/><text class="cell" x="396" y="58" text-anchor="middle">/home/user</text>
+          <rect class="o" x="460" y="36" width="100" height="34" rx="6"/><text class="cell" x="510" y="58" text-anchor="middle">/bin/bash</text>
+          <text class="lab" x="55" y="92" text-anchor="middle">用户名</text>
+          <text class="lab" x="131" y="92" text-anchor="middle">x=密码存别处</text>
+          <text class="lab" x="179" y="92" text-anchor="middle">UID</text>
+          <text class="lab" x="237" y="92" text-anchor="middle">GID</text>
+          <text class="lab" x="300" y="92" text-anchor="middle">描述(GECOS)</text>
+          <text class="lab" x="396" y="92" text-anchor="middle">家目录</text>
+          <text class="lab" x="510" y="92" text-anchor="middle">登录 shell</text>
+          <text class="lab" x="0" y="126">常用查询命令：</text>
+          <text class="lab" x="0" y="148">whoami  我是谁        id  我的 UID/GID/组</text>
+          <text class="lab" x="0" y="170">who / w  谁登录了      getent passwd user  查某用户信息</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>whoami                <span class="c"># → user（当前用户名）</span>
+id                    <span class="c"># → uid=1000(user) gid=1000(user) groups=1000(user),27(sudo)</span>
+id -un                <span class="c"># 只看用户名</span>
+who                   <span class="c"># 谁登录了（用户名 终端 时间 IP）</span>
+w                     <span class="c"># 谁登录了 + 正在跑什么命令</span>
+getent passwd user    <span class="c"># 查 user 的完整 passwd 行</span></code></pre>
+
+      <p><strong>实例：</strong><code>id</code> 是排查权限问题第一步——它直接告诉你「我是谁、UID 多少、在哪些组」，对应上一课权限判断里的「属主/属组」。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>root 是 UID 0</strong>：它是唯一 UID 为 0 的超级用户，几乎不受权限限制。别把「你是自己账号」和「你是 root」混为一谈。</li>
+          <li><strong>普通用户 UID 从 1000 起</strong>：1000 以下（1–999）是系统服务账号（如 <code>www-data</code>、<code>sshd</code>），不是给人登录用的。</li>
+          <li><code>who</code> 看的是<strong>登录会话</strong>，不是「系统里有哪些用户」。想看所有用户要用 <code>getent passwd</code> 或 <code>cat /etc/passwd</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>多用户服务器上，出了事第一件事就是问「<strong>是谁</strong>干的」。<code>who</code>/<code>w</code> 看当下谁在线，<code>id</code> 看某个身份有多大权限，<code>getent</code> 查账号是否真实存在。这三个命令是「审计」的基本功。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念把 Lesson 03 的「属主/属组」落到实处——属主本质就是一个 UID。今天先会「读」用户，概念 3 再学「建/改/删」用户。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>概念 2 · 组：主组 vs 附加组</h3>
+    <div class="card">
+      <p><strong>中文：</strong>组（group）是「一批用户」的集合，用来<strong>批量授权</strong>。每个用户有<strong>一个主组</strong>（primary group，建号时自动指定）和<strong>零到多个附加组</strong>（supplementary groups，手动加入）。</p>
+      <p><strong>English:</strong> A <em>group</em> is a set of users, used to grant permissions in bulk. Each user has one <em>primary group</em> and zero or more <em>supplementary groups</em>.</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:14px "SF Mono",Consolas,monospace;fill:#1d1d1f}.lab{font:13px -apple-system,sans-serif;fill:#6e6e73}.arr{stroke:#0071e3;stroke-width:2;fill:none;marker-end:url(#ag)}.o{fill:#0071e3}.g{fill:#34c759}.s{fill:#ff9f0a}</style>
+          <defs><marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#0071e3"/></marker></defs>
+          <rect x="20" y="60" width="120" height="50" rx="10" fill="#f0f4fb" stroke="#0071e3"/>
+          <text class="t" x="80" y="90" text-anchor="middle">user (UID 1000)</text>
+          <line class="arr" x1="140" y1="72" x2="220" y2="40"/>
+          <line class="arr" x1="140" y1="90" x2="220" y2="90"/>
+          <line class="arr" x1="140" y1="108" x2="220" y2="140"/>
+          <rect class="o" x="222" y="28" width="160" height="34" rx="6"/><text class="t" x="302" y="50" text-anchor="middle" fill="#fff">主组 user (1000)</text>
+          <rect class="g" x="222" y="78" width="160" height="34" rx="6"/><text class="t" x="302" y="100" text-anchor="middle" fill="#fff">附加组 bioinfo</text>
+          <rect class="s" x="222" y="128" width="160" height="34" rx="6"/><text class="t" x="302" y="150" text-anchor="middle" fill="#fff">附加组 sudo</text>
+          <text class="lab" x="20" y="138">新文件默认属组 = 主组</text>
+          <text class="lab" x="20" y="160">附加组用来额外授权（如 bioinfo 共享、sudo 提权）</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>groups                <span class="c"># 看自己在哪些组</span>
+groups newbie         <span class="c"># 看 newbie 在哪些组</span>
+id -Gn                <span class="c"># 只列组名（不带数字）</span>
+getent group bioinfo  <span class="c"># 查 bioinfo 组信息（成员列表在最后）</span>
+cat /etc/group        <span class="c"># 所有组都在这个文件</span></code></pre>
+
+      <p><strong>实例：</strong>Ubuntu 上每个新用户的<strong>主组默认等于用户名</strong>（<code>user</code> 的主组是 <code>user</code>）。把研究员拉进 <code>bioinfo</code> 附加组后，他就能按 <code>results/</code> 的「组权限」读写——这正是上一课设的 <code>chgrp bioinfo</code> 生效的前提。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong><code>usermod -G</code> 不带 <code>-a</code> 会覆盖</strong>：<code>-a</code> 是 append（追加），少了它，原来的附加组全被清空、只剩你指定的。这是最经典的一个坑（Boss 战要埋）。</li>
+          <li>加入新组后，<strong>当前已登录的会话不立刻生效</strong>，通常要重新登录（或 <code>newgrp</code>）才刷新组身份。</li>
+          <li>主组只有一个，附加组可以有很多；<code>id -Gn</code> 里第一个是主组，其余是附加组。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>团队权限永远用<strong>组</strong>来管，不逐个给个人设：6 个研究员共享一个目录，就建一个 <code>bioinfo</code> 组、设一次组权限，人来了 <code>usermod -aG</code>、人走了 <code>gpasswd -d</code>。这样「三个月后的人」看组名就知道权限边界。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念是 Lesson 03「组权限」的另一半：03 教你「权限分给组」，本课教你「组从哪来、人怎么进组」。概念 3 把这些命令串起来。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>概念 3 · 管理命令：useradd / passwd / usermod / groupadd / userdel + sudo</h3>
+    <div class="card">
+      <p><strong>中文：</strong>创建、设密、改、删用户和组。这些改动影响全系统，所以<strong>都要 root 权限</strong>——用 <code>sudo</code> 临时提权执行。</p>
+      <p><strong>English:</strong> Create, modify, and delete users and groups. These changes are system-wide, so they need root — via <code>sudo</code>.</p>
+
+      <div class="diagram">
+        <svg width="620" height="170" viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.arr{stroke:#8e8e93;stroke-width:2;fill:none;marker-end:url(#as)}.o{fill:#0071e3}.g{fill:#34c759}.r{fill:#ff375f}</style>
+          <defs><marker id="as" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#8e8e93"/></marker></defs>
+          <rect class="o" x="0" y="30" width="180" height="34" rx="6"/><text class="t" x="90" y="52" text-anchor="middle">sudo groupadd bioinfo</text>
+          <rect class="o" x="0" y="76" width="180" height="34" rx="6"/><text class="t" x="90" y="98" text-anchor="middle">sudo useradd -m newbie</text>
+          <rect class="o" x="0" y="122" width="180" height="34" rx="6"/><text class="t" x="90" y="144" text-anchor="middle">sudo passwd newbie</text>
+          <rect class="g" x="220" y="76" width="190" height="34" rx="6"/><text class="t" x="315" y="98" text-anchor="middle">sudo usermod -aG bioinfo newbie</text>
+          <rect class="r" x="450" y="76" width="160" height="34" rx="6"/><text class="t" x="530" y="98" text-anchor="middle">sudo userdel -r newbie</text>
+          <line class="arr" x1="180" y1="47" x2="210" y2="90"/>
+          <line class="arr" x1="180" y1="93" x2="210" y2="90"/>
+          <line class="arr" x1="180" y1="139" x2="210" y2="96"/>
+          <line class="arr" x1="410" y1="93" x2="440" y2="93"/>
+          <text class="lab" x="0" y="12">建组 → 建号 → 设密 → 拉组（→ 离职删号）</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>sudo groupadd bioinfo                <span class="c"># 建组</span>
+sudo useradd -m -s /bin/bash newbie  <span class="c"># 建用户（-m 建家目录，-s 指定 shell）</span>
+sudo passwd newbie                   <span class="c"># 设/改密码</span>
+sudo usermod -aG bioinfo newbie      <span class="c"># 追加到 bioinfo 组（-a 必须！）</span>
+sudo usermod -aG sudo newbie         <span class="c"># 给 sudo 权限</span>
+sudo userdel -r newbie               <span class="c"># 删用户（-r 连家目录一起删）</span>
+sudo passwd -l newbie                <span class="c"># 锁账号（禁止登录，比删号更安全）</span></code></pre>
+
+      <p><strong>实例：</strong>给新人开一个标准账号：<code>sudo useradd -m -s /bin/bash newbie</code>（建号+家目录+登录 shell），再 <code>sudo passwd newbie</code> 设密码，最后 <code>sudo usermod -aG bioinfo newbie</code> 拉进课题组。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong><code>useradd</code> 不带 <code>-m</code> 不建家目录</strong>：用户登录后可能没有家目录、shell 是 <code>/bin/sh</code>。给人开号务必带 <code>-m</code>。</li>
+          <li><strong><code>usermod -G</code> 忘 <code>-a</code></strong>：把附加组「替换」掉，用户可能突然失去 sudo 或 bioinfo 权限。</li>
+          <li><strong><code>userdel</code> 不带 <code>-r</code></strong>：只删账号、<strong>家目录和文件还在</strong>，离职人员的数据残留是安全隐患。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">进阶提示（初学者可跳过）</div>
+        <p><code>adduser</code> 是 Debian/Ubuntu 的交互式友好版（会自动建家目录、引导设密码），适合手动开几个号；但脚本里必须用 <code>useradd</code>（非交互、可重复）。<code>sudo</code> 的原理：临时以 root 身份跑单条命令，权限记在 <code>/etc/sudoers</code>，Ubuntu 用 <code>sudo</code> 组管理谁能提权。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念是 Lesson 04 的落点，也是 Lesson 03 权限体系的「上游」：先有正确的用户和组，权限才有意义。下一课（Lesson 05 · Vim Boss Fight）会需要你用 <code>sudo</code> 编辑系统配置文件。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> 引导练习 · Guided Practice</h2>
+    <div class="card">
+      <p>先「读」再「改」。读的部分不需要 sudo，改的部分才要。</p>
+      <pre><code>whoami                    <span class="c"># 我是谁</span>
+id                        <span class="c"># uid=1000(user) gid=1000(user) groups=...</span>
+groups                    <span class="c"># 我在哪些组</span>
+who                       <span class="c"># 谁登录了</span>
+getent passwd user        <span class="c"># 查自己那条 passwd 记录</span>
+cat /etc/group            <span class="c"># 系统所有组</span>
+
+sudo groupadd bioinfo     <span class="c"># 建组（开始需要 root 权限）</span>
+getent group bioinfo      <span class="c"># → bioinfo:x:1001:</span>
+sudo useradd -m -s /bin/bash newbie   <span class="c"># 建用户+家目录</span>
+sudo passwd newbie        <span class="c"># 设密码（交互输入两次）</span>
+sudo usermod -aG bioinfo newbie       <span class="c"># 拉进 bioinfo 组</span>
+groups newbie             <span class="c"># 验证：newbie 已在 bioinfo 组</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> 实战实验 · Intensive Lab</h2>
+    <p class="muted">16 道题，分三级。先独立完成，答案在本课最后。改系统的题都要加 <code>sudo</code>。</p>
+
+    <h3>Level 1 · Foundation（基础，4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">查看当前登录的用户名。</div>
+      <div class="field"><b>Hint</b>：<code>whoami</code>。</div>
+      <div class="field"><b>Verification</b>：输出你的用户名（如 <code>user</code>）。</div>
+      <div class="field"><b>Expected Result</b>：<code>user</code>（或你实际的名字）。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">用 <code>id</code> 读出你的 UID、GID 和所有组。</div>
+      <div class="field"><b>Hint</b>：<code>id</code>。</div>
+      <div class="field"><b>Verification</b>：输出含 <code>uid=</code>、<code>gid=</code>、<code>groups=</code>。</div>
+      <div class="field"><b>Expected Result</b>：<code>uid=1000(user) gid=1000(user) groups=1000(user),27(sudo)</code>。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">查看你属于哪些组（组名列表）。</div>
+      <div class="field"><b>Hint</b>：<code>groups</code> 或 <code>id -Gn</code>。</div>
+      <div class="field"><b>Verification</b>：输出一个或多个组名。</div>
+      <div class="field"><b>Expected Result</b>：<code>user sudo</code> 之类。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">查一个用户的完整 passwd 信息（用户名、UID、家目录、shell）。</div>
+      <div class="field"><b>Hint</b>：<code>getent passwd user</code>。</div>
+      <div class="field"><b>Verification</b>：输出 7 个冒号分隔的字段。</div>
+      <div class="field"><b>Expected Result</b>：<code>user:x:1000:1000:,,,:/home/user:/bin/bash</code>。</div></div>
+
+    <h3>Level 2 · Integration（整合，6 题，每题组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">组合 whoami + id：确认「<code>whoami</code> 输出的名字」和「<code>id -un</code>」一致。</div>
+      <div class="field"><b>Hint</b>：<code>whoami &amp;&amp; id -un</code>。</div>
+      <div class="field"><b>Verification</b>：两行输出完全相同。</div>
+      <div class="field"><b>Expected Result</b>：两行都是你的用户名。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">建组 <code>bioinfo</code>，再用 <code>getent group</code> 验证它已存在（组合 groupadd + getent）。</div>
+      <div class="field"><b>Hint</b>：<code>sudo groupadd bioinfo &amp;&amp; getent group bioinfo</code>。</div>
+      <div class="field"><b>Verification</b>：<code>getent</code> 输出 <code>bioinfo:x:1001:</code>（末尾是成员列表，暂空）。</div>
+      <div class="field"><b>Expected Result</b>：<code>bioinfo:x:1001:</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">建用户 <code>newbie</code>（带家目录），再验证 <code>/home/newbie</code> 已生成（组合 useradd + ls）。</div>
+      <div class="field"><b>Hint</b>：<code>sudo useradd -m -s /bin/bash newbie &amp;&amp; ls -ld /home/newbie</code>。</div>
+      <div class="field"><b>Verification</b>：<code>/home/newbie</code> 存在且属主是 newbie。</div>
+      <div class="field"><b>Expected Result</b>：<code>drwxr-x--- 2 newbie newbie ... /home/newbie</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">设密码 + 用 <code>su</code> 或 <code>sudo -u</code> 验证能切到新用户（组合 passwd + su）。</div>
+      <div class="field"><b>Hint</b>：<code>sudo passwd newbie</code> 设密，再 <code>su - newbie</code> 切换，<code>exit</code> 退出。</div>
+      <div class="field"><b>Verification</b>：切过去后 <code>whoami</code> 显示 <code>newbie</code>。</div>
+      <div class="field"><b>Expected Result</b>：成功切换到 newbie 的身份。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">把 <code>newbie</code> 追加进 <code>bioinfo</code> 组，再用 <code>groups newbie</code> 验证（组合 usermod + groups）。</div>
+      <div class="field"><b>Hint</b>：<code>sudo usermod -aG bioinfo newbie &amp;&amp; groups newbie</code>。</div>
+      <div class="field"><b>Verification</b>：输出里含 <code>bioinfo</code>，且原来的组没丢。</div>
+      <div class="field"><b>Expected Result</b>：<code>newbie : newbie bioinfo</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">读 <code>/etc/passwd</code> 里 <code>newbie</code> 那一行，说出 7 个字段各是什么（组合 grep + 概念理解）。</div>
+      <div class="field"><b>Hint</b>：<code>grep newbie /etc/passwd</code>。</div>
+      <div class="field"><b>Verification</b>：能指着每个冒号分隔的字段说出名字。</div>
+      <div class="field"><b>Expected Result</b>：<code>newbie:x:1001:1001:,,,:/home/newbie:/bin/bash</code>。</div></div>
+
+    <h3>Level 3 · Engineering（工程，6 题：先制造问题再解决 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：故意用 <code>usermod -G</code>（忘 <code>-a</code>）把 newbie 的附加组覆盖掉，观察 <code>groups newbie</code> 变化，再用 <code>usermod -aG</code> 修复。</div>
+      <div class="field"><b>Hint</b>：<code>sudo usermod -G bioinfo newbie</code>（无 -a）→ 看组，再 <code>sudo usermod -aG sudo newbie</code> 观察差异。</div>
+      <div class="field"><b>Verification</b>：你能说清 <code>-a</code> 缺失导致的「覆盖 vs 追加」区别。</div>
+      <div class="field"><b>Expected Result</b>：完整走完「覆盖 → 发现 → 追加修复」闭环。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：用 <code>for</code> 循环给 3 个新用户批量建号并拉进 <code>bioinfo</code> 组。</div>
+      <div class="field"><b>Hint</b>：<code>for u in a1 a2 a3; do sudo useradd -m -s /bin/bash $u &amp;&amp; sudo usermod -aG bioinfo $u; done</code>。</div>
+      <div class="field"><b>Verification</b>：<code>grep -E 'a1|a2|a3' /etc/passwd</code> 能看到 3 个账号。</div>
+      <div class="field"><b>Expected Result</b>：3 个用户都建好且在 bioinfo 组。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一套「新人 onboarding」标准命令，让三个月后的同事照着就能开号（含命名、组、shell 约定），存成注释清晰的脚本片段。</div>
+      <div class="field"><b>Hint</b>：约定「用户名=姓名小写、必进 bioinfo 组、shell 用 bash」。</div>
+      <div class="field"><b>Verification</b>：命令带注释，别人一眼能看懂每步在干嘛。</div>
+      <div class="field"><b>Expected Result</b>：一段可交接的 onboarding 脚本。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>验证失败时的排查步骤</strong>：模拟「新用户登录不了」，依次排查——家目录建了没、密码设了没、shell 是不是 <code>/bin/bash</code>。</div>
+      <div class="field"><b>Hint</b>：<code>getent passwd 用户名</code> 看 shell 和家目录；<code>ls -ld /home/用户名</code> 看家目录。</div>
+      <div class="field"><b>Verification</b>：你能定位「登录不了」的具体原因。</div>
+      <div class="field"><b>Expected Result</b>：形成「passwd 记录 → 家目录 → 密码」的排查顺序。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">对比「锁账号」和「删账号」：<code>passwd -l</code> 锁号 vs <code>userdel -r</code> 删号，说明离职时为什么优先锁号。</div>
+      <div class="field"><b>Hint</b>：<code>sudo passwd -l newbie</code> 锁定，<code>sudo passwd -u newbie</code> 解锁。</div>
+      <div class="field"><b>Verification</b>：你能说出锁号可逆、删号不可逆的取舍。</div>
+      <div class="field"><b>Expected Result</b>：理解「先锁号留证，确认后删号」的安全流程。</div></div>
+
+    <div class="task"><div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：给 <code>bioinfo</code> 组开两个账号（<code>newbie</code>、<code>colleague</code>）+ 拉组 + 设密，再用 <code>getent</code>/<code>groups</code>/<code>ls -ld</code> 截图留证完整状态。</div>
+      <div class="field"><b>Hint</b>：走完「groupadd → useradd×2 → passwd×2 → usermod -aG×2」全套。</div>
+      <div class="field"><b>Verification</b>：<code>groups newbie colleague</code> 都含 bioinfo。</div>
+      <div class="field"><b>Expected Result</b>：一份可交接的用户/组清单（这就是 Boss 战预演）。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> 排错挑战 · Debug Challenge</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。每题 Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>useradd: Permission denied</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：普通用户直接跑 <code>useradd</code>，报 <code>Permission denied</code>。</div>
+        <div class="think">💭 <b>Think</b>：建用户改的是全系统账号库，普通用户够格吗？</div>
+        <div class="step"><b>Answer</b>：加 <code>sudo</code>：<code>sudo useradd -m newbie</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>useradd</code> 要写 <code>/etc/passwd</code> 等系统文件，只有 root 能改。<code>sudo</code> 临时提权执行这一条命令。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>useradd: user 'newbie' already exists</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：建用户报 <code>already exists</code>。</div>
+        <div class="think">💭 <b>Think</b>：名字被占了？还是只是你想再跑一遍？</div>
+        <div class="step"><b>Answer</b>：<code>getent passwd newbie</code> 确认已存在；换名字，或先 <code>sudo userdel -r newbie</code> 再建。</div>
+        <div class="explain">🧠 <b>Explanation</b>：用户名是唯一的，重复创建会被拒绝。这是幂等性提示——脚本里建号前先判断是否已存在。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>passwd: You may not view or modify password information for newbie</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想给别人改密码，报无权查看/修改。</div>
+        <div class="think">💭 <b>Think</b>：改别人的密码需要什么权限？</div>
+        <div class="step"><b>Answer</b>：加 <code>sudo</code>：<code>sudo passwd newbie</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：普通用户只能改自己的密码（且要验证旧密码）。改别人的密码是 root 特权。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · 用户突然失去 sudo / bioinfo 权限</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：某人之前能 sudo，现在 <code>groups</code> 一看组没了。</div>
+        <div class="think">💭 <b>Think</b>：是不是有人用 <code>usermod -G</code> 忘了 <code>-a</code>？</div>
+        <div class="step"><b>Answer</b>：<code>usermod -G</code>（无 <code>-a</code>）会<strong>覆盖</strong>附加组。修复：<code>sudo usermod -aG sudo,bioinfo 用户名</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>-a</code> = append（追加），<code>-G</code> 单独用是「替换整份附加组清单」。这是最经典的权限事故。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>newbie is not in the sudoers file. This incident will be reported.</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：新用户跑 <code>sudo</code> 报这个错。</div>
+        <div class="think">💭 <b>Think</b>：新用户默认在 sudo 组里吗？</div>
+        <div class="step"><b>Answer</b>：新用户默认<strong>不在</strong> sudo 组。由管理员执行 <code>sudo usermod -aG sudo newbie</code>，用户重新登录后生效。</div>
+        <div class="explain">🧠 <b>Explanation</b>：Ubuntu 用 <code>sudo</code> 组控制谁能提权，只有安装时创建的第一个用户在组里。加组 + 重新登录，是标准提权流程。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> 工程场景 · Engineering Scenarios</h2>
+    <p class="muted">先写下你自己的方案，再展开看参考答案。每个场景都要想「三个月后的人能否一眼看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>一个 6 人前列腺癌课题组，共享 <code>/data/PRAD/</code>。怎么设计用户与组，让「谁该进哪个组、谁有什么权限」在三个月后依然一目了然？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>按「角色」建组，不按人：</p>
+        <pre><code>sudo groupadd prad            <span class="c"># 课题组全员</span>
+sudo groupadd prad_editors    <span class="c"># 有写权限的负责人</span>
+sudo usermod -aG prad 每个人
+sudo usermod -aG prad_editors lead1 lead2</code></pre>
+        <p>组名自带语义：<code>prad</code> = 项目名、<code>prad_editors</code> = 项目内可写者。人来了加组、人走了退组，权限跟着组走，不跟着人走。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>新人入职，你要一次性开好账号。写出一套「onboarding」命令（含家目录、登录 shell、课题组），并说明每步为什么这么做。</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <pre><code>sudo useradd -m -s /bin/bash newbie   <span class="c"># -m 建家目录，-s 用 bash（不是 /bin/sh）</span>
+sudo passwd newbie                    <span class="c"># 设初始密码，让本人第一次登录后改</span>
+sudo usermod -aG bioinfo newbie       <span class="c"># 拉进课题组（-a 追加，别覆盖）</span></code></pre>
+        <p><strong>可交接性</strong>：三行固定模板，注释写清每个 flag 的作用，换个人照着敲也不会漏。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>同事离职。直接 <code>userdel -r</code> 删号有什么风险？更稳妥的做法是什么？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>直接删号可能毁掉还没交接完的数据（<code>-r</code> 连家目录一起删，不可逆）。更稳妥：</p>
+        <pre><code>sudo passwd -l 离职用户    <span class="c"># 先锁号，禁止登录（可逆）</span>
+<span class="c"># 交接完数据后，确认无遗留，再决定删号：</span>
+sudo userdel -r 离职用户    <span class="c"># 最后才彻底删</span></code></pre>
+        <p>锁号是可逆的「冻结」，删号是不可逆的「销毁」。先冻结、后销毁，留出交接窗口。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>为什么团队权限要用「组」而不是给每个文件逐个设属主？用一句话说服你的主管。</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>「<strong>权限跟着组走，人跟着组流动</strong>。」6 个人共享，就设一次组权限；人来人往，只改组的成员名单，不动任何文件。逐个设属主的话，每来一个人就要 chown 几百个文件，且三个月后没人记得谁是谁。</p>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss 战 · Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>给共享测序中心搭一套完整的「用户 + 组 + 权限」体系，可度量、可交接，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建组 <code>bioinfo</code>（用 <code>getent group</code> 留证）。</li>
+        <li>开两个账号 <code>newbie</code>、<code>colleague</code>（带家目录 + bash shell）。</li>
+        <li>给两人设密码，都拉进 <code>bioinfo</code> 组（用 <code>groups</code> 验证）。</li>
+        <li>建共享目录 <code>PRAD_shared/</code>，属组 <code>bioinfo</code>、权限 <code>775</code>（组可写，衔接 Lesson 03）。</li>
+        <li>用 <code>getent</code> + <code>groups</code> + <code>ls -ld</code> 截图整套最终状态。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>过程中故意用 <code>usermod -G bioinfo colleague</code>（<strong>漏了 <code>-a</code></strong>），把 colleague 的 sudo 组冲掉了。你要自己发现「colleague 的组怎么变少了」，再用 <code>usermod -aG</code> 修复，并把「发现 → 修复」的过程截图。</p>
+      </div>
+      <p><strong>验收清单：</strong>组已建 ✅ 两账号已开 ✅ 已拉组 ✅ 共享目录 775+属组 bioinfo ✅ 埋坑已修复 ✅ 截图 + 命令进 <code>github/lesson04/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> 检查点 · Checkpoints</h2>
+    <table>
+      <tr><th>时间</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>用 whoami/id/groups/who 读当前身份，读 /etc/passwd 7 字段</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（建组/建号/设密/拉组）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查「登录不了/组被覆盖」两类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含埋坑 debug），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> 答案 · Answer Key</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>whoami</code>。</p>
+        <p><b>Lab 2：</b><code>id</code> → <code>uid=1000(user) gid=1000(user) groups=1000(user),27(sudo)</code>。</p>
+        <p><b>Lab 3：</b><code>groups</code> 或 <code>id -Gn</code>。</p>
+        <p><b>Lab 4：</b><code>getent passwd user</code> → 7 字段。</p>
+        <p><b>Lab 5：</b><code>whoami &amp;&amp; id -un</code>，两行一致。</p>
+        <p><b>Lab 6：</b><code>sudo groupadd bioinfo &amp;&amp; getent group bioinfo</code>。</p>
+        <p><b>Lab 7：</b><code>sudo useradd -m -s /bin/bash newbie &amp;&amp; ls -ld /home/newbie</code>。</p>
+        <p><b>Lab 8：</b><code>sudo passwd newbie</code> 后 <code>su - newbie</code>（<code>exit</code> 退出）。</p>
+        <p><b>Lab 9：</b><code>sudo usermod -aG bioinfo newbie &amp;&amp; groups newbie</code>。</p>
+        <p><b>Lab 10：</b><code>grep newbie /etc/passwd</code>，7 字段 = 用户名/密码占位/UID/GID/描述/家目录/shell。</p>
+        <p><b>Lab 11：</b><code>sudo usermod -G bioinfo newbie</code>（覆盖）→ 观察 → <code>sudo usermod -aG ...</code>（追加修复）。</p>
+        <p><b>Lab 12：</b><code>for u in a1 a2 a3; do sudo useradd -m -s /bin/bash $u &amp;&amp; sudo usermod -aG bioinfo $u; done</code>。</p>
+        <p><b>Lab 13：</b>固定模板「useradd -m -s /bin/bash → passwd → usermod -aG bioinfo」，加注释。</p>
+        <p><b>Lab 14：</b><code>getent passwd</code> 查 shell/家目录 → <code>ls -ld /home/x</code> 查家目录 → 密码是否已设。</p>
+        <p><b>Lab 15：</b><code>sudo passwd -l</code> 锁号（可逆）vs <code>sudo userdel -r</code> 删号（不可逆），离职先锁号。</p>
+        <p><b>Lab 16：</b>groupadd → useradd×2 → passwd×2 → usermod -aG×2，<code>groups</code>/<code>ls -ld</code> 留证。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki 卡组 · Anki Deck</h2>
+    <p class="muted">真正可导入的 TSV 在 <code>anki/lesson04-user-group.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>whoami</code></td><td>当前用户名</td></tr>
+      <tr><td><code>id</code></td><td>看 UID/GID/组</td></tr>
+      <tr><td><code>id -un</code></td><td>只看用户名</td></tr>
+      <tr><td><code>who</code> / <code>w</code></td><td>谁登录了（w 还看正在跑的命令）</td></tr>
+      <tr><td><code>groups</code></td><td>看自己/某用户在哪些组</td></tr>
+      <tr><td><code>getent passwd user</code></td><td>查用户完整信息</td></tr>
+      <tr><td><code>sudo useradd -m -s /bin/bash user</code></td><td>建用户（家目录 + bash）</td></tr>
+      <tr><td><code>sudo passwd user</code></td><td>设/改密码</td></tr>
+      <tr><td><code>sudo usermod -aG group user</code></td><td>追加到组（-a 必加）</td></tr>
+      <tr><td><code>sudo groupadd group</code></td><td>建组</td></tr>
+      <tr><td><code>sudo userdel -r user</code></td><td>删用户 + 家目录</td></tr>
+      <tr><td><code>sudo passwd -l user</code></td><td>锁账号（禁止登录）</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>root 的 UID 是？</td><td>0（唯一超级用户）</td></tr>
+      <tr><td>普通用户 UID 从几开始？</td><td>1000（1–999 是系统账号）</td></tr>
+      <tr><td>主组 vs 附加组？</td><td>主组唯一（新文件默认属组），附加组多个（额外授权）</td></tr>
+      <tr><td>usermod -aG 的 -a 作用？</td><td>append 追加；不加会覆盖原附加组</td></tr>
+      <tr><td>useradd 不带 -m 会怎样？</td><td>不建家目录，shell 默认 /bin/sh</td></tr>
+      <tr><td>/etc/passwd 7 字段？</td><td>用户名/密码占位/UID/GID/描述/家目录/shell</td></tr>
+      <tr><td>为什么用组授权？</td><td>权限跟组走，人跟组流动，可交接</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>useradd 报 Permission denied</td><td>缺 root，加 sudo</td></tr>
+      <tr><td>useradd 报 already exists</td><td>用户名已存在，换名或先删</td></tr>
+      <tr><td>改别人密码报无权</td><td>加 sudo passwd</td></tr>
+      <tr><td>用户突然失去 sudo/bioinfo 组</td><td>usermod -G 忘了 -a，被覆盖</td></tr>
+      <tr><td>sudo 报 not in sudoers file</td><td>新用户不在 sudo 组，usermod -aG sudo</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> 小测 · Quick Quiz</h2>
+    <div class="quiz" id="q1">
+      <p class="q">root 用户的 UID 是多少？</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">1</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">0</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">1000</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q"><code>usermod -G group user</code> 漏了 <code>-a</code> 会发生什么？</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">追加 group 到现有组</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">覆盖掉原来的附加组</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">没影响</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q"><code>useradd</code> 不带 <code>-m</code> 会怎样？</p>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">不建家目录</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">不设密码</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">不拉进任何组</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">看当前用户在哪些组，用哪个命令？</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">whoami</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">groups</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">who</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub 作业 · Homework</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson04/</code>，打开 <code>README.md</code> 记录你的费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 04: User &amp; Group"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ 正确！' : '❌ 再想想，看上面的 Knowledge 部分。';
+  }
+</script>
+</body>
+</html>
