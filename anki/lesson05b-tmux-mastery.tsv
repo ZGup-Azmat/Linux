@@ -1,0 +1,27 @@
+Ctrl-b c	新建窗口（当前会话里开一个新的"标签页"）
+Ctrl-b ,	重命名当前窗口，起个能看懂的名字
+Ctrl-b 0-9	直接跳到指定编号的窗口（编号从 0 开始）
+Ctrl-b n / p	切到下一个 / 上一个窗口
+Ctrl-b w	列出所有窗口，用方向键选
+Ctrl-b f	按名字查找窗口并跳过去
+Ctrl-b &	关闭当前窗口（会弹确认 y/n）
+Ctrl-b z	放大/还原当前窗格（临时全屏，最常用）
+Ctrl-b space	循环切换分屏布局
+Ctrl-b { / }	窗格左移 / 右移（交换两个窗格位置）
+Ctrl-b [ / ]	进入回滚复制模式（q 退出）/ 粘贴 tmux buffer
+Ctrl-b $	重命名当前会话
+tmux source ~/.tmux.conf	重新加载 tmux 配置，改完立即生效
+tmux kill-session -t name	关闭指定名字的会话
+set -g mouse on	开鼠标：滚轮回滚历史、点击切换窗格
+tmux rename-session -t old new	给会话重命名
+tmux 三层结构？	session 会话 → window 窗口 → pane 窗格
+window 和 pane 的区别？	window 是"标签页"（独立全屏），pane 是窗口里的分屏
+copy-mode 是什么？	回滚看历史 + 复制文字的模式，Ctrl-b [ 进入、q 退出
+tmux 配置文件在哪？	~/.tmux.conf，自己家目录，不需要 root 权限
+改了配置为什么不生效？	运行中的会话要 tmux source 重新加载，或开新会话自动读
+为什么改 prefix 要 unbind C-b？	不 unbind 旧前缀，新旧前缀并存，按键会混乱失灵
+鼠标滚轮在 tmux 里没反应	配置里加 set -g mouse on 然后 tmux source
+改了 ~/.tmux.conf 没生效	tmux source ~/.tmux.conf 重新加载
+Ctrl-b % 分屏没反应	检查前缀是否被改、是否真的在 tmux 会话里
+Ctrl-b ] 贴的不是系统剪贴板内容	tmux buffer 和系统剪贴板是两套，跨应用用 Ctrl+Shift+C/V
+窗格开太多迷路了	Ctrl-b w 看窗口列表、Ctrl-b q 看窗格编号、Ctrl-b z 放大当前

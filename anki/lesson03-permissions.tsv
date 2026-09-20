@@ -1,0 +1,23 @@
+chmod +x	加执行权限（脚本必备）
+chmod 644	rw-r--r--（文件默认权限）
+chmod 755	rwxr-xr-x（脚本/目录常用）
+chmod 600	rw-------（私有文件）
+chmod 700	rwx------（私有目录）
+chmod 1777	sticky bit（防删别人文件）
+chmod -R	递归改整棵目录树的权限
+chown user:group	同时改属主和属组
+chgrp group	只改属组
+ls -ld	看目录本身的权限（不看内容）
+权限三元组是哪三类人？	属主 owner / 属组 group / 其他人 others
+r=4 w=2 x=1，rwx 加起来等于？	7
+755 展开成什么权限？	rwxr-xr-x
+目录的 x 权限有什么作用？	进入目录（cd）/ 访问里面文件
+目录没有 x 会怎样？	cd 报 Permission denied，哪怕有 r
+sticky bit 的作用？	只有文件属主能删自己的文件（/tmp 机制）
+符号模式里 = 和 + 的区别？	= 覆盖，+ 叠加
+八进制里 r w x 分别等于几？	r=4 w=2 x=1
+运行脚本报 Permission denied	缺执行权限，chmod +x
+cd 目录报 Permission denied	目录缺 x，chmod +x 目录
+chmod 报 Operation not permitted	你不是属主（需 root/sudo）
+能写目录却删不了别人的文件	sticky bit，只有属主能删
+读文件报 Permission denied 但文件有 r	父目录缺 x（沿途通行证）

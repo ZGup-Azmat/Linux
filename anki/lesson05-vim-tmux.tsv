@@ -1,0 +1,23 @@
+i / Esc	进入插入模式 / 返回普通模式
+:wq / :q!	保存退出 / 放弃修改退出
+h j k l	左 下 上 右
+dd / yy / p	删行 / 复制行 / 粘贴
+u	撤销
+/pattern	查找（n 下一个，N 上一个）
+:%s/old/new/g	全文替换
+tmux new -s name	新建命名会话
+tmux ls	列出所有会话
+tmux attach -t name	重新接回会话
+Ctrl-b d	脱离会话（任务继续跑）
+Ctrl-b % / Ctrl-b "	左右分屏 / 上下分屏
+Vim 三模式？	普通 / 插入 / 命令行
+卡在插入模式怎么办？	按 Esc 回普通模式
+tmux 三层结构？	session 会话 → window 窗口 → pane 窗格
+tmux 核心价值？	断线任务不死（detach/attach）
+prefix 前缀键默认是？	Ctrl-b
+替换漏 /g 会怎样？	只替换每行第一个匹配
+vim 报 E37	改了没保存就 :q，用 :wq 或 :q!
+vim 报 E492	命令大小写错，如 :WQ 应写 :wq
+vim 报 E212	无写权限或目录不存在
+方向键打出 A B C D	用 hjkl 替代
+tmux attach 报 no sessions	先 tmux ls 查会话

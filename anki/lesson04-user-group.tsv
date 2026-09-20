@@ -1,0 +1,25 @@
+whoami	当前用户名
+id	看 UID/GID/组
+id -un	只看用户名
+who	谁登录了（用户名 终端 时间 IP）
+w	谁登录了 + 正在跑什么命令
+groups	看自己或某用户在哪些组
+getent passwd user	查用户完整信息（passwd 行）
+sudo useradd -m -s /bin/bash user	建用户（家目录 + bash shell）
+sudo passwd user	设/改密码
+sudo usermod -aG group user	追加到组（-a 必加）
+sudo groupadd group	建组
+sudo userdel -r user	删用户 + 家目录
+sudo passwd -l user	锁账号（禁止登录）
+root 的 UID 是？	0（唯一超级用户）
+普通用户 UID 从几开始？	1000（1-999 是系统账号）
+主组 vs 附加组？	主组唯一（新文件默认属组），附加组多个（额外授权）
+usermod -aG 的 -a 作用？	append 追加；不加会覆盖原附加组
+useradd 不带 -m 会怎样？	不建家目录，shell 默认 /bin/sh
+/etc/passwd 7 字段？	用户名/密码占位/UID/GID/描述/家目录/shell
+为什么用组授权？	权限跟组走，人跟组流动，可交接
+useradd 报 Permission denied	缺 root，加 sudo
+useradd 报 already exists	用户名已存在，换名或先删
+改别人密码报无权	加 sudo passwd
+用户突然失去 sudo/bioinfo 组	usermod -G 忘了 -a，被覆盖
+sudo 报 not in sudoers file	新用户不在 sudo 组，usermod -aG sudo

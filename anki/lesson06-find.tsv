@@ -1,0 +1,19 @@
+find .	递归列出当前目录下所有文件（含子目录每一层）
+find . -name "*.bam"	按文件名找（区分大小写），引号不能省
+find . -iname "*.bam"	按文件名找（忽略大小写，BAM 也能匹配 bam）
+find . -type f / -type d	只要文件 / 只要目录
+find . -size +2G	找大于 2GB 的文件（+ 是大于）
+find . -mtime +30 / -7	找 30 天前修改的 / 最近 7 天修改的
+find . -name "*.gz" -o -name "*.bz2"	「或」条件：gz 或 bz2 都列出
+find . -exec cmd {} \;	对每个找到的文件执行命令（{} 是占位符，\; 结尾）
+find . -delete	直接删除找到的文件（危险，先验证再用）
+find / 2>/dev/null	遍历全盘并屏蔽 Permission denied 报错
+find 的三部分结构？	路径 + 条件 + 动作（默认动作是打印路径）
+-name 的引号为什么不能省？	不引的话 *.bam 会先被 shell 展开成文件名，find 就收不到模式了
+-size 100k 是精确值吗？	不是，是约 100KB 的区间（按 512 字节块取整），要大于用 +100k
+-mtime +30 是"30天"吗？	不是，+ 严格大于，所以是 31 天及以上；-7 才是近 7 天
+find + exec 的安全铁律？	先 -ls 或 -print 看清要处理哪些文件，确认无误再加 -exec 或 -delete
+find 报 missing argument to -exec	漏了结尾的 \; 或 +，补上即可
+-name *.bam 结果不对	加引号：-name "*.bam"，防止 shell 先展开通配符
+find / 刷屏 Permission denied	加 2>/dev/null 屏蔽 stderr 错误输出
+-o 和 -size 组合结果奇怪	用 \( ... \) 括号分组，明确 -size 作用于哪个条件
