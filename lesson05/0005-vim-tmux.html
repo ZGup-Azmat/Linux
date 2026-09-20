@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 05 · Vim &amp; tmux ｜ 文本编辑与终端复用</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 12.5%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 深色模式</button>
+  <button onclick="window.print()">🖨 打印 / 存 PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 05 · Part I · Linux Foundations</div>
+    <h1>Vim &amp; tmux</h1>
+    <p class="sub">文本编辑与终端复用 —— 断线不丢任务，改文件不用开八个窗口</p>
+    <div class="progress-label"><span>课程进度</span><span>05 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">难度</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">时长</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">交付物</div><div class="v">用 vim 改配置 + tmux 分屏跑任务</div></div>
+      <div class="item"><div class="k">前置知识</div><div class="v">Lesson 01–04（文件/路径/权限）</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> 任务背景 · Mission Context</h2>
+    <div class="card">
+      <p>最近你开始频繁 <code>ssh</code> 登录学校服务器干活。两个烦恼越来越明显：</p>
+      <ul>
+        <li>😤 <strong>改文件像在爬行</strong>：改一个 <code>run_pipeline.sh</code> 里的参数，得在终端里一点点挪光标，效率极低。</li>
+        <li>💔 <strong>断线就前功尽弃</strong>：昨晚跑一个比对任务，跑到一半 Wi-Fi 抖了一下，ssh 断了，任务<strong>直接没了</strong>——它挂在你断掉的会话上。</li>
+      </ul>
+      <p>你需要两件武器：<strong>Vim</strong>（在终端里高效改文件）和 <strong>tmux</strong>（让任务在断线后继续跑、一个屏幕开多个窗格）。而且好消息是——<strong>这俩都不需要 root 权限</strong>，你现在就能练。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>远程改文件 + 任务要扛断线 → 需要终端编辑器 + 会话保持 → 用 <code>vim</code>（三模式编辑）+ <code>tmux</code>（session/window/pane）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> 知识 · Knowledge（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 个概念。每个：中文 + 英文 + 心智模型 + SVG + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>概念 1 · Vim 三种模式：普通 / 插入 / 命令行</h3>
+    <div class="card">
+      <p><strong>中文：</strong>Vim 是一个<strong>模式化</strong>编辑器——同一键盘按键，在不同模式里干不同的事。三核心模式：<strong>普通模式</strong>（Normal，移动/删除/复制）、<strong>插入模式</strong>（Insert，打字）、<strong>命令行模式</strong>（Command-line，保存/退出/查找替换）。</p>
+      <p><strong>English:</strong> Vim is a <em>modal</em> editor — the same key does different things in each mode: <em>Normal</em> (move/delete/copy), <em>Insert</em> (type), <em>Command-line</em> (save/quit/search).</p>
+
+      <div class="diagram">
+        <svg width="620" height="210" viewBox="0 0 620 210" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:14px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:13px -apple-system,sans-serif;fill:#6e6e73}.arr{stroke:#8e8e93;stroke-width:2;fill:none;marker-end:url(#am)}.n{fill:#0071e3}.i{fill:#34c759}.c{fill:#ff9f0a}</style>
+          <defs><marker id="am" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#8e8e93"/></marker></defs>
+          <rect class="n" x="210" y="10" width="200" height="46" rx="10"/>
+          <text class="t" x="310" y="40" text-anchor="middle">普通模式 Normal（启动默认）</text>
+          <rect class="i" x="20" y="130" width="180" height="46" rx="10"/>
+          <text class="t" x="110" y="160" text-anchor="middle">插入模式 Insert（打字）</text>
+          <rect class="c" x="420" y="130" width="180" height="46" rx="10"/>
+          <text class="t" x="510" y="160" text-anchor="middle">命令行模式（: 开头）</text>
+          <line class="arr" x1="310" y1="56" x2="110" y2="128"/>
+          <text class="lab" x="180" y="100">按 i / a / o 进入</text>
+          <line class="arr" x1="110" y1="128" x2="290" y2="58"/>
+          <text class="lab" x="150" y="70">按 Esc 返回</text>
+          <line class="arr" x1="330" y1="56" x2="500" y2="128"/>
+          <text class="lab" x="430" y="100">按 : 进入</text>
+          <line class="arr" x1="500" y1="128" x2="350" y2="58"/>
+          <text class="lab" x="360" y="70">回车执行后返回</text>
+          <text class="lab" x="210" y="192">卡住时：先按 Esc 回到普通模式，再按 : 进命令行</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>vim notes.txt     <span class="c"># 打开（进入普通模式）</span>
+i                 <span class="c"># 进入插入模式，开始打字</span>
+Esc               <span class="c"># 回到普通模式（任何时候都能按）</span>
+:                 <span class="c"># 进入命令行模式</span>
+:w                <span class="c"># 保存</span>
+:q                <span class="c"># 退出</span>
+:wq               <span class="c"># 保存并退出</span>
+:q!               <span class="c"># 不保存强制退出（改乱了就用它）</span></code></pre>
+
+      <p><strong>实例：</strong>改一个参数的标准流程：<code>vim run_pipeline.sh</code> → 移动光标到目标行 → <code>i</code> 进入插入 → 改数字 → <code>Esc</code> → <code>:wq</code> 保存退出。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>卡在插入模式</strong>：忘了按 <code>Esc</code>，一直打字，方向键还可能插入乱码。任何时候按 <code>Esc</code> 都能救回来。</li>
+          <li><strong><code>:q</code> 退出被拦</strong>：改了没保存就 <code>:q</code>，Vim 报 <code>E37: No write since last change</code>。要么 <code>:wq</code> 保存，要么 <code>:q!</code> 放弃。</li>
+          <li><strong>Vim 命令区分大小写</strong>：<code>:WQ</code> 会报 <code>E492</code>（不是命令）。<code>wq</code> 必须小写。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>服务器上没有图形界面，<code>nano</code>/<code>vim</code> 是仅有的编辑方式。Vim 一旦熟练，改配置、写脚本的速度远超鼠标点来点去——这是 Linux 工程师的「肌肉记忆」，也是远程运维的基本功。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>三模式是 Vim 的地基，概念 2 展开「普通模式里到底能干嘛」。后面 Lesson 14（Bash 脚本）、Lesson 21（systemd 配置）都要靠 Vim 来写和改文件。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>概念 2 · Vim 编辑命令：移动 / 删除 / 复制 / 查找替换</h3>
+    <div class="card">
+      <p><strong>中文：</strong>普通模式下，Vim 用键盘完成「移动、删除、复制粘贴、撤销、查找替换」。核心心法：<strong>命令 = 动作 + 范围</strong>（如 <code>dd</code> = 删除整行，<code>dw</code> = 删除一个词）。</p>
+      <p><strong>English:</strong> In Normal mode you move, delete, copy, undo, and search/replace — a command is <em>action + scope</em> (e.g. <code>dd</code> deletes a line, <code>dw</code> deletes a word).</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.m{fill:#0071e3}.d{fill:#ff375f}.c{fill:#34c759}.f{fill:#ff9f0a}</style>
+          <text class="h" x="0" y="24">移动</text>
+          <rect class="m" x="0" y="34" width="150" height="34" rx="6"/><text class="t" x="75" y="56" text-anchor="middle">h j k l = 左 下 上 右</text>
+          <rect class="m" x="158" y="34" width="150" height="34" rx="6"/><text class="t" x="233" y="56" text-anchor="middle">w 词首 · b 词尾 · 0 行首 · $ 行尾</text>
+          <text class="h" x="0" y="92">删除 / 复制</text>
+          <rect class="d" x="0" y="102" width="150" height="34" rx="6"/><text class="t" x="75" y="124" text-anchor="middle">dd 删行 · x 删字符 · dw 删词</text>
+          <rect class="c" x="158" y="102" width="150" height="34" rx="6"/><text class="t" x="233" y="124" text-anchor="middle">yy 复制行 · p 粘贴 · u 撤销</text>
+          <text class="h" x="0" y="160">查找 / 替换</text>
+          <rect class="f" x="0" y="170" width="150" height="0" height="0"/>
+          <text class="lab" x="0" y="168">/pattern 查找 · n 下一个</text>
+          <text class="lab" x="200" y="168">:%s/tumor/normal/g 全局替换</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>h j k l        <span class="c"># 左 下 上 右（替代方向键）</span>
+w / b          <span class="c"># 下一个词首 / 上一个词首</span>
+0 / $          <span class="c"># 行首 / 行尾</span>
+gg / G         <span class="c"># 文件开头 / 结尾</span>
+dd             <span class="c"># 删除当前行（剪切）</span>
+yy / p         <span class="c"># 复制一行 / 粘贴</span>
+u / Ctrl-r     <span class="c"># 撤销 / 重做</span>
+/pattern       <span class="c"># 向下查找，n 下一个，N 上一个</span>
+:%s/old/new/g  <span class="c"># 全文把 old 替换成 new</span></code></pre>
+
+      <p><strong>实例：</strong>把一个样本表里的 <code>tumor</code> 全部改成 <code>normal</code>：<code>:%s/tumor/normal/g</code> 回车，一键全文替换，不用一个个手改。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>替换漏了 <code>/g</code></strong>：<code>:%s/tumor/normal</code> 只替换<strong>每行第一个</strong>匹配；加 <code>g</code>（global）才替换整行所有。</li>
+          <li><strong><code>dd</code> 其实是「剪切」不是「删除」</strong>：删掉的行在寄存器里，<code>p</code> 还能贴回来——误删了先别慌，<code>p</code> 或 <code>u</code> 都能救。</li>
+          <li><strong>终端方向键乱码</strong>：某些环境在 Vim 里按方向键会插入 <code>A B C D</code>，是因为进入了插入模式；用 <code>hjkl</code> 更稳。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>生信里天天改 VCF/GTF/配置表：找某个基因、批量替换样本名、删掉几行注释。用鼠标在 3000 行文件里翻，又慢又容易漏；用 <code>/</code> 查找 + <code>:%s</code> 替换，几秒搞定且可复现。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念的「查找替换」思路，和 Lesson 07（grep）的检索是同一套；等你写 Bash 脚本时，这些编辑命令就是改脚本的日常。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>概念 3 · tmux：会话 / 窗口 / 窗格</h3>
+    <div class="card">
+      <p><strong>中文：</strong>tmux 是「终端复用器」——一个终端里开多个窗口、一个窗口切多个窗格，更关键的是：<strong>会话可以脱离（detach）后再接回（attach）</strong>，断线/关电脑任务都不停。</p>
+      <p><strong>English:</strong> tmux multiplexes one terminal into many windows and panes; crucially, a <em>session</em> can be <em>detached</em> and <em>reattached</em> — tasks survive disconnects.</p>
+
+      <div class="diagram">
+        <svg width="620" height="200" viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.s{fill:#0071e3}.w{fill:#34c759}.p{fill:#ff9f0a}</style>
+          <rect class="s" x="20" y="60" width="170" height="60" rx="10"/>
+          <text class="t" x="105" y="85" text-anchor="middle">session 会话</text>
+          <text class="t" x="105" y="108" text-anchor="middle">断线也不死</text>
+          <line x1="190" y1="90" x2="230" y2="70" stroke="#8e8e93" stroke-width="2"/>
+          <line x1="190" y1="90" x2="230" y2="110" stroke="#8e8e93" stroke-width="2"/>
+          <rect class="w" x="230" y="45" width="150" height="50" rx="8"/>
+          <text class="t" x="305" y="75" text-anchor="middle">window 窗口</text>
+          <rect class="w" x="230" y="105" width="150" height="50" rx="8"/>
+          <text class="t" x="305" y="135" text-anchor="middle">window 窗口</text>
+          <line x1="380" y1="70" x2="420" y2="55" stroke="#8e8e93" stroke-width="2"/>
+          <line x1="380" y1="70" x2="420" y2="85" stroke="#8e8e93" stroke-width="2"/>
+          <rect class="p" x="420" y="40" width="160" height="38" rx="6"/><text class="t" x="500" y="64" text-anchor="middle">pane 窗格（分屏）</text>
+          <rect class="p" x="420" y="84" width="160" height="38" rx="6"/><text class="t" x="500" y="108" text-anchor="middle">pane 窗格</text>
+          <text class="lab" x="20" y="150">前缀键 prefix = Ctrl-b，所有 tmux 命令都要先按它</text>
+          <text class="lab" x="20" y="170">Ctrl-b d = detach 脱离 · tmux attach = 接回 · Ctrl-b % = 左右分屏</text>
+          <text class="lab" x="20" y="188">Ctrl-b " = 上下分屏 · Ctrl-b 方向键 = 切换窗格</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>tmux                  <span class="c"># 新建会话</span>
+tmux new -s rna       <span class="c"># 新建并命名（推荐，好认）</span>
+tmux ls               <span class="c"># 列出所有会话</span>
+tmux attach -t rna    <span class="c"># 重新接回会话</span>
+
+<span class="c"># 会话内（先按 Ctrl-b 前缀，再按后面的键）</span>
+Ctrl-b d              <span class="c"># detach 脱离（任务继续跑）</span>
+Ctrl-b %              <span class="c"># 左右分屏</span>
+Ctrl-b "              <span class="c"># 上下分屏</span>
+Ctrl-b 方向键          <span class="c"># 切换窗格</span>
+Ctrl-b x              <span class="c"># 关闭当前窗格</span>
+Ctrl-b c              <span class="c"># 新建窗口</span>
+exit                  <span class="c"># 退出当前窗格/会话</span></code></pre>
+
+      <p><strong>实例：</strong>跑比对任务前：<code>tmux new -s align</code> → 启动命令 → <code>Ctrl-b d</code> 脱离 → 关电脑走人。明天回来 <code>tmux attach -t align</code>，任务还在跑、结果还在。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>前缀键记错</strong>：tmux 的命令都要先按 <code>Ctrl-b</code>（不是 <code>Ctrl-c</code>，那个是打断）。很多人狂按 <code>Ctrl-c</code> 结果把任务杀了。</li>
+          <li><strong>attach 报 <code>no sessions</code></strong>：没有正在运行的会话却想 attach；先 <code>tmux ls</code> 看有没有。</li>
+          <li><strong>忘了自己在 tmux 里</strong>：分屏后屏幕底部有状态条提示；<code>exit</code> 能退出当前窗格。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>生信任务动辄跑几小时到几天，远程 ssh 一断就全废。tmux 让任务「长在服务器上、不挂在你的连接上」；分屏则让你<strong>一边看日志、一边敲命令</strong>，不用开八个终端窗口。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>tmux 是远程工作的标配，后面 Lesson 17（进程）、Lesson 36–37（HPC/SLURM）都会在 tmux 里跑长任务。本课之后，你的「服务器日常」就成型了。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> 引导练习 · Guided Practice</h2>
+    <div class="card">
+      <p>先 Vim 再 tmux，跟着敲。</p>
+      <pre><code>echo "tumor tumor" &gt; demo.txt
+vim demo.txt          <span class="c"># 打开，进入普通模式</span>
+<span class="c"># 按 i 进入插入模式，打几个字</span>
+<span class="c"># 按 Esc 回普通模式</span>
+:wq                   <span class="c"># 保存退出</span>
+
+vim demo.txt          <span class="c"># 再打开</span>
+:%s/tumor/normal/g    <span class="c"># 全文替换 tumor → normal</span>
+:wq                   <span class="c"># 保存退出</span>
+cat demo.txt          <span class="c"># 验证：normal normal</span>
+
+tmux new -s test      <span class="c"># 新建命名会话</span>
+<span class="c"># 里面跑：Ctrl-b % 左右分屏</span>
+<span class="c"># Ctrl-b d 脱离</span>
+tmux ls               <span class="c"># 看到 test 会话还在</span>
+tmux attach -t test   <span class="c"># 接回</span>
+exit                  <span class="c"># 退出会话</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> 实战实验 · Intensive Lab</h2>
+    <p class="muted">16 道题，分三级。本课全部不需要 sudo，可直接实操。答案在本课最后。</p>
+
+    <h3>Level 1 · Foundation（基础，4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">用 vim 打开一个文件，进入插入模式写一行字，保存退出。</div>
+      <div class="field"><b>Hint</b>：<code>vim f.txt</code> → <code>i</code> 打字 → <code>Esc</code> → <code>:wq</code>。</div>
+      <div class="field"><b>Verification</b>：<code>cat f.txt</code> 能看到你写的内容。</div>
+      <div class="field"><b>Expected Result</b>：文件成功写入并退出。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">在 vim 普通模式里用 <code>hjkl</code> 上下左右移动光标。</div>
+      <div class="field"><b>Hint</b>：<code>vim f.txt</code> 后（不按 i）直接按 <code>h j k l</code>。</div>
+      <div class="field"><b>Verification</b>：光标随按键移动，不插入字符。</div>
+      <div class="field"><b>Expected Result</b>：熟练 hjkl 四键。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">体验 <code>:q!</code>：改了内容但放弃保存、强制退出。</div>
+      <div class="field"><b>Hint</b>：<code>vim f.txt</code> → <code>i</code> 乱改 → <code>Esc</code> → <code>:q!</code>。</div>
+      <div class="field"><b>Verification</b>：退出后 <code>cat f.txt</code> 内容没变。</div>
+      <div class="field"><b>Expected Result</b>：理解 <code>:q!</code> = 放弃修改。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">用 tmux 新建一个命名会话，然后 detach 脱离。</div>
+      <div class="field"><b>Hint</b>：<code>tmux new -s mytest</code> → 里面 <code>Ctrl-b d</code>。</div>
+      <div class="field"><b>Verification</b>：回到普通终端，<code>tmux ls</code> 看到 <code>mytest</code>。</div>
+      <div class="field"><b>Expected Result</b>：会话脱离但仍在运行。</div></div>
+
+    <h3>Level 2 · Integration（整合，6 题，每题组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">组合删除 + 撤销：<code>dd</code> 删掉一行，再用 <code>u</code> 撤销回来。</div>
+      <div class="field"><b>Hint</b>：光标在某行 → <code>dd</code> → <code>u</code>。</div>
+      <div class="field"><b>Verification</b>：删掉后按 <code>u</code>，行又回来了。</div>
+      <div class="field"><b>Expected Result</b>：掌握「删除可撤销」的安全感。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">组合复制 + 粘贴：<code>yy</code> 复制一行，<code>p</code> 粘贴到下一行。</div>
+      <div class="field"><b>Hint</b>：光标在某行 → <code>yy</code> → <code>p</code>。</div>
+      <div class="field"><b>Verification</b>：该行下方多了一行一模一样的。</div>
+      <div class="field"><b>Expected Result</b>：yy + p 复制粘贴。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">组合查找 + 替换：先 <code>/pattern</code> 定位，再 <code>:%s</code> 全文替换。</div>
+      <div class="field"><b>Hint</b>：<code>/tumor</code> 回车找，<code>n</code> 下一个；<code>:%s/tumor/normal/g</code> 替换。</div>
+      <div class="field"><b>Verification</b>：<code>cat</code> 确认所有 tumor 都变成 normal。</div>
+      <div class="field"><b>Expected Result</b>：搜索定位 + 全局替换。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">组合 tmux 分屏 + 切换：<code>Ctrl-b %</code> 左右分屏，<code>Ctrl-b 方向键</code> 在两个窗格间切换。</div>
+      <div class="field"><b>Hint</b>：先 <code>tmux new -s s</code>，再 <code>Ctrl-b %</code>。</div>
+      <div class="field"><b>Verification</b>：屏幕一分为二，方向键能左右切。</div>
+      <div class="field"><b>Expected Result</b>：一屏双窗。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">组合 tmux detach + attach：脱离会话，再重新接回。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b d</code> 脱离 → <code>tmux ls</code> → <code>tmux attach -t s</code>。</div>
+      <div class="field"><b>Verification</b>：接回后还是原来的样子。</div>
+      <div class="field"><b>Expected Result</b>：完整走一遍断线恢复。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">在 tmux 里用 vim 编辑文件，练「终端复用 + 编辑器」联动。</div>
+      <div class="field"><b>Hint</b>：<code>tmux new -s edit</code> → <code>vim f.txt</code> 编辑保存。</div>
+      <div class="field"><b>Verification</b>：在 tmux 里完成一次 vim 编辑保存。</div>
+      <div class="field"><b>Expected Result</b>：两个工具串起来用。</div></div>
+
+    <h3>Level 3 · Engineering（工程，6 题：先制造问题再解决 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：在 vim 里故意改乱、不保存就想 <code>:q</code>，触发 <code>E37</code>，再用 <code>:q!</code> 解决。</div>
+      <div class="field"><b>Hint</b>：<code>vim f.txt</code> → <code>i</code> 乱改 → <code>Esc</code> → <code>:q</code>（报 E37）→ <code>:q!</code>。</div>
+      <div class="field"><b>Verification</b>：你能说出 E37 的含义和两种解法。</div>
+      <div class="field"><b>Expected Result</b>：走完「报错 → 理解 → 放弃修改」闭环。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：用 vim 的替换，把一个样本清单里所有 <code>SRR</code> 前缀统一替换成 <code>SAMPLE</code>。</div>
+      <div class="field"><b>Hint</b>：<code>:%s/SRR/SAMPLE/g</code>。</div>
+      <div class="field"><b>Verification</b>：<code>cat</code> 确认全部替换。</div>
+      <div class="field"><b>Expected Result</b>：一次全文替换搞定批量改名。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：给 tmux 会话起「能一眼看懂在跑什么」的名字，写清命名规范。</div>
+      <div class="field"><b>Hint</b>：如 <code>align_PRAD</code>（比对-PRAD 项目）、<code>qc_RNA</code>（质控-RNA）。</div>
+      <div class="field"><b>Verification</b>：三个月后的人看 <code>tmux ls</code> 就知道每个会话在干嘛。</div>
+      <div class="field"><b>Expected Result</b>：一套会话命名约定。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>验证失败时的排查步骤</strong>：<code>tmux attach</code> 报 no sessions，一步步排查（先 <code>tmux ls</code> 看有没有、名字对不对）。</div>
+      <div class="field"><b>Hint</b>：<code>tmux ls</code> 列出会话，再 <code>tmux attach -t 正确名</code>。</div>
+      <div class="field"><b>Verification</b>：你能区分「没有会话」和「名字打错」两种情况。</div>
+      <div class="field"><b>Expected Result</b>：形成「ls → attach -t」的排查顺序。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">在 tmux 里跑一个长任务（如 <code>sleep 300</code>），detach 后证明任务仍在跑，再 attach 回来。</div>
+      <div class="field"><b>Hint</b>：<code>tmux new -s long</code> → <code>sleep 300</code> → <code>Ctrl-b d</code> → 隔一会 <code>tmux attach -t long</code>。</div>
+      <div class="field"><b>Verification</b>：接回后 <code>sleep</code> 还在运行（没被打断）。</div>
+      <div class="field"><b>Expected Result</b>：验证「断线任务不死」这一核心价值。</div></div>
+
+    <div class="task"><div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：用 vim 编辑一个脚本/配置文件，同时用 tmux 分屏「一边改文件、一边看日志」，截图留证。</div>
+      <div class="field"><b>Hint</b>：<code>tmux new -s work</code> → <code>Ctrl-b %</code> 分屏 → 左窗 <code>vim run_pipeline.sh</code>、右窗 <code>tail -f log</code>。</div>
+      <div class="field"><b>Verification</b>：一张截图里同时有编辑器和日志。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演——多窗协作。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> 排错挑战 · Debug Challenge</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。每题 Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>E37: No write since last change (add ! to override)</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：改了文件后直接 <code>:q</code>，Vim 报 E37 不让退。</div>
+        <div class="think">💭 <b>Think</b>：你是想保存还是不保存？</div>
+        <div class="step"><b>Answer</b>：想保存就 <code>:wq</code>；想放弃就 <code>:q!</code>（感叹号 = 强制）。</div>
+        <div class="explain">🧠 <b>Explanation</b>：Vim 防止你「改了却忘了存」就退出。<code>!</code> 在 Vim 里是「强制执行/放弃安全检查」的通用后缀。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>E492: Not an editor command: WQ</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：输入 <code>:WQ</code> 报 E492。</div>
+        <div class="think">💭 <b>Think</b>：Vim 命令区分大小写吗？</div>
+        <div class="step"><b>Answer</b>：<code>:WQ</code> 应写成小写 <code>:wq</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：Vim 命令严格区分大小写，<code>wq</code> 和 <code>WQ</code> 是两个不同的东西。<code>:WQ</code> 不存在，所以 E492。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · 在 vim 里方向键打出 <code>A B C D</code> 乱码</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：插入模式下按方向键，屏幕冒出 A、B、C、D 字母。</div>
+        <div class="think">💭 <b>Think</b>：是不是终端把方向键当成了转义序列？</div>
+        <div class="step"><b>Answer</b>：先 <code>Esc</code> 回普通模式，改用 <code>hjkl</code> 移动。</div>
+        <div class="explain">🧠 <b>Explanation</b>：某些老旧终端里，方向键在 Vim 的插入模式会变成转义序列（<code>^[[A</code> 等），显示成 A/B/C/D。<code>hjkl</code> 是 Vim 的「原生方向键」，永远可靠。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>tmux attach</code> → <code>no sessions</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>tmux attach</code> 报 <code>no sessions</code>。</div>
+        <div class="think">💭 <b>Think</b>：真的没有会话，还是名字记错了？</div>
+        <div class="step"><b>Answer</b>：先 <code>tmux ls</code> 列出会话；若有，用 <code>tmux attach -t 会话名</code> 指定。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>tmux attach</code> 默认接「最近一个」；没有任何会话（服务器重启过、或从没建过）时就会报 no sessions。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>E212: Can't open file for writing</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：vim 里 <code>:w</code> 保存报 E212。</div>
+        <div class="think">💭 <b>Think</b>：文件/目录的写权限？还是路径不存在？</div>
+        <div class="step"><b>Answer</b>：<code>:pwd</code> 看当前目录，<code>ls -l</code> 看权限；无权限则换个能写的目录，或（有 root 时）<code>sudo</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：E212 通常是「目标文件/目录没有写权限」（衔接 Lesson 03）。普通用户只能写自己家目录和 <code>/tmp</code>，写系统目录会撞这个错。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> 工程场景 · Engineering Scenarios</h2>
+    <p class="muted">先写下你自己的方案，再展开看参考答案。每个场景都要想「三个月后的人能否一眼看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>你要 ssh 到服务器跑一个 6 小时的 RNA 比对，但宿舍 Wi-Fi 不稳、可能断线。怎么保证断线了任务不丢？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <pre><code>tmux new -s align_PRAD      <span class="c"># 命名会话，一看就知道是 PRAD 的比对</span>
+<span class="c"># 启动比对命令……</span>
+<span class="c"># Ctrl-b d 脱离，关电脑走人</span>
+<span class="c"># 回来：</span>
+tmux attach -t align_PRAD   <span class="c"># 接回，任务还在跑</span></code></pre>
+        <p>核心：任务跑在 tmux 会话里，不挂在你 ssh 连接上。断线只断 ssh，不断 tmux 会话。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>一个 3000 行的样本清单，要把里面所有 <code>SRR12345678</code> 改成 <code>SRR99999999</code>。用鼠标一个个改？还是？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p><code>vim 清单</code> → <code>:%s/SRR12345678/SRR99999999/g</code> 回车，一条命令全文替换。<code>/g</code> 保证每行所有匹配都换，不是只换第一个。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>你想一边看实时日志、一边敲命令调试，但不想开四个终端窗口。怎么做？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>tmux 分屏：<code>tmux new -s debug</code> → <code>Ctrl-b %</code> 左右分屏 → 左窗跑命令、右窗 <code>tail -f 日志</code>。需要更多窗格就继续 <code>Ctrl-b %</code> / <code>Ctrl-b "</code>，用 <code>Ctrl-b 方向键</code> 切换。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>你和同事共用服务器，各自跑任务。三个月后新来的同事看 <code>tmux ls</code> 怎么快速搞清「谁在跑什么」？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>靠<strong>命名约定</strong>：会话名 = 「任务类型_项目名」，如 <code>qc_RNA</code>（RNA 质控）、<code>align_PRAD</code>（PRAD 比对）、<code>call_WES</code>（外显子变异检测）。名字自带语义，看一眼 <code>tmux ls</code> 就懂，不用逐个 attach 进去查。</p>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss 战 · Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>用 vim 修好一个脚本，再用 tmux 分屏「边改边看日志」，并修好一个被埋的坑。综合运用 Lesson 01–04 的技能。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>在 <code>PRAD_pipeline/</code> 目录里（复习 Lesson 01 建目录），有个脚本 <code>run_pipeline.sh</code>。</li>
+        <li>用 <strong>vim</strong> 把脚本里所有的 <code>tumor</code> 替换成 <code>normal</code>（复习 Lesson 02 路径 + 本课替换）。</li>
+        <li>用 <strong>tmux</strong> 开一个命名会话 <code>debug_PRAD</code>，分屏：左窗编辑脚本、右窗 <code>tail -f results.log</code>（复习 Lesson 02 路径）。</li>
+        <li>给脚本加执行权限（复习 Lesson 03：<code>chmod +x</code>，不需要 sudo）。</li>
+        <li><code>Ctrl-b d</code> 脱离，再 <code>tmux attach</code> 接回，截图证明会话没丢。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>脚本里有一行被你 vim 替换时<strong>漏了 <code>/g</code></strong>，导致某行只替换了第一个 <code>tumor</code>、行尾还有一个没换。你要自己发现「怎么没替换干净」，重跑 <code>:%s/tumor/normal/g</code> 修好，并截图「发现 → 修复」的过程。</p>
+      </div>
+      <p><strong>验收清单：</strong>目录/脚本 ✅ vim 替换干净 ✅ tmux 分屏+脱离+接回 ✅ 脚本可执行 ✅ 埋坑已修复 ✅ 截图 + 命令进 <code>github/lesson05/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> 检查点 · Checkpoints</h2>
+    <table>
+      <tr><th>时间</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>说清 Vim 三模式 + 会 i/Esc/:wq，会 tmux new/ls/attach</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（移动/删除/复制/替换 + 分屏/脱离）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查 E37/E212/tmux no sessions 三类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含替换漏 /g 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> 答案 · Answer Key</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>vim f.txt</code> → <code>i</code> 打字 → <code>Esc</code> → <code>:wq</code>。</p>
+        <p><b>Lab 2：</b><code>vim f.txt</code> 后直接 <code>h j k l</code>。</p>
+        <p><b>Lab 3：</b><code>i</code> 乱改 → <code>Esc</code> → <code>:q!</code>，<code>cat</code> 确认没变。</p>
+        <p><b>Lab 4：</b><code>tmux new -s mytest</code> → <code>Ctrl-b d</code> → <code>tmux ls</code>。</p>
+        <p><b>Lab 5：</b><code>dd</code> 删行 → <code>u</code> 撤销。</p>
+        <p><b>Lab 6：</b><code>yy</code> 复制 → <code>p</code> 粘贴。</p>
+        <p><b>Lab 7：</b><code>/tumor</code> 查找 → <code>:%s/tumor/normal/g</code> 替换。</p>
+        <p><b>Lab 8：</b><code>tmux new -s s</code> → <code>Ctrl-b %</code> 分屏 → <code>Ctrl-b 方向键</code> 切换。</p>
+        <p><b>Lab 9：</b><code>Ctrl-b d</code> → <code>tmux ls</code> → <code>tmux attach -t s</code>。</p>
+        <p><b>Lab 10：</b><code>tmux new -s edit</code> → <code>vim f.txt</code> 编辑保存。</p>
+        <p><b>Lab 11：</b><code>i</code> 乱改 → <code>:q</code>（E37）→ <code>:q!</code>。</p>
+        <p><b>Lab 12：</b><code>:%s/SRR/SAMPLE/g</code>。</p>
+        <p><b>Lab 13：</b>命名约定「任务_项目」，如 <code>align_PRAD</code>、<code>qc_RNA</code>。</p>
+        <p><b>Lab 14：</b><code>tmux ls</code> 列会话 → <code>tmux attach -t 正确名</code>。</p>
+        <p><b>Lab 15：</b><code>tmux new -s long</code> → <code>sleep 300</code> → <code>Ctrl-b d</code> → <code>tmux attach -t long</code>，sleep 还在。</p>
+        <p><b>Lab 16：</b><code>tmux new -s work</code> → <code>Ctrl-b %</code> → 左 <code>vim</code>、右 <code>tail -f</code>。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki 卡组 · Anki Deck</h2>
+    <p class="muted">真正可导入的 TSV 在 <code>anki/lesson05-vim-tmux.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>i</code> / <code>Esc</code></td><td>进入插入 / 返回普通模式</td></tr>
+      <tr><td><code>:wq</code> / <code>:q!</code></td><td>保存退出 / 放弃修改退出</td></tr>
+      <tr><td><code>h j k l</code></td><td>左 下 上 右</td></tr>
+      <tr><td><code>dd</code> / <code>yy</code> / <code>p</code></td><td>删行 / 复制行 / 粘贴</td></tr>
+      <tr><td><code>u</code></td><td>撤销</td></tr>
+      <tr><td><code>/pattern</code></td><td>查找（n 下一个）</td></tr>
+      <tr><td><code>:%s/old/new/g</code></td><td>全文替换</td></tr>
+      <tr><td><code>tmux new -s name</code></td><td>新建命名会话</td></tr>
+      <tr><td><code>tmux ls</code></td><td>列出会话</td></tr>
+      <tr><td><code>tmux attach -t name</code></td><td>重新接回会话</td></tr>
+      <tr><td><code>Ctrl-b d</code></td><td>脱离会话（任务继续跑）</td></tr>
+      <tr><td><code>Ctrl-b %</code> / <code>Ctrl-b "</code></td><td>左右 / 上下分屏</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>Vim 三模式？</td><td>普通 / 插入 / 命令行</td></tr>
+      <tr><td>卡在插入模式怎么办？</td><td>按 Esc 回普通模式</td></tr>
+      <tr><td>tmux 三层结构？</td><td>session 会话 → window 窗口 → pane 窗格</td></tr>
+      <tr><td>tmux 核心价值？</td><td>断线任务不死（detach/attach）</td></tr>
+      <tr><td>prefix 前缀键默认是？</td><td>Ctrl-b</td></tr>
+      <tr><td>替换漏 /g 会怎样？</td><td>只替换每行第一个匹配</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>vim 报 E37</td><td>改了没保存就 :q，用 :wq 或 :q!</td></tr>
+      <tr><td>vim 报 E492</td><td>命令大小写错，如 :WQ 应写 :wq</td></tr>
+      <tr><td>vim 报 E212</td><td>无写权限或目录不存在</td></tr>
+      <tr><td>方向键打出 A B C D</td><td>用 hjkl 替代</td></tr>
+      <tr><td>tmux attach 报 no sessions</td><td>先 tmux ls 查会话</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> 小测 · Quick Quiz</h2>
+    <div class="quiz" id="q1">
+      <p class="q">在 Vim 里想放弃修改并退出，用哪个？</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">:wq</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">:q!</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">:q</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">tmux 的 prefix 前缀键默认是？</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">Ctrl-c</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">Ctrl-b</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">Ctrl-d</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">Vim 里 <code>:%s/tumor/normal</code>（没加 g）会怎样？</p>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">每行只替换第一个匹配</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">全文所有都替换</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">报错</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">tmux 里 detach 脱离会话后，会话里跑的任务会怎样？</p>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">继续跑</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">被终止</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">暂停</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub 作业 · Homework</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson05/</code>，打开 <code>README.md</code> 记录你的费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 05: Vim &amp; tmux"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ 正确！' : '❌ 再想想，看上面的 Knowledge 部分。';
+  }
+</script>
+</body>
+</html>
