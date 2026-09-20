@@ -1,8 +1,5 @@
 # Linux Engineer Course 🐧
 
-> **Ubuntu Server 24.04 LTS** · 从零到 Junior Linux Engineer（向 Intermediate 过渡）
-> 学习日志 + 可复现的练习仓库 · 服务目标：2027 年 10 月入读 TUM 生物信息学硕士
-
 ---
 
 ## 这是什么
@@ -118,8 +115,6 @@ Linux/
 └── ...
 ```
 
-> 从 Lesson 02 起，笔记内容合并进 `README.md`（打开就能复习，不用翻多个文件）。
-
 ---
 
 ## 学习方法
@@ -127,7 +122,6 @@ Linux/
 1. **费曼复述**：每课读完，用「自己的比喻」把核心概念讲一遍，写进 README——讲不出来就是没真懂。
 2. **tmux 贯穿**：从 Lesson 05 起，练习尽量在 tmux 里做（分屏看日志、detach/attach），练成远程工作的肌肉记忆。
 3. **Anki 间隔复习**：每课配一张可导入 Anki 的 TSV 卡组，命令靠「提取练习」而非死记。
-4. **每天真实提交**：学习产出当天 `git commit`，热图持续变绿，Git 也用会了。
 
 ---
 
@@ -144,4 +138,4 @@ Linux/
 - GitHub：[@ZGup-Azmat](https://github.com/ZGup-Azmat)
 - 最后更新：2026-09-20
 
-> 「不是因为看到希望才坚持，而是坚持了才会看到希望。」—— 加油，Azmat。
+> 「不是因为看到希望才坚持，而是坚持了才会看到希望。」—— 加油
