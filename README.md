@@ -103,6 +103,7 @@
 ```
 Linux/
 ├── README.md              # 本文件（课程总览）
+├── anki/                  # 可导入 Anki 的卡组（每课一个 TSV）
 ├── lesson01/              # 第 1 课
 │   ├── 0001-filesystem.html   # 主课件
 │   ├── README.md              # 学习笔记（费曼复述 + 反思）

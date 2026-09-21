@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 06 · Find ｜ 按条件查找文件</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 15%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 深色模式</button>
+  <button onclick="window.print()">🖨 打印 / 存 PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 06 · Part I · Linux Foundations</div>
+    <h1>Find</h1>
+    <p class="sub">按条件查找文件 —— 在几万份测序文件里精确定位</p>
+    <div class="progress-label"><span>课程进度</span><span>06 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">难度</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">时长</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">交付物</div><div class="v">用 find 锁定并批量处理目标文件</div></div>
+      <div class="item"><div class="k">前置知识</div><div class="v">Lesson 01–02（路径/通配符）</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> 任务背景 · Mission Context</h2>
+    <div class="card">
+      <p>你接管了一个测序中心的共享数据盘。盘里有 <strong>12 万多个文件</strong>，散落在几千个目录里。今天主管给你三个「大海捞针」的任务：</p>
+      <ul>
+        <li>🔍 找出所有 <strong>大于 2GB</strong> 的 BAM 文件——它们快把磁盘占满了。</li>
+        <li>🕐 找出 <strong>30 天没动过</strong> 的临时文件，准备清理。</li>
+        <li>⚙️ 找到所有叫 <code>run_pipeline.sh</code> 的脚本，给它们<strong>批量加执行权限</strong>。</li>
+      </ul>
+      <p>通配符 <code>ls *.bam</code> 只能在一个目录里匹配，面对「按大小、按时间、跨几千层目录」这种需求就抓瞎了。你需要<strong> find</strong>——Linux 最强大的文件查找工具。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>跨目录、按多条件找文件，还要对结果批量处理 → 需要递归查找 + 条件过滤 + 对结果执行动作 → 用 <code>find</code>（-name / -type / -size / -mtime / -exec）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> 知识 · Knowledge（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 个概念。每个：中文 + 英文 + 心智模型 + SVG + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>概念 1 · find 基本结构：路径 + 条件 + 动作</h3>
+    <div class="card">
+      <p><strong>中文：</strong><code>find</code> 递归遍历指定目录树，用<strong>条件</strong>过滤出匹配的文件，再对它们执行<strong>动作</strong>。基本骨架：<code>find 从哪找 什么条件 做什么</code>。</p>
+      <p><strong>English:</strong> <code>find</code> walks a directory tree, filters files by <em>tests</em>, then applies an <em>action</em> to matches: <code>find where what-condition what-action</code>.</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:14px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.p{fill:#0071e3}.c{fill:#34c759}.a{fill:#ff9f0a}</style>
+          <rect class="p" x="10" y="40" width="180" height="46" rx="8"/><text class="t" x="100" y="68" text-anchor="middle">/data/raw</text>
+          <rect class="c" x="210" y="40" width="200" height="46" rx="8"/><text class="t" x="310" y="68" text-anchor="middle">-name "*.bam"</text>
+          <rect class="a" x="430" y="40" width="180" height="46" rx="8"/><text class="t" x="520" y="68" text-anchor="middle">-ls 或 -exec</text>
+          <text class="lab" x="100" y="112" text-anchor="middle">从哪找（路径）</text>
+          <text class="lab" x="310" y="112" text-anchor="middle">什么条件（过滤）</text>
+          <text class="lab" x="520" y="112" text-anchor="middle">做什么（动作）</text>
+          <text class="h" x="10" y="140">find /data/raw -name "*.bam" -ls</text>
+          <text class="lab" x="10" y="162">默认动作是 -print（打印路径）；不写条件默认列出全部</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>find 路径 [条件] [动作]
+find .                <span class="c"># 递归列出当前目录下所有文件</span>
+find . -name "*.bam"  <span class="c"># 按名字找 .bam（引号防止 shell 提前展开 *）</span>
+find . -name "*.bam" -ls   <span class="c"># 找到后用 ls 长格式显示</span></code></pre>
+
+      <p><strong>实例：</strong><code>find . -name "*.bam"</code> 从当前目录出发，递归钻进每一个子目录，把所有 <code>.bam</code> 文件的完整路径打出来——这是 <code>ls</code> 做不到的「跨层级」查找。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong><code>-name "*.bam"</code> 的引号不能省</strong>：不加引号，<code>*.bam</code> 会被 shell 先展开成当前目录的文件名，find 收到的就不是「模式」了。</li>
+          <li><strong><code>-name</code> 默认区分大小写</strong>：<code>"*.BAM"</code> 匹配不到 <code>.bam</code>。想不分大小写用 <code>-iname</code>。</li>
+          <li><strong>在别人没权限的目录会报错</strong>：<code>find /</code> 遍历全盘时会刷一堆 <code>Permission denied</code>，加 <code>2&gt;/dev/null</code> 屏蔽错误输出（后面概念 3 细讲）。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>测序中心的文件从不会「整齐放在一个文件夹」里等你。find 是你在几万份文件里定位的唯一靠谱手段，也是所有「批量处理」的前置动作——先 find 锁定，再 exec 处理。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念是 Lesson 02「路径/通配符」的升级：通配符只能在一个目录里用，find 把它扩展到「整棵目录树 + 多条件」。概念 2 展开丰富的条件。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>概念 2 · 条件过滤：-type / -size / -mtime / -name</h3>
+    <div class="card">
+      <p><strong>中文：</strong>find 的威力在<strong>条件</strong>：按类型（<code>-type</code>）、大小（<code>-size</code>）、修改时间（<code>-mtime</code>）、名字（<code>-name</code>），还能用 <code>-and</code>/<code>-or</code> 组合多个条件。</p>
+      <p><strong>English:</strong> find's power is its <em>tests</em>: by type (<code>-type</code>), size (<code>-size</code>), modification time (<code>-mtime</code>), name (<code>-name</code>), combinable with <code>-and</code>/<code>-or</code>.</p>
+
+      <div class="diagram">
+        <svg width="620" height="200" viewBox="0 0 620 200" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}</style>
+          <text class="h" x="0" y="24">常用条件</text>
+          <rect class="f" x="0" y="34" width="300" height="30" rx="6"/><text class="t" x="150" y="54" text-anchor="middle">-type f 文件 · d 目录 · l 软链接</text>
+          <rect class="f" x="0" y="70" width="300" height="30" rx="6"/><text class="t" x="150" y="90" text-anchor="middle">-size +2G 大于2G · -size 100k 恰好</text>
+          <rect class="f" x="0" y="106" width="300" height="30" rx="6"/><text class="t" x="150" y="126" text-anchor="middle">-mtime +30 30天前 · -mtime -7 近7天</text>
+          <rect class="f" x="0" y="142" width="300" height="30" rx="6"/><text class="t" x="150" y="162" text-anchor="middle">-iname "*.FASTQ" 不区分大小写</text>
+          <text class="lab" x="330" y="54">大小单位：k M G（注意 + 是"大于"）</text>
+          <text class="lab" x="330" y="90">时间单位：天（mtime=修改，atime=访问）</text>
+          <text class="lab" x="330" y="126">组合：-name "*.bam" -size +2G（且）</text>
+          <text class="lab" x="330" y="162">-o 是"或"，如 -name "*.gz" -o -name "*.bz2"</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>find . -type f                    <span class="c"># 只要文件，排除目录</span>
+find . -type d                    <span class="c"># 只要目录</span>
+find . -size +2G                  <span class="c"># 大于 2GB 的文件</span>
+find . -size 100k                 <span class="c"># 恰好 100KB（前后有误差，见下）</span>
+find . -mtime +30                 <span class="c"># 30 天前修改过的</span>
+find . -mtime -7                  <span class="c"># 最近 7 天改过的</span>
+find . -name "*.bam" -size +2G    <span class="c"># 多条件"且"：BAM 且大于 2G</span>
+find . -name "*.gz" -o -name "*.bz2"   <span class="c"># "或"：gz 或 bz2</span></code></pre>
+
+      <p><strong>实例：</strong>清理磁盘前先「盘家底」：<code>find . -type f -size +2G</code> 列出所有超过 2GB 的大文件，排序后决定删谁。这比盲目 <code>du</code> 精准得多。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong><code>-size 100k</code> 不是「精确 100KB」</strong>：它匹配的是「100 个 512 字节块」上取整后的区间，实际会命中 99KB~100KB 左右的文件。要找「大于」用 <code>+</code>，别用等号。</li>
+          <li><strong><code>-mtime +30</code> 是「31 天及以上」</strong>：<code>+n</code> 严格大于 n，所以 <code>+30</code> 是 31 天起，不是「30 天」。边界容易搞错。</li>
+          <li><strong>组合条件不加括号会出错</strong>：<code>find . -name "*.bam" -o -name "*.sam" -size +1G</code> 中，<code>-size</code> 只作用于 <code>-o</code> 后一个条件。要明确分组得用括号转义 <code>\( ... \)</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>磁盘告警、数据归档、按日期批量备份……这些日常运维的起点都是「先用 find 定位」。能把「按大小+按时间+按类型」组合着写，你就具备了服务器磁盘管理的基本功。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>这些条件思路，和 Lesson 07（grep 的内容过滤）是一对：find 管「文件名/属性」，grep 管「文件内容」。概念 3 让 find 从「查找」走向「批量处理」。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>概念 3 · 对结果执行动作：-exec / -delete / 2>/dev/null</h3>
+    <div class="card">
+      <p><strong>中文：</strong>find 找到文件后，可以对每个匹配执行命令：<code>-exec 命令 {} \;</code>（<code>{}</code> 代表每个文件）。配合 <code>-delete</code> 删除、<code>2&gt;/dev/null</code> 屏蔽错误，组成「查找→处理」一条龙。</p>
+      <p><strong>English:</strong> Apply a command to each match with <code>-exec cmd {} \;</code> (<code>{}</code> = each file). With <code>-delete</code> and <code>2&gt;/dev/null</code>, find becomes a find-and-act pipeline.</p>
+
+      <div class="diagram">
+        <svg width="620" height="170" viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.e{fill:#ff9f0a}</style>
+          <rect class="f" x="0" y="40" width="280" height="40" rx="8"/><text class="t" x="140" y="65" text-anchor="middle">find . -name "*.sh"</text>
+          <rect class="e" x="300" y="40" width="310" height="40" rx="8"/><text class="t" x="455" y="65" text-anchor="middle">-exec chmod +x {} \;</text>
+          <text class="lab" x="0" y="104">{} = 每个被找到的文件，逐个传给命令</text>
+          <text class="lab" x="0" y="124">\; = 结束标记（或 + 号批量传，更快）</text>
+          <text class="lab" x="0" y="144">-delete 直接删；2&gt;/dev/null 屏蔽权限报错</text>
+          <text class="h" x="0" y="164">危险：-exec rm {} \; 会删文件，先打印验证再删！</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>find . -name "*.sh" -exec chmod +x {} \;    <span class="c"># 给每个 .sh 加执行权限</span>
+find . -type f -name "*.tmp" -delete         <span class="c"># 直接删除 .tmp 文件</span>
+find / -name "*.bam" 2&gt;/dev/null             <span class="c"># 屏蔽无权限目录的报错</span>
+find . -size +2G -exec ls -lh {} \;          <span class="c"># 对每个大文件用 ls -lh 看大小</span></code></pre>
+
+      <p><strong>实例：</strong>主管要求「给所有脚本加执行权限」：<code>find . -name "*.sh" -exec chmod +x {} \;</code> 一条命令搞定，不用一个个 <code>cd</code> 进去改。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong><code>-exec rm</code> 极危险</strong>：一旦条件写错（比如 <code>-type d</code> 忘了写），可能误删整个目录树。铁律：<strong>先 <code>-print</code> 或 <code>-ls</code> 看结果，确认无误再加 <code>-exec rm</code> 或 <code>-delete</code></strong>。</li>
+          <li><strong>忘写 <code>\;</code> 结尾</strong>：<code>-exec</code> 必须用 <code>\;</code>（或 <code>+</code>）结束，否则 find 报错 <code>find: missing argument to -exec</code>。</li>
+          <li><strong><code>2&gt;/dev/null</code> 会把真错误也吞掉</strong>：调试时先别加，等确认无误了再加来「净化输出」。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>「先找后动」是运维第一原则：先 <code>-ls</code> 看清楚要处理哪些文件，再 <code>-exec</code> 批量执行。这个习惯能让你避免「一个 find 删光半年的数据」这类事故。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p><code>2&gt;/dev/null</code> 是「重定向」的用法，会在 Lesson 10（Redirection Boss Fight）系统讲。find + exec 是 Bash 脚本（Lesson 14）里最高频的组合之一。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> 引导练习 · Guided Practice</h2>
+    <div class="card">
+      <p>先建一批测试文件，跟着敲。全程不需要 sudo，建议在 tmux 里做（分屏边建边查）。</p>
+      <pre><code>tmux new -s findlab            <span class="c"># 用 tmux 练（形成习惯）</span>
+mkdir -p findlab/{raw,qc,results}
+touch findlab/patient01.bam findlab/patient02.bam findlab/tumor.vcf
+touch findlab/qc/multiqc_report.html findlab/results/run_pipeline.sh
+mkdir findlab/results/backup
+
+find findlab                  <span class="c"># 列出所有文件（递归）</span>
+find findlab -type f          <span class="c"># 只要文件</span>
+find findlab -type d          <span class="c"># 只要目录</span>
+find findlab -name "*.bam"    <span class="c"># 按名字找 bam</span>
+find findlab -name "*.sh" -exec chmod +x {} \;   <span class="c"># 给脚本加执行权限</span>
+ls -l findlab/results/        <span class="c"># 验证 run_pipeline.sh 有 x 了</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> 实战实验 · Intensive Lab</h2>
+    <p class="muted">16 道题，分三级。全部不需要 sudo。答案在本课最后。文件名用真实测序风格。</p>
+
+    <h3>Level 1 · Foundation（基础，4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">递归列出当前目录下所有文件（含子目录）。</div>
+      <div class="field"><b>Hint</b>：<code>find .</code>。</div>
+      <div class="field"><b>Verification</b>：输出包含所有层级里的文件。</div>
+      <div class="field"><b>Expected Result</b>：整棵目录树都列出来。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">只列出所有 <code>.fastq.gz</code> 文件。</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.fastq.gz"</code>。</div>
+      <div class="field"><b>Verification</b>：只出现 fastq.gz，其他类型不出现。</div>
+      <div class="field"><b>Expected Result</b>：按名字精确过滤。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">只列出目录（不要文件）。</div>
+      <div class="field"><b>Hint</b>：<code>find . -type d</code>。</div>
+      <div class="field"><b>Verification</b>：输出全是目录，没有文件。</div>
+      <div class="field"><b>Expected Result</b>：-type d 过滤。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">用 <code>-iname</code> 不分大小写地找 <code>.FASTQ</code> 和 <code>.fastq</code>。</div>
+      <div class="field"><b>Hint</b>：<code>find . -iname "*.fastq"</code>。</div>
+      <div class="field"><b>Verification</b>：大小写变体都匹配到。</div>
+      <div class="field"><b>Expected Result</b>：-iname 忽略大小写。</div></div>
+
+    <h3>Level 2 · Integration（整合，6 题，每题组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">组合类型 + 名字：找出所有叫 <code>run_pipeline.sh</code> 的<strong>文件</strong>。</div>
+      <div class="field"><b>Hint</b>：<code>find . -type f -name "run_pipeline.sh"</code>。</div>
+      <div class="field"><b>Verification</b>：只匹配文件，不匹配同名目录。</div>
+      <div class="field"><b>Expected Result</b>：多条件「且」。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">组合名字 + 大小：找出大于 2GB 的 BAM 文件。</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.bam" -size +2G</code>。</div>
+      <div class="field"><b>Verification</b>：只列出 .bam 且超过 2G 的。</div>
+      <div class="field"><b>Expected Result</b>：名字+大小双条件。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">组合时间 + 类型：找出最近 7 天修改过的文件。</div>
+      <div class="field"><b>Hint</b>：<code>find . -type f -mtime -7</code>。</div>
+      <div class="field"><b>Verification</b>：只有最近一周改过的文件出现。</div>
+      <div class="field"><b>Expected Result</b>：-mtime -7 = 近 7 天。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">组合查找 + 动作：找出所有 <code>.sh</code> 并给它们加执行权限。</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.sh" -exec chmod +x {} \;</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls -l</code> 看脚本都有 x 了。</div>
+      <div class="field"><b>Expected Result</b>：find + exec 一条龙。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">组合多条件 + 「或」：找出所有 <code>.gz</code> 或 <code>.bz2</code> 压缩文件。</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.gz" -o -name "*.bz2"</code>。</div>
+      <div class="field"><b>Verification</b>：两种压缩文件都列出。</div>
+      <div class="field"><b>Expected Result</b>：-o 是「或」。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">组合 find + ls：用 <code>-exec ls -lh</code> 查看所有大文件的可读大小。</div>
+      <div class="field"><b>Hint</b>：<code>find . -size +1G -exec ls -lh {} \;</code>。</div>
+      <div class="field"><b>Verification</b>：每个大文件都带人类可读大小显示。</div>
+      <div class="field"><b>Expected Result</b>：find 结果交给 ls 展示。</div></div>
+
+    <h3>Level 3 · Engineering（工程，6 题：先制造问题再解决 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先 <code>find / -name "*.bam"</code> 触发一堆 <code>Permission denied</code>，再用 <code>2&gt;/dev/null</code> 屏蔽，理解为什么要屏蔽错误。</div>
+      <div class="field"><b>Hint</b>：先不加看报错，再加 <code>2&gt;/dev/null</code>。</div>
+      <div class="field"><b>Verification</b>：加完后输出干净了，只剩结果。</div>
+      <div class="field"><b>Expected Result</b>：理解 <code>2&gt;/dev/null</code> 屏蔽 stderr。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：找出所有 30 天没动的临时文件 <code>.tmp</code>，先用 <code>-ls</code> 列出确认，再用 <code>-delete</code> 删除。</div>
+      <div class="field"><b>Hint</b>：先 <code>find . -name "*.tmp" -mtime +30 -ls</code>，确认后 <code>find . -name "*.tmp" -mtime +30 -delete</code>。</div>
+      <div class="field"><b>Verification</b>：删除后 <code>find</code> 找不到那些文件。</div>
+      <div class="field"><b>Expected Result</b>：「先看后删」的安全流程。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「清理磁盘大文件」的标准命令，带注释说明每个条件，让三个月后的同事敢放心用。</div>
+      <div class="field"><b>Hint</b>：组合 -type f -size +2G -mtime +30，先 -ls 后 -delete。</div>
+      <div class="field"><b>Verification</b>：命令带注释，别人能看懂每步在干嘛。</div>
+      <div class="field"><b>Expected Result</b>：一段可交接的清理命令。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>验证失败时的排查步骤</strong>：<code>find . -size 100k</code> 结果和预期对不上，排查「等号 vs 大于」的坑。</div>
+      <div class="field"><b>Hint</b>：<code>100k</code> 是「约 100KB」区间；要「大于」用 <code>+100k</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清 <code>100k</code> 和 <code>+100k</code> 的区别。</div>
+      <div class="field"><b>Expected Result</b>：理解 -size 的 + 前缀语义。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">用 <code>-exec ... +</code> 代替 <code>\;</code>，给一批脚本批量加权限，理解「批量传参更快」。</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.sh" -exec chmod +x {} +</code>。</div>
+      <div class="field"><b>Verification</b>：效果和 <code>\;</code> 一样，但一条命令处理多个文件。</div>
+      <div class="field"><b>Expected Result</b>：掌握 + 批量传参。</div></div>
+
+    <div class="task"><div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 里完成一次「磁盘清理」：分屏——左屏 find 找大文件、右屏看结果，最后用 find+exec 批量加权限，<code>ls -lR</code> 截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏（<code>Ctrl-b %</code>）边找边看。</div>
+      <div class="field"><b>Verification</b>：截图体现 tmux 分屏 + find 命令 + 结果。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演，tmux 习惯养成。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> 排错挑战 · Debug Challenge</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。每题 Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>find: missing argument to '-exec'</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：用了 <code>-exec</code> 但报 missing argument。</div>
+        <div class="think">💭 <b>Think</b>：-exec 需要一个结束标记，你写了吗？</div>
+        <div class="step"><b>Answer</b>：<code>-exec</code> 必须以 <code>\;</code> 或 <code>+</code> 结尾：<code>find . -name "*.sh" -exec chmod +x {} \;</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>\;</code> 告诉 find「命令到此结束」，否则 find 不知道 <code>-exec</code> 后的命令有多长。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>find . -name *.bam</code> 结果不对</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>-name *.bam</code> 没加引号，结果和预期不符。</div>
+        <div class="think">💭 <b>Think</b>：<code>*</code> 是被谁展开的？</div>
+        <div class="step"><b>Answer</b>：给模式加引号：<code>find . -name "*.bam"</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：不加引号时，shell 会先把 <code>*.bam</code> 展开成当前目录下的文件名，find 收到的就不是「模式」而是具体名字了。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>find / -name "*.bam"</code> 刷屏 Permission denied</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：遍历全盘时大量 <code>Permission denied</code>。</div>
+        <div class="think">💭 <b>Think</b>：这些是正常现象还是错误？</div>
+        <div class="step"><b>Answer</b>：加 <code>2&gt;/dev/null</code> 屏蔽错误输出：<code>find / -name "*.bam" 2&gt;/dev/null</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：普通用户没有权限进入 <code>/root</code>、<code>/etc</code> 等系统目录，find 每进一个就报一次。屏蔽 stderr 只看有效结果。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>find . -size 100k</code> 匹配到的文件大小对不上</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>-size 100k</code> 找到的文件并不是精确 100KB。</div>
+        <div class="think">💭 <b>Think</b>：等号和大于的区别？</div>
+        <div class="step"><b>Answer</b>：<code>-size 100k</code> 匹配「约 100KB 区间」（按 512 字节块取整），要「大于」用 <code>+100k</code>，要「小于」用 <code>-100k</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：find 的 -size 等号是「向上取整后的近似相等」，不是精确值。精确边界判断用 <code>+</code>/<code>-</code> 更可靠。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>find . -name "*.bam" -o -name "*.sam" -size +1G</code> 结果出乎意料</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>-o</code> 和 <code>-size</code> 组合，结果不符合预期。</div>
+        <div class="think">💭 <b>Think</b>：<code>-size +1G</code> 到底作用于哪个条件？</div>
+        <div class="step"><b>Answer</b>：<code>-size +1G</code> 默认只作用于 <code>-o</code> 后的最后一个条件。要明确分组用括号（转义）：<code>find . \( -name "*.bam" -o -name "*.sam" \) -size +1G</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>-o</code> 的优先级低于「且」，导致条件分组和你想的不一样。用 <code>\( ... \)</code> 显式分组才符合直觉。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> 工程场景 · Engineering Scenarios</h2>
+    <p class="muted">先写下你自己的方案，再展开看参考答案。每个场景都要想「三个月后的人能否一眼看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>磁盘快满了，主管要你找出所有超过 2GB、且 30 天没人动过的大文件，列个清单准备清理。怎么写？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <pre><code>find . -type f -size +2G -mtime +30 -exec ls -lh {} \;</code></pre>
+        <p>先只 <code>-ls</code>/<code>ls -lh</code> 列清单，绝不直接删；确认后再决定是否 <code>-delete</code>。多条件组合 + 先看后动。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>几百个脚本散在各目录，要统一加执行权限，但你不确定「找到的是不是都是脚本」。怎么做最稳妥？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>先验证再执行：</p>
+        <pre><code>find . -name "*.sh" -type f      <span class="c"># 先看清单，确认没误伤</span>
+find . -name "*.sh" -type f -exec chmod +x {} \;   <span class="c"># 确认后再执行</span></code></pre>
+        <p>加 <code>-type f</code> 排除同名目录，避免给目录也加 x。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>你要写一个「每月清理临时文件」的固定命令，交给三个月后新来的同事。怎么写才能让他放心用、不会误删？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>命令要「窄、可读、先看后删」：</p>
+        <pre><code><span class="c"># 清理 30 天前的 .tmp 临时文件（先列出确认）</span>
+find /data/tmp -type f -name "*.tmp" -mtime +30 -ls
+<span class="c"># 确认无误后，删掉上面列出的文件：</span>
+find /data/tmp -type f -name "*.tmp" -mtime +30 -delete</code></pre>
+        <p>关键：路径写死 <code>/data/tmp</code>（不写 <code>.</code>）、条件收敛到 <code>.tmp</code>、注释说明用途。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>你怀疑昨天某个时间之后有文件被偷偷改过。怎么找出「最近 24 小时被修改」的文件做审计？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p><code>find . -type f -mtime -1</code>（近 1 天内改过）。更精确到分钟用 <code>-mmin -1440</code>（近 1440 分钟）。这是「谁动了我的数据」审计的基本动作。</p>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss 战 · Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>在 tmux 里完成一次完整的「查找 → 验证 → 批量处理」磁盘管理，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>在 <code>find_battle/</code> 里建一批测试文件（<code>.bam</code> / <code>.vcf</code> / <code>.sh</code> / <code>.tmp</code> 各若干，散在子目录）。</li>
+        <li>用 <strong>find</strong> 找出所有 <code>.sh</code> 文件，先 <code>-ls</code> 列出确认。</li>
+        <li>给它们批量 <code>-exec chmod +x</code>，用 <code>ls -lR</code> 验证都有 x 了。</li>
+        <li>找出所有 <code>.tmp</code>，先列出确认，再 <code>-delete</code> 删除。</li>
+        <li>全程在 <strong>tmux 分屏</strong>里做（左屏 find、右屏看结果），截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你写的清理命令里，<code>-exec rm {} \;</code> <strong>忘了写 <code>\;</code></strong>，find 直接报 <code>missing argument to '-exec'</code>。你要自己发现这个语法错误，补上 <code>\;</code>（或改用更安全的 <code>-delete</code>），并截图「报错 → 修复」的过程。</p>
+      </div>
+      <p><strong>验收清单：</strong>测试文件建好 ✅ find 查找 ✅ 先看后删 ✅ 批量加权限 ✅ 埋坑已修复 ✅ 截图 + 命令进 <code>github/lesson06/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> 检查点 · Checkpoints</h2>
+    <table>
+      <tr><th>时间</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会 find 基本结构（路径+条件+动作），按名字/类型查找</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（组合条件 + exec）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查 exec 语法/size 边界/权限报错</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含 exec 漏 \; 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> 答案 · Answer Key</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>find .</code>。</p>
+        <p><b>Lab 2：</b><code>find . -name "*.fastq.gz"</code>。</p>
+        <p><b>Lab 3：</b><code>find . -type d</code>。</p>
+        <p><b>Lab 4：</b><code>find . -iname "*.fastq"</code>。</p>
+        <p><b>Lab 5：</b><code>find . -type f -name "run_pipeline.sh"</code>。</p>
+        <p><b>Lab 6：</b><code>find . -name "*.bam" -size +2G</code>。</p>
+        <p><b>Lab 7：</b><code>find . -type f -mtime -7</code>。</p>
+        <p><b>Lab 8：</b><code>find . -name "*.sh" -exec chmod +x {} \;</code>。</p>
+        <p><b>Lab 9：</b><code>find . -name "*.gz" -o -name "*.bz2"</code>。</p>
+        <p><b>Lab 10：</b><code>find . -size +1G -exec ls -lh {} \;</code>。</p>
+        <p><b>Lab 11：</b><code>find / -name "*.bam"</code>（报错）→ 加 <code>2&gt;/dev/null</code>。</p>
+        <p><b>Lab 12：</b>先 <code>find . -name "*.tmp" -mtime +30 -ls</code>，再 <code>... -delete</code>。</p>
+        <p><b>Lab 13：</b>带注释的清理命令，先 <code>-ls</code> 后 <code>-delete</code>。</p>
+        <p><b>Lab 14：</b><code>100k</code>≈100KB 区间，<code>+100k</code> 才是大于。</p>
+        <p><b>Lab 15：</b><code>find . -name "*.sh" -exec chmod +x {} +</code>。</p>
+        <p><b>Lab 16：</b>tmux 分屏 + find 清理 + <code>ls -lR</code> 留证。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki 卡组 · Anki Deck</h2>
+    <p class="muted">真正可导入的 TSV 在 <code>anki/lesson06-find.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>find .</code></td><td>递归列出所有文件</td></tr>
+      <tr><td><code>find . -name "*.bam"</code></td><td>按名字找（区分大小写）</td></tr>
+      <tr><td><code>find . -iname "*.bam"</code></td><td>按名字找（忽略大小写）</td></tr>
+      <tr><td><code>find . -type f / d</code></td><td>只要文件 / 只要目录</td></tr>
+      <tr><td><code>find . -size +2G</code></td><td>大于 2GB</td></tr>
+      <tr><td><code>find . -mtime +30 / -7</code></td><td>30天前 / 近7天</td></tr>
+      <tr><td><code>find . -o</code></td><td>「或」条件</td></tr>
+      <tr><td><code>find . -exec cmd {} \;</code></td><td>对每个结果执行命令</td></tr>
+      <tr><td><code>find . -delete</code></td><td>删除找到的文件</td></tr>
+      <tr><td><code>find . 2&gt;/dev/null</code></td><td>屏蔽权限报错</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>find 三部分结构？</td><td>路径 + 条件 + 动作</td></tr>
+      <tr><td>-name 的引号为什么不能省？</td><td>不引会先被 shell 展开</td></tr>
+      <tr><td>-size 100k 是精确值吗？</td><td>不是，是约 100KB 区间</td></tr>
+      <tr><td>-mtime +30 是「30天」吗？</td><td>不是，是 31 天及以上（+ 严格大于）</td></tr>
+      <tr><td>find + exec 的安全铁律？</td><td>先 -ls 验证，再 exec/delete</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>find 报 missing argument to -exec</td><td>漏了 \; 或 + 结尾</td></tr>
+      <tr><td>-name *.bam 结果不对</td><td>加引号防 shell 展开</td></tr>
+      <tr><td>find / 刷屏 Permission denied</td><td>加 2&gt;/dev/null</td></tr>
+      <tr><td>-o 和 -size 组合结果怪</td><td>用 \( ... \) 分组</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> 小测 · Quick Quiz</h2>
+    <div class="quiz" id="q1">
+      <p class="q">找出大于 2GB 的文件，用哪个？</p>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">find . -size +2G</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">find . -size 2G</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">find . -size -2G</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q"><code>-exec</code> 命令必须以什么结尾？</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">;</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">\; 或 +</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">什么结尾都行</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">只想找目录（不要文件），用哪个？</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">find . -type f</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">find . -type d</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">find . -type l</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">屏蔽 find 遍历时的 Permission denied 报错？</p>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">加 2>/dev/null</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">加 1>/dev/null</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">加 -quiet</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub 作业 · Homework</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson06/</code>，打开 <code>README.md</code> 记录你的费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 06: Find"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ 正确！' : '❌ 再想想，看上面的 Knowledge 部分。';
+  }
+</script>
+</body>
+</html>

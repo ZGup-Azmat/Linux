@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 05.5 · tmux 精通 ｜ 终端复用进阶</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 14%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 深色模式</button>
+  <button onclick="window.print()">🖨 打印 / 存 PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 05.5 · Part I · 延伸加强课</div>
+    <h1>tmux 精通</h1>
+    <p class="sub">窗口 / 窗格 / 配置 —— 让 tmux 从「会用」变成「肌肉记忆」</p>
+    <div class="progress-label"><span>课程进度</span><span>05.5 / 40（延伸课，不占正式编号）</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">难度</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">时长</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">交付物</div><div class="v">一套自定义 tmux 工作流</div></div>
+      <div class="item"><div class="k">前置知识</div><div class="v">Lesson 05（tmux 基础）</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> 任务背景 · Mission Context</h2>
+    <div class="card">
+      <p>上节课你学会了 tmux 的基本姿势：建会话、分屏、detach。但你发现自己的用法还是「笨拙」的——</p>
+      <ul>
+        <li>🪟 想开第二个「标签页」却只会再开一个 ssh 终端，桌面乱成一团。</li>
+        <li>🖱️ 想回滚看上面的日志，鼠标滚轮却毫无反应。</li>
+        <li>⌨️ 每次都要按别扭的 <code>Ctrl-b %</code> 分屏，手指打架。</li>
+      </ul>
+      <p>真正的 tmux 高手，不是「知道命令多」，而是<strong>把高频操作调教到顺手、把多任务组织成一套看得懂的布局</strong>。这一课，你要做三件事：<strong>驾驭窗口</strong>（多标签）、<strong>驾驭窗格</strong>（缩放/布局/回滚复制）、<strong>定制配置</strong>（改键位、开鼠标）——全部不需要 root，你自己家目录就能搞定。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>多任务要组织、日志要回滚、键位要顺手 → 需要窗口管理 + 窗格进阶 + 配置文件 → 用 <code>window</code>、<code>copy-mode</code>、<code>~/.tmux.conf</code>。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> 知识 · Knowledge（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 个概念。每个：中文 + 英文 + 心智模型 + SVG + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>概念 1 · 窗口（Window）：一个会话里的多个「标签页」</h3>
+    <div class="card">
+      <p><strong>中文：</strong>一个 tmux 会话里可以有多个<strong>窗口</strong>，每个窗口是一个独立的「全屏标签页」，有自己的编号和名字。窗口之间来回切，比开一堆终端窗口清爽得多。</p>
+      <p><strong>English:</strong> A session holds multiple <em>windows</em> — each a full-screen "tab" with its own number and name, switched between freely.</p>
+
+      <div class="diagram">
+        <svg width="620" height="170" viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.s{fill:#0071e3}.w{fill:#34c759}.act{stroke:#ff9f0a;stroke-width:3}</style>
+          <rect class="s" x="20" y="30" width="130" height="60" rx="10"/>
+          <text class="t" x="85" y="60" text-anchor="middle">session</text>
+          <text class="t" x="85" y="80" text-anchor="middle">rna</text>
+          <rect class="w act" x="190" y="40" width="120" height="44" rx="8"/>
+          <text class="t" x="250" y="60" text-anchor="middle">0: qc</text>
+          <text class="t" x="250" y="78" text-anchor="middle" fill="#ffd60a">当前 *</text>
+          <rect class="w" x="330" y="40" width="120" height="44" rx="8"/>
+          <text class="t" x="390" y="60" text-anchor="middle">1: align</text>
+          <text class="t" x="390" y="78" text-anchor="middle">·</text>
+          <rect class="w" x="470" y="40" width="120" height="44" rx="8"/>
+          <text class="t" x="530" y="60" text-anchor="middle">2: viz</text>
+          <text class="t" x="530" y="78" text-anchor="middle">·</text>
+          <text class="lab" x="20" y="116">窗口名 = 数字:名字，状态栏底部一眼看清（当前带 *）</text>
+          <text class="lab" x="20" y="136">Ctrl-b c 新建 · Ctrl-b , 重命名 · Ctrl-b 0-9 跳转 · Ctrl-b w 列表</text>
+          <text class="lab" x="20" y="156">Ctrl-b n 下一个 · Ctrl-b p 上一个 · Ctrl-b &amp; 关闭</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>Ctrl-b c        <span class="c"># 新建窗口（当前会话内开个新标签）</span>
+Ctrl-b ,        <span class="c"># 重命名当前窗口（起个能看懂的名字）</span>
+Ctrl-b 0..9     <span class="c"># 直接跳到指定编号的窗口</span>
+Ctrl-b n / p    <span class="c"># 下一个 / 上一个窗口</span>
+Ctrl-b w        <span class="c"># 列出所有窗口，用方向键选</span>
+Ctrl-b f        <span class="c"># 按名字查找窗口</span>
+Ctrl-b &amp;        <span class="c"># 关闭当前窗口（确认后）</span></code></pre>
+
+      <p><strong>实例：</strong>一个 RNA 项目，你会同时有「质控」「比对」「可视化」三件事。开三个窗口：<code>0:qc</code>、<code>1:align</code>、<code>2:viz</code>，<code>Ctrl-b 1</code> 一键切到比对，比在一个屏幕里堆三个分屏清爽。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>窗口多了记不住编号</strong>：编号是 0 开始，超过 9 个窗口 <code>Ctrl-b 数字</code> 就跳不到 10+ 了，这时用 <code>Ctrl-b w</code> 列表选，或 <code>Ctrl-b n/p</code> 循环。</li>
+          <li><strong>忘了给窗口起名</strong>：默认名字是「当前命令」，过一会全变成 <code>bash</code> 分不清谁是谁。开窗口第一件事就 <code>Ctrl-b ,</code> 改名。</li>
+          <li><strong><code>Ctrl-b &amp;</code> 误关窗口</strong>：会弹确认（<code>kill-window xxx? (y/n)</code>），按 <code>y</code> 才真关，手滑按别的键就取消。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>「一个窗口 = 一件任务」，是远程工作最清晰的整理方式：QC 在 0、比对在 1、画图在 2。三个月后回来 <code>tmux attach</code>，扫一眼状态栏的窗口名就知道「这个项目进行到哪了」。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>窗口是 session 和 pane 之间的「中间层」：一个 session 装多个 window，一个 window 里再分多个 pane。概念 2 讲 pane 的进阶玩法。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>概念 2 · 窗格进阶：缩放 / 布局 / 调整 / 回滚复制（copy-mode）</h3>
+    <div class="card">
+      <p><strong>中文：</strong>窗格（pane）是窗口里的分屏。进阶玩法四件套：<strong>缩放</strong>（把某窗格临时放大全屏）、<strong>布局</strong>（切换分屏排列）、<strong>调整大小</strong>、<strong>回滚与复制</strong>（进入 copy-mode 翻看历史、复制文字）。</p>
+      <p><strong>English:</strong> Advanced pane skills: <em>zoom</em> (temporarily full-screen a pane), <em>layout</em> (rearrange splits), <em>resize</em>, and <em>copy-mode</em> (scroll back and copy text).</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.p{fill:#ff9f0a}.z{fill:#ff375f;stroke:#0071e3;stroke-width:3}</style>
+          <text class="lab" x="20" y="22">缩放 Ctrl-b z：把当前窗格临时放大到全屏，再按一次还原</text>
+          <rect class="p" x="20" y="36" width="290" height="50" rx="8"/><text class="t" x="165" y="66" text-anchor="middle">pane 1 · vim 改脚本</text>
+          <rect class="z" x="320" y="36" width="290" height="50" rx="8"/><text class="t" x="465" y="66" text-anchor="middle">pane 2 · tail -f 日志</text>
+          <text class="lab" x="20" y="112">布局 Ctrl-b space：循环切换几种分屏排列（even-horizontal 等）</text>
+          <text class="lab" x="20" y="132">调整大小：Ctrl-b 后按住 Ctrl+方向键 微调窗格边界</text>
+          <text class="lab" x="20" y="152">回滚复制：Ctrl-b [ 进入 copy-mode（q 退出），PgUp/PgDn 翻页</text>
+          <text class="lab" x="20" y="172">Ctrl-b ] 粘贴（tmux 内部 buffer，不是系统剪贴板）</text>
+        </svg>
+      </div>
+
+      <p><strong>语法：</strong></p>
+      <pre><code>Ctrl-b z          <span class="c"># 缩放：当前窗格全屏 / 还原（最常用！）</span>
+Ctrl-b space      <span class="c"># 循环切换分屏布局</span>
+Ctrl-b o          <span class="c"># 按顺序循环切换窗格</span>
+Ctrl-b {  /  }    <span class="c"># 把当前窗格左移 / 右移（交换位置）</span>
+Ctrl-b x          <span class="c"># 关闭当前窗格</span>
+
+<span class="c"># 调整窗格大小（按住 prefix 后，再按 Ctrl+方向键，可重复）</span>
+Ctrl-b 然后 Ctrl+←/→/↑/↓   <span class="c"># 微调边界</span>
+
+<span class="c"># 回滚与复制（copy-mode）</span>
+Ctrl-b [          <span class="c"># 进入回滚/复制模式</span>
+PgUp / PgDn      <span class="c"># 翻页看历史输出</span>
+q                <span class="c"># 退出 copy-mode</span>
+Ctrl-b ]          <span class="c"># 粘贴刚才选中的文字</span></code></pre>
+
+      <p><strong>实例：</strong>你在一个窗格里 <code>tail -f</code> 看日志，想仔细看上面滚过去的一段：<code>Ctrl-b z</code> 把日志窗格放大全屏，<code>Ctrl-b [</code> 进入回滚模式慢慢翻，看完 <code>q</code> 退出、再 <code>Ctrl-b z</code> 还原。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>鼠标滚轮没反应</strong>：tmux 默认不接管鼠标，滚轮滚的是终端自己的历史。开鼠标要在配置里 <code>set -g mouse on</code>（概念 3），否则只能用 <code>Ctrl-b [</code> 回滚。</li>
+          <li><strong><code>Ctrl-b ]</code> 贴出来不是你要的</strong>：tmux 的 buffer 和系统剪贴板是两套，跨应用复制要配置或用 <code>Ctrl+Shift+C/V</code>。</li>
+          <li><strong>copy-mode 里乱按</strong>：copy-mode 里 <code>q</code> 是退出，<code>Esc</code> 也行；别用 <code>Ctrl-c</code>（那是打断命令）。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>看日志是生信的日常：任务报错了，你要回滚翻那几行 error。<code>Ctrl-b z</code> + copy-mode 让你在「全屏看日志」和「分屏干活」之间一秒切换，这是资深工程师最顺手的动作。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>copy-mode 的「翻页看历史」思路，和 Lesson 07（grep）的「从日志里捞关键词」是黄金搭档。概念 3 把前面所有操作用配置文件固化下来。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>概念 3 · 配置文件 ~/.tmux.conf：改键位 / 开鼠标 / 多会话</h3>
+    <div class="card">
+      <p><strong>中文：</strong>tmux 的所有习惯都能写进你家目录的 <code>~/.tmux.conf</code> 里持久化——改前缀键、开鼠标滚动、设置回滚行数、自定义分屏快捷键。这是<strong>普通用户就能改</strong>的文件（不需要 root）。</p>
+      <p><strong>English:</strong> tmux habits live in <code>~/.tmux.conf</code> — remap the prefix, enable mouse, set scrollback, bind custom keys. It's your own file; no root needed.</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.b{fill:#0071e3}.g{fill:#34c759}</style>
+          <rect x="10" y="20" width="250" height="140" rx="12" fill="#f0f4fb" stroke="#0071e3"/>
+          <text class="h" x="24" y="46">~/.tmux.conf</text>
+          <text class="t" x="24" y="72">set -g mouse on</text>
+          <text class="t" x="24" y="94">set -g prefix C-a</text>
+          <text class="t" x="24" y="116">unbind C-b</text>
+          <text class="t" x="24" y="138">set -g history-limit 10000</text>
+          <line x1="262" y1="60" x2="330" y2="60" stroke="#8e8e93" stroke-width="2" marker-end="url(#am)"/>
+          <line x1="262" y1="100" x2="330" y2="100" stroke="#8e8e93" stroke-width="2" marker-end="url(#am)"/>
+          <line x1="262" y1="130" x2="330" y2="130" stroke="#8e8e93" stroke-width="2" marker-end="url(#am)"/>
+          <defs><marker id="am" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="#8e8e93"/></marker></defs>
+          <rect class="b" x="332" y="44" width="270" height="34" rx="6"/><text class="t" x="467" y="66" text-anchor="middle">鼠标滚动/点窗格直接生效</text>
+          <rect class="g" x="332" y="86" width="270" height="34" rx="6"/><text class="t" x="467" y="108" text-anchor="middle">前缀改成 Ctrl-a（更顺手）</text>
+          <rect class="b" x="332" y="116" width="270" height="34" rx="6"/><text class="t" x="467" y="138" text-anchor="middle">回滚历史留 10000 行</text>
+          <text class="lab" x="10" y="172">改完 tmux source ~/.tmux.conf 立即生效（不用重启）</text>
+        </svg>
+      </div>
+
+      <p><strong>语法（一份实用配置）：</strong></p>
+      <pre><code><span class="c"># ~/.tmux.conf —— 我的 tmux 配置</span>
+set -g mouse on                 <span class="c"># 开鼠标：滚轮回滚、点窗格切换</span>
+set -g history-limit 10000      <span class="c"># 回滚历史行数加大</span>
+set -g default-terminal "screen-256color"   <span class="c"># 256 色，vim 配色更正常</span>
+
+<span class="c"># 把前缀从 Ctrl-b 改成更顺手的 Ctrl-a（可选）</span>
+set -g prefix C-a
+unbind C-b
+bind C-a send-prefix
+
+<span class="c"># 用 | 和 - 分屏，比 % 和 " 更好记（可选）</span>
+bind | split-window -h
+bind - split-window -v
+
+<span class="c"># 改完保存后，在 tmux 里生效：</span>
+tmux source ~/.tmux.conf</code></pre>
+
+      <p><strong>多会话管理（配套）：</strong></p>
+      <pre><code>tmux ls                          <span class="c"># 列出所有会话</span>
+tmux rename-session -t old new   <span class="c"># 重命名会话（或 Ctrl-b $）</span>
+tmux kill-session -t name        <span class="c"># 关闭指定会话</span>
+tmux kill-server                 <span class="c"># 关闭所有会话（慎用）</span></code></pre>
+
+      <div class="callout warn"><div class="tag">边界情况 · 常见失败</div>
+        <ul>
+          <li><strong>改配置不生效</strong>：改了 <code>~/.tmux.conf</code> 但当前会话还是旧的，要 <code>tmux source ~/.tmux.conf</code> 重新加载；新开的会话才自动读配置。</li>
+          <li><strong>改了 prefix 后记不住</strong>：把 <code>Ctrl-b</code> 改成 <code>Ctrl-a</code> 后，本课所有 <code>Ctrl-b</code> 都要换成 <code>Ctrl-a</code>。刚开始建议先用默认的，熟练了再改。</li>
+          <li><strong>拼错配置项</strong>：tmux 配置错了通常<strong>不报错</strong>、只是那条静默失效，所以要逐条确认。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 · 为什么需要它</div>
+        <p>把习惯写进配置 = 把「上手成本」一次性付清。换新服务器时，<code>scp ~/.tmux.conf 新机器:~/.tmux.conf</code> 一键带走你的整套习惯，在哪都是熟悉的环境——这是工程师的「可迁移资产」。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>配置文件的思路，和 Lesson 14（Bash 脚本的 <code>~/.bashrc</code>）同源：都是「把偏好固化到点文件（dotfile）」。这套本事贯穿你整个 Linux 生涯。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> 引导练习 · Guided Practice</h2>
+    <div class="card">
+      <p>跟着敲，全程不需要 sudo。</p>
+      <pre><code>tmux new -s rna         <span class="c"># 建会话</span>
+<span class="c"># —— 窗口练习 ——</span>
+Ctrl-b c                <span class="c"># 新建窗口（状态栏多一个 1:）</span>
+Ctrl-b ,                <span class="c"># 重命名 → 输入 align 回车</span>
+Ctrl-b 0                <span class="c"># 跳回 0 号窗口</span>
+Ctrl-b w                <span class="c"># 列表选窗口，q 退出</span>
+
+<span class="c"># —— 窗格练习 ——</span>
+Ctrl-b %                <span class="c"># 左右分屏</span>
+Ctrl-b z                <span class="c"># 放大当前窗格，再按一次还原</span>
+Ctrl-b space            <span class="c"># 切一次布局看看效果</span>
+Ctrl-b [                <span class="c"># 进入回滚模式，PgUp 翻页，q 退出</span>
+
+<span class="c"># —— 配置练习 ——</span>
+echo "set -g mouse on" &gt;&gt; ~/.tmux.conf
+tmux source ~/.tmux.conf  <span class="c"># 立即生效，现在滚轮能回滚了</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> 实战实验 · Intensive Lab</h2>
+    <p class="muted">16 道题，分三级。全部不需要 sudo，可实操。答案在本课最后。</p>
+
+    <h3>Level 1 · Foundation（基础，4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">在 tmux 会话里新建一个窗口，并给它起名 <code>qc</code>。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b c</code> 新建，<code>Ctrl-b ,</code> 改名。</div>
+      <div class="field"><b>Verification</b>：状态栏显示 <code>0:qc*</code>（带 * 是当前）。</div>
+      <div class="field"><b>Expected Result</b>：窗口名字是 qc。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">在两个窗口之间来回切换（用编号跳转 + n/p 循环）。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b 0</code> / <code>Ctrl-b n</code> / <code>Ctrl-b p</code>。</div>
+      <div class="field"><b>Verification</b>：状态栏 * 跟着你切换。</div>
+      <div class="field"><b>Expected Result</b>：三种切法都熟练。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">用 <code>Ctrl-b z</code> 把当前窗格放大全屏，再还原。</div>
+      <div class="field"><b>Hint</b>：先 <code>Ctrl-b %</code> 分屏，再 <code>Ctrl-b z</code>。</div>
+      <div class="field"><b>Verification</b>：窗格变大再变回，另一窗格还在。</div>
+      <div class="field"><b>Expected Result</b>：理解 zoom 是「临时全屏」。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">进入回滚模式（copy-mode）翻页看历史，再退出。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b [</code> 进入，<code>PgUp</code>/<code>PgDn</code> 翻页，<code>q</code> 退出。</div>
+      <div class="field"><b>Verification</b>：能翻到之前输出的内容。</div>
+      <div class="field"><b>Expected Result</b>：copy-mode 进出自如。</div></div>
+
+    <h3>Level 2 · Integration（整合，6 题，每题组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">组合窗口 + 窗格：在 1 号窗口里做左右分屏，0 号窗口保持单屏。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b 1</code> 切过去再 <code>Ctrl-b %</code>。</div>
+      <div class="field"><b>Verification</b>：窗口 1 有分屏，窗口 0 没有（窗口各自独立布局）。</div>
+      <div class="field"><b>Expected Result</b>：理解 window 和 pane 是两层。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">组合放大 + 回滚：放大日志窗格后，进入 copy-mode 翻看历史。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b z</code> → <code>Ctrl-b [</code> → 翻页 → <code>q</code>。</div>
+      <div class="field"><b>Verification</b>：在全屏日志里舒服地翻历史。</div>
+      <div class="field"><b>Expected Result</b>：z + copy-mode 连招。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">组合交换窗格 + 布局：用 <code>Ctrl-b {</code>/<code>}</code> 交换两个窗格，再 <code>Ctrl-b space</code> 切换布局。</div>
+      <div class="field"><b>Hint</b>：两个窗格都建好，来回 <code>{</code> <code>}</code> 换位置。</div>
+      <div class="field"><b>Verification</b>：窗格左右对调，布局能循环变化。</div>
+      <div class="field"><b>Expected Result</b>：掌握窗格重排。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">组合配置文件 + 立即生效：加一条 <code>history-limit 10000</code> 到配置，source 加载。</div>
+      <div class="field"><b>Hint</b>：<code>echo "set -g history-limit 10000" &gt;&gt; ~/.tmux.conf</code> 然后 <code>tmux source ~/.tmux.conf</code>。</div>
+      <div class="field"><b>Verification</b>：无报错，copy-mode 能翻更多行。</div>
+      <div class="field"><b>Expected Result</b>：会改配置并加载。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">组合多会话 + 重命名：建第二个会话，改个能看懂的名字。</div>
+      <div class="field"><b>Hint</b>：<code>tmux new -s tmp</code> → <code>Ctrl-b $</code> 或 <code>tmux rename-session -t tmp work</code>。</div>
+      <div class="field"><b>Verification</b>：<code>tmux ls</code> 看到新名字。</div>
+      <div class="field"><b>Expected Result</b>：多会话可命名管理。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">组合查找窗口 + 跳转：开几个窗口，用 <code>Ctrl-b f</code> 按名字找到并跳过去。</div>
+      <div class="field"><b>Hint</b>：<code>Ctrl-b f</code> 输入窗口名片段回车。</div>
+      <div class="field"><b>Verification</b>：直接跳到名字匹配的窗口。</div>
+      <div class="field"><b>Expected Result</b>：窗口多时能快速定位。</div></div>
+
+    <h3>Level 3 · Engineering（工程，6 题：先制造问题再解决 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：把鼠标关掉（或注释 <code>mouse on</code>），体验滚轮失灵，再开回来 source 生效。</div>
+      <div class="field"><b>Hint</b>：注释/删除 mouse 那行 → source → 发现滚轮没用 → 加回 → source。</div>
+      <div class="field"><b>Verification</b>：你能说清「鼠标滚轮靠 mouse on 这一条」。</div>
+      <div class="field"><b>Expected Result</b>：走完「失灵 → 定位配置 → 修复」闭环。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一份可复用配置</strong>：整理一套你顺手的 <code>~/.tmux.conf</code>（鼠标 + 历史 + 分屏键），带注释。</div>
+      <div class="field"><b>Hint</b>：参考知识部分那份配置，逐条加注释说明用途。</div>
+      <div class="field"><b>Verification</b>：别人看你的配置能看懂每条在干嘛。</div>
+      <div class="field"><b>Expected Result</b>：一份可交接的 tmux 配置。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：定一套「窗口命名规范」，让三个月后的人看状态栏就知道项目进行到哪。</div>
+      <div class="field"><b>Hint</b>：约定窗口名 = 阶段名（qc/align/viz），会话名 = 项目名。</div>
+      <div class="field"><b>Verification</b>：你打开的会话，状态栏一眼能读懂。</div>
+      <div class="field"><b>Expected Result</b>：一套命名约定。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>验证失败时的排查步骤</strong>：模拟「改了配置没生效」，一步步排查（改对文件没？source 了没？当前会话还是新会话？）。</div>
+      <div class="field"><b>Hint</b>：<code>cat ~/.tmux.conf</code> 确认内容 → <code>tmux source ~/.tmux.conf</code> 加载。</div>
+      <div class="field"><b>Verification</b>：你能定位「没生效」是哪一步漏了。</div>
+      <div class="field"><b>Expected Result</b>：形成「查文件 → source → 新会话验证」的顺序。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">用 <code>Ctrl-b z</code> + copy-mode 完整看一段日志里的报错，并用 <code>Ctrl-b ]</code> 把关键报错行贴出来。</div>
+      <div class="field"><b>Hint</b>：copy-mode 里用方向键选文字，<code>Ctrl+Space</code> 开始选择、<code>Alt+w</code> 复制（或直接鼠标拖动，开了 mouse 后）。</div>
+      <div class="field"><b>Verification</b>：能把日志里的报错复制出来。</div>
+      <div class="field"><b>Expected Result</b>：掌握日志回滚 + 复制。</div></div>
+
+    <div class="task"><div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：搭一个「一边 vim 改脚本、一边 tail -f 看日志、还能切去第三个窗口看结果」的完整工作流，截图留证。</div>
+      <div class="field"><b>Hint</b>：窗口 0 分屏（左 vim 右 tail -f），窗口 1 看结果。</div>
+      <div class="field"><b>Verification</b>：截图能体现窗口 + 窗格 + 命名。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> 排错挑战 · Debug Challenge</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。每题 Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · 鼠标滚轮在 tmux 里没反应</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：进 tmux 后鼠标滚轮不能回滚历史。</div>
+        <div class="think">💭 <b>Think</b>：tmux 默认接管鼠标吗？</div>
+        <div class="step"><b>Answer</b>：配置里加 <code>set -g mouse on</code>，然后 <code>tmux source ~/.tmux.conf</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：tmux 默认 <code>mouse off</code>，滚轮事件不交给 tmux 处理，所以回滚不了。开 mouse 后滚轮进入 copy-mode、点窗格还能切换。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · 改了 ~/.tmux.conf 但没生效</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：改完配置，新键位/鼠标还是旧的。</div>
+        <div class="think">💭 <b>Think</b>：改对文件了吗？重新加载了吗？</div>
+        <div class="step"><b>Answer</b>：确认改的是 <code>~/.tmux.conf</code>，然后 <code>tmux source ~/.tmux.conf</code> 重新加载当前会话；全新会话会自动读。</div>
+        <div class="explain">🧠 <b>Explanation</b>：配置只在 tmux 启动时读一次，运行中的会话不会自动重读，必须 source 手动加载。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>Ctrl-b %</code> 分屏没反应</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：按 <code>Ctrl-b %</code> 没分屏。</div>
+        <div class="think">💭 <b>Think</b>：前缀键被改了吗？还是你不在 tmux 里？</div>
+        <div class="step"><b>Answer</b>：先确认在 tmux 里（状态栏在底部）；如果改过 prefix，要用新前缀。用 <code>tmux show-options -g prefix</code> 查看当前前缀。</div>
+        <div class="explain">🧠 <b>Explanation</b>：改了 prefix（如 C-a）后，所有 <code>Ctrl-b</code> 都要换成新前缀，忘掉这点就会「怎么按都没反应」。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>Ctrl-b ]</code> 贴出来的不是系统剪贴板内容</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：在 tmux 里 <code>Ctrl-b ]</code> 粘贴，出来的是旧内容。</div>
+        <div class="think">💭 <b>Think</b>：tmux 的 buffer 和系统剪贴板是一回事吗？</div>
+        <div class="step"><b>Answer</b>：tmux 有自己独立的 buffer，和系统剪贴板分离。跨应用粘贴用终端的 <code>Ctrl+Shift+C/V</code>；tmux 内部复制粘贴用 copy-mode 选中 + <code>Ctrl-b ]</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：两套剪贴板不互通。开 mouse 后可以直接鼠标拖动选中、<code>Ctrl+Shift+C</code> 复制走系统剪贴板。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · 窗口/窗格越开越多，找不到路了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：分屏分多了，忘了自己在哪个窗格、有几个窗口。</div>
+        <div class="think">💭 <b>Think</b>：有什么命令能「看全景」？</div>
+        <div class="step"><b>Answer</b>：<code>Ctrl-b w</code> 列出所有窗口；<code>Ctrl-b q</code> 显示每个窗格编号（按编号跳）；<code>Ctrl-b z</code> 放大当前窗格理清思路；<code>Ctrl-b x</code> 关掉多余的。</div>
+        <div class="explain">🧠 <b>Explanation</b>：tmux 提供了「地图」类命令帮你导航：<code>w</code> 看窗口列表、<code>q</code> 看窗格编号。迷路时先看地图，别硬切。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> 工程场景 · Engineering Scenarios</h2>
+    <p class="muted">先写下你自己的方案，再展开看参考答案。每个场景都要想「三个月后的人能否一眼看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>一个 RNA 项目你要同时做「质控、比对、可视化」三件事，还偶尔要看总日志。怎么用 tmux 组织，让三个月后的自己（或同事）一看就懂？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>会话名 = 项目，窗口名 = 阶段：</p>
+        <pre><code>tmux new -s PRAD          <span class="c"># 会话 = 项目</span>
+Ctrl-b , 改名 qc          <span class="c"># 窗口 0 = 质控</span>
+Ctrl-b c → 改名 align     <span class="c"># 窗口 1 = 比对</span>
+Ctrl-b c → 改名 viz       <span class="c"># 窗口 2 = 可视化</span></code></pre>
+        <p>状态栏一眼看到 <code>0:qc 1:align 2:viz</code>，谁接手都懂。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>你在一个窗格里看日志，想同时对比另一个窗格里的脚本，但两个窗格都太小看不清。怎么办？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>用 <code>Ctrl-b z</code> 临时放大：看日志时放大日志窗格，看完还原；改脚本时放大 vim 窗格。zoom 是「临时全屏」，不破坏分屏布局，是比频繁重新分屏更优雅的做法。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>换了新服务器，你想一键带回自己那套 tmux 习惯（键位、鼠标、配色）。怎么把「习惯」变成可迁移资产？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>把习惯写进 <code>~/.tmux.conf</code>，换机器时 <code>scp ~/.tmux.conf 新机器:~/.tmux.conf</code> 拷过去即可。配置文件就是你的「可迁移工作环境」——和 <code>~/.bashrc</code>、vim 配置一起，组成你的 dotfiles 资产库。</p>
+      </div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>你同时维护三个项目（PRAD 比对、雅思脚本、LeetCode 题解），怎么用多会话把它们隔开、互不干扰？</p>
+      <details><summary>参考方案</summary><div class="ans">
+        <p>每个项目一个命名会话：<code>tmux new -s PRAD</code>、<code>tmux new -s ielts</code>、<code>tmux new -s lc</code>。用 <code>tmux ls</code> 看全局，<code>tmux attach -t PRAD</code> 切进对应项目。会话隔离 + 命名清晰 = 多项目并行不打架。</p>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss 战 · Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>用 tmux 搭一套「边改脚本、边看日志、边查结果」的完整工作流，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建会话 <code>PRAD</code>，窗口 0 改名 <code>dev</code>、窗口 1 改名 <code>logs</code>。</li>
+        <li>窗口 0 里左右分屏：左窗 <code>vim run_pipeline.sh</code>、右窗 <code>tail -f results.log</code>。</li>
+        <li>用 <code>Ctrl-b z</code> 放大日志窗格，<code>Ctrl-b [</code> 回滚找到一行报错，截图。</li>
+        <li>写一份自己的 <code>~/.tmux.conf</code>（开鼠标 + 加大历史 + 自定义分屏键），<code>source</code> 生效。</li>
+        <li><code>Ctrl-b d</code> 脱离，再 <code>tmux attach</code> 接回，截图证明工作流没丢。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你的 <code>~/.tmux.conf</code> 里改前缀键时，<strong>只写了 <code>set -g prefix C-a</code> 却忘了 <code>unbind C-b</code></strong>，导致新旧前缀混乱、分屏键按了没反应。你要自己发现「为什么 <code>Ctrl-b %</code> 突然失灵」，补上 <code>unbind C-b</code> + <code>bind C-a send-prefix</code> 修好，并截图「发现 → 修复」。</p>
+      </div>
+      <p><strong>验收清单：</strong>会话/窗口命名 ✅ 分屏+日志 ✅ zoom+回滚 ✅ 配置文件生效 ✅ 脱离接回 ✅ 埋坑已修复 ✅ 截图 + 命令进 <code>github/lesson05b/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> 检查点 · Checkpoints</h2>
+    <table>
+      <tr><th>时间</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>熟练建/改名/切换窗口，会用 zoom 放大窗格</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（窗口+窗格+配置组合）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查「配置不生效/前缀混乱/鼠标失灵」</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含前缀键埋坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> 答案 · Answer Key</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>Ctrl-b c</code> 新建 → <code>Ctrl-b ,</code> 改名 qc。</p>
+        <p><b>Lab 2：</b><code>Ctrl-b 0</code> / <code>Ctrl-b n</code> / <code>Ctrl-b p</code>。</p>
+        <p><b>Lab 3：</b><code>Ctrl-b %</code> 分屏 → <code>Ctrl-b z</code> 放大/还原。</p>
+        <p><b>Lab 4：</b><code>Ctrl-b [</code> → <code>PgUp</code>/<code>PgDn</code> → <code>q</code>。</p>
+        <p><b>Lab 5：</b><code>Ctrl-b 1</code> 切窗口 → <code>Ctrl-b %</code> 分屏（窗口独立）。</p>
+        <p><b>Lab 6：</b><code>Ctrl-b z</code> → <code>Ctrl-b [</code> → 翻页 → <code>q</code>。</p>
+        <p><b>Lab 7：</b><code>Ctrl-b {</code>/<code>}</code> 交换 → <code>Ctrl-b space</code> 切布局。</p>
+        <p><b>Lab 8：</b><code>echo "set -g history-limit 10000" &gt;&gt; ~/.tmux.conf</code> → <code>tmux source ~/.tmux.conf</code>。</p>
+        <p><b>Lab 9：</b><code>tmux new -s tmp</code> → <code>Ctrl-b $</code> 或 <code>tmux rename-session -t tmp work</code>。</p>
+        <p><b>Lab 10：</b><code>Ctrl-b f</code> 输入名字片段回车。</p>
+        <p><b>Lab 11：</b>删 mouse 行 → source → 滚轮失灵 → 加回 → source。</p>
+        <p><b>Lab 12：</b>整理带注释的 <code>~/.tmux.conf</code>。</p>
+        <p><b>Lab 13：</b>命名规范：会话=项目，窗口=阶段（qc/align/viz）。</p>
+        <p><b>Lab 14：</b><code>cat ~/.tmux.conf</code> 查内容 → <code>tmux source</code> 加载 → 新会话验证。</p>
+        <p><b>Lab 15：</b><code>Ctrl-b [</code> 进 copy-mode，鼠标拖动（开 mouse 后）或方向键选中 → <code>Ctrl-b ]</code> 粘贴。</p>
+        <p><b>Lab 16：</b>窗口 0 分屏（左 vim 右 tail -f），窗口 1 看结果。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki 卡组 · Anki Deck</h2>
+    <p class="muted">真正可导入的 TSV 在 <code>anki/lesson05b-tmux-mastery.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>Ctrl-b c</code> / <code>,</code></td><td>新建窗口 / 重命名窗口</td></tr>
+      <tr><td><code>Ctrl-b 0-9</code> / <code>n</code> / <code>p</code></td><td>跳转窗口 / 下一个 / 上一个</td></tr>
+      <tr><td><code>Ctrl-b w</code> / <code>f</code></td><td>列出窗口 / 按名查找窗口</td></tr>
+      <tr><td><code>Ctrl-b &amp;</code></td><td>关闭当前窗口</td></tr>
+      <tr><td><code>Ctrl-b z</code></td><td>放大/还原当前窗格（临时全屏）</td></tr>
+      <tr><td><code>Ctrl-b space</code></td><td>循环切换布局</td></tr>
+      <tr><td><code>Ctrl-b {</code> / <code>}</code></td><td>窗格左移/右移（交换位置）</td></tr>
+      <tr><td><code>Ctrl-b [</code> / <code>]</code></td><td>进入回滚复制模式 / 粘贴</td></tr>
+      <tr><td><code>Ctrl-b $</code></td><td>重命名会话</td></tr>
+      <tr><td><code>tmux source ~/.tmux.conf</code></td><td>重新加载配置</td></tr>
+      <tr><td><code>tmux kill-session -t name</code></td><td>关闭指定会话</td></tr>
+      <tr><td><code>set -g mouse on</code></td><td>开鼠标（滚轮回滚/点窗格）</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>tmux 三层结构？</td><td>session 会话 → window 窗口 → pane 窗格</td></tr>
+      <tr><td>window 和 pane 区别？</td><td>window 是「标签页」（独立全屏），pane 是窗口里的分屏</td></tr>
+      <tr><td>copy-mode 是什么？</td><td>回滚看历史 + 复制文字的模式（Ctrl-b [ 进入）</td></tr>
+      <tr><td>tmux 配置文件在哪？</td><td>~/.tmux.conf（自己家目录，无需 root）</td></tr>
+      <tr><td>改了配置为什么不生效？</td><td>要 tmux source 重新加载，或开新会话</td></tr>
+      <tr><td>为什么改 prefix 要 unbind C-b？</td><td>不 unbind 旧前缀会和新前缀并存，导致混乱</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>鼠标滚轮没反应</td><td>开 mouse on 并 source</td></tr>
+      <tr><td>改配置没生效</td><td>tmux source ~/.tmux.conf</td></tr>
+      <tr><td>分屏键按了没反应</td><td>检查前缀是否被改/是否在 tmux 里</td></tr>
+      <tr><td>粘贴的不是系统剪贴板内容</td><td>tmux buffer 和系统剪贴板分离</td></tr>
+      <tr><td>窗格开太多迷路了</td><td>Ctrl-b w 看窗口、Ctrl-b q 看窗格编号</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> 小测 · Quick Quiz</h2>
+    <div class="quiz" id="q1">
+      <p class="q">把当前窗格临时放大到全屏，用哪个键？</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">Ctrl-b x</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">Ctrl-b z</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">Ctrl-b space</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">回滚看历史输出（copy-mode）用哪个？</p>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">Ctrl-b [</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">Ctrl-b ]</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">Ctrl-b {</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">tmux 配置文件在哪、改完怎么生效？</p>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">~/.tmux.conf，tmux source 生效</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">/etc/tmux.conf，重启系统生效</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">~/.bashrc，source 生效</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">一个会话里的「标签页」叫什么？</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">pane 窗格</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">window 窗口</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">session 会话</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub 作业 · Homework</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson05b/</code>，打开 <code>README.md</code> 记录你的费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 05.5: tmux mastery"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ 正确！' : '❌ 再想想，看上面的 Knowledge 部分。';
+  }
+</script>
+</body>
+</html>
