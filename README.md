@@ -41,7 +41,7 @@
 | 05 | Vim & tmux 编辑器与终端复用 | ✅ 完成 |
 | 05.5 | tmux 精通（延伸课） | ✅ 完成 |
 | 06 | Find 按条件查找 | ✅ 完成 |
-| 07 | Grep 内容检索 | ⏳ 待学 |
+| 07 | Grep 内容检索 | ✅ 完成 |
 | 08 | Compression 压缩 | ⏳ 待学 |
 
 ### Part II · Shell Engineering（Shell 工程）
