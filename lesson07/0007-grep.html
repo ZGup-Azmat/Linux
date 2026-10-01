@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 07 · Grep ｜ Search Inside Files</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 17.5%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 07 · Part I · Linux Foundations</div>
+    <h1>Grep</h1>
+    <p class="sub">Search inside files —— 在文件内容里查找匹配的文本</p>
+    <div class="progress-label"><span>Progress</span><span>07 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">在日志/基因表里精准检索</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 06（find 找文件）</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>昨天你用 <code>find</code> 锁定了「<strong>哪些文件</strong>」。今天主管要你钻进文件<strong>里面</strong>去捞信息：</p>
+      <ul>
+        <li>🔍 一个 50000 行的比对日志 <code>align.log</code>，找出所有含 <code>error</code> 的行。</li>
+        <li>🧬 一个基因表达表 <code>gene_expression.tsv</code>，找出所有含 <code>TP53</code>（抑癌基因）的行。</li>
+        <li>📊 一个 VCF 变异文件，统计某条染色体上有多少条记录。</li>
+      </ul>
+      <p><code>find</code> 管「找文件」，<strong><code>grep</code> 管「找内容」</strong>——这是数据排查的黄金搭档。grep 全称 <strong>g</strong>lobal <strong>r</strong>egular <strong>e</strong>xpression <strong>p</strong>rint，即「全局正则表达式打印」。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>要在大文件里搜特定文本 → 需要按模式匹配行 → 用 <code>grep</code>（-i / -n / -v / -r / -c / -E 正则）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 知识（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 concepts. Each: 英文定义 + 中文注释 + 心智模型 + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>Concept 1 · Basic matching: grep pattern file</h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>grep</code> prints every line of a file that <em>contains a match</em> for the pattern you give. Basic form: <code>grep PATTERN FILE</code>.</p>
+      <p><strong>中文：</strong><code>grep 模式 文件</code> 打印文件里「包含该模式」的每一行。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.m{fill:#0071e3}.n{fill:#34c759}</style>
+          <text class="h" x="0" y="24">grep "error" align.log</text>
+          <rect class="m" x="0" y="40" width="300" height="26" rx="6"/><text class="t" x="150" y="58" text-anchor="middle">2026-09-22 ERROR: bam truncated</text>
+          <rect class="n" x="0" y="72" width="300" height="26" rx="6"/><text class="t" x="150" y="90" text-anchor="middle">2026-09-22 INFO: alignment done</text>
+          <rect class="m" x="0" y="104" width="300" height="26" rx="6"/><text class="t" x="150" y="122" text-anchor="middle">2026-09-22 ERROR: disk full</text>
+          <text class="lab" x="330" y="52">← 含 error 的匹配行</text>
+          <text class="lab" x="330" y="84">← 不含，跳过</text>
+          <text class="lab" x="330" y="116">← 含 error 的匹配行</text>
+          <text class="lab" x="0" y="152">grep 只输出「整行匹配」的行，默认区分大小写</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>grep "error" align.log        <span class="c"># find lines containing "error"</span>
+grep TP53 gene_expression.tsv  <span class="c"># find lines containing TP53</span>
+grep -i "error" align.log      <span class="c"># -i: ignore case（忽略大小写）</span>
+grep -n "error" align.log      <span class="c"># -n: show line numbers（显示行号）</span>
+grep -v "error" align.log      <span class="c"># -v: invert, 打印不含的行</span></code></pre>
+
+      <p><strong>实例：</strong><code>grep -n "error" align.log</code> 输出所有含 error 的行，并带上行号，方便你直接跳到日志出错的位置。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>默认区分大小写</strong>：<code>grep "Error"</code> 匹配不到 <code>error</code>（小写）。要忽略大小写加 <code>-i</code>。</li>
+          <li><strong>模式里有空格要引号</strong>：<code>grep disk full log</code> 会被当成「找 disk，再在 full、log 两个文件里找」，正确写法 <code>grep "disk full" log</code>。</li>
+          <li><strong>grep 匹配的是「整行」</strong>：只要某一行里任何一个位置含模式，整行都会输出——所以可能输出一长串。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>排查问题永远是「先 grep 出错行」。几万行的日志、几千行的基因表，grep 一秒定位到相关行，比人眼翻快几千倍，还不会漏。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>本概念是 Lesson 06（find）的另一半：find 找文件，grep 找内容。概念 2 展开 grep 的「批量」玩法。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>Concept 2 · Recursive & counting: -r / -c / -l</h3>
+    <div class="card">
+      <p><strong>English:</strong> grep can search whole directories (<code>-r</code>), count matches (<code>-c</code>), or list only matching filenames (<code>-l</code>) — turning it into a batch search tool.</p>
+      <p><strong>中文：</strong><code>-r</code> 递归搜整个目录、<code>-c</code> 统计匹配行数、<code>-l</code> 只列文件名，让 grep 变成批量检索工具。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}</style>
+          <text class="h" x="0" y="24">常用 flag</text>
+          <rect class="f" x="0" y="34" width="330" height="30" rx="6"/><text class="t" x="165" y="54" text-anchor="middle">-r  递归搜目录（连同子目录）</text>
+          <rect class="f" x="0" y="70" width="330" height="30" rx="6"/><text class="t" x="165" y="90" text-anchor="middle">-c  统计每个文件匹配了几行</text>
+          <rect class="f" x="0" y="106" width="330" height="30" rx="6"/><text class="t" x="165" y="126" text-anchor="middle">-l  只列出「含匹配」的文件名</text>
+          <rect class="f" x="0" y="142" width="330" height="30" rx="6"/><text class="t" x="165" y="162" text-anchor="middle">-n  显示行号 · -i 忽略大小写</text>
+          <text class="lab" x="350" y="54">grep -r "TP53" data/</text>
+          <text class="lab" x="350" y="90">grep -c "error" align.log</text>
+          <text class="lab" x="350" y="126">grep -l "TP53" *.tsv</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>grep -r "TP53" data/         <span class="c"># 递归搜 data/ 下所有文件</span>
+grep -c "error" align.log     <span class="c"># 统计 error 出现了几行</span>
+grep -l "TP53" *.tsv          <span class="c"># 只列出哪些文件含 TP53</span>
+grep -rn "error" logs/        <span class="c"># 递归 + 显示行号 + 文件名</span></code></pre>
+
+      <p><strong>实例：</strong>想知道「哪些样本表里有 TP53 这个基因」：<code>grep -l "TP53" *.tsv</code> 只输出文件名，一眼看清范围，不用看内容。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>-c</code> 统计的是「行数」不是「次数」</strong>：一行里 error 出现 3 次，<code>-c</code> 只算 1。要统计总次数用 <code>grep -o "error" | wc -l</code>。</li>
+          <li><strong><code>grep -r</code> 会进所有子目录</strong>：目录很大时慢，先想清楚搜哪里，别动不动 <code>grep -r pattern /</code>。</li>
+          <li><strong>二进制文件可能乱码</strong>：grep 搜到二进制文件会输出乱码，加 <code>-a</code>（当作文本）或 <code>-I</code>（跳过二进制）。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>生信里「这个基因在哪些样本里表达」是最常见的需求。<code>grep -l</code> 列文件名、<code>grep -c</code> 数行数，让你从几千个文件里快速圈出范围。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p><code>-r</code> 让 grep 和 find 一样能「跨目录」。概念 3 讲正则表达式，让匹配从「固定字符串」升级到「模式」。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>Concept 3 · Regular expressions: -E, anchors, character classes</h3>
+    <div class="card">
+      <p><strong>English:</strong> A <em>regular expression</em> (regex) is a pattern that matches text flexibly: anchors (<code>^</code> start, <code>$</code> end), classes (<code>[0-9]</code>), quantifiers (<code>*</code>, <code>+</code>). Use <code>-E</code> for extended regex.</p>
+      <p><strong>中文：</strong>正则表达式用「模式」灵活匹配文本：锚点 <code>^</code>/<code>$</code>、字符类 <code>[0-9]</code>、量词 <code>*</code>/<code>+</code>。加 <code>-E</code> 用扩展正则。</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">正则符号</text>
+          <rect class="f" x="0" y="34" width="200" height="28" rx="6"/><text class="t" x="100" y="53" text-anchor="middle">^ 行首</text>
+          <rect class="f" x="210" y="34" width="200" height="28" rx="6"/><text class="t" x="310" y="53" text-anchor="middle">$ 行尾</text>
+          <rect class="f" x="420" y="34" width="190" height="28" rx="6"/><text class="t" x="515" y="53" text-anchor="middle">[0-9] 数字</text>
+          <rect class="g" x="0" y="70" width="200" height="28" rx="6"/><text class="t" x="100" y="89" text-anchor="middle">. 任意单字符</text>
+          <rect class="g" x="210" y="70" width="200" height="28" rx="6"/><text class="t" x="310" y="89" text-anchor="middle">* 零或多个</text>
+          <rect class="g" x="420" y="70" width="190" height="28" rx="6"/><text class="t" x="515" y="89" text-anchor="middle">+ 一个或多个</text>
+          <rect class="f" x="0" y="106" width="200" height="28" rx="6"/><text class="t" x="100" y="125" text-anchor="middle">| 或（-E 下）</text>
+          <rect class="f" x="210" y="106" width="200" height="28" rx="6"/><text class="t" x="310" y="125" text-anchor="middle">\t 制表符</text>
+          <rect class="f" x="420" y="106" width="190" height="28" rx="6"/><text class="t" x="515" y="125" text-anchor="middle">\d 数字</text>
+          <text class="lab" x="0" y="156">grep -E "^ERROR" log   以 ERROR 开头的行</text>
+          <text class="lab" x="0" y="176">grep -E "chr[0-9]+" vcf   chr 后跟一个以上数字</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>grep "^ERROR" align.log           <span class="c"># 以 ERROR 开头的行（^ 行首）</span>
+grep "\.bam$" files.txt           <span class="c"># 以 .bam 结尾（$ 行尾，\. 转义点号）</span>
+grep -E "chr[0-9]+" sample.vcf    <span class="c"># chr 后跟数字（-E 扩展正则）</span>
+grep -E "error|failed" align.log  <span class="c"># error 或 failed（| 或）</span>
+grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" log  <span class="c"># 日期开头的行</span></code></pre>
+
+      <p><strong>实例：</strong>从日志里只捞「ERROR」级别的行（排除 INFO 里含 error 单词的干扰）：<code>grep -E "^ERROR" align.log</code> 用 <code>^</code> 锚定行首，精确多了。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>.</code> 是任意字符不是「句号」</strong>：<code>grep "chr1."</code> 会匹配 chr1A、chr1x 等。想匹配真正的点号要 <code>\.</code> 转义。</li>
+          <li><strong><code>*</code> 是「零或多个」不是通配符</strong>：grep 正则里 <code>*</code> 作用在前一个字符上（如 <code>ab*</code> = a 后跟零或多个 b），和 shell 通配符不同。</li>
+          <li><strong><code>|</code> 和 <code>+</code> 需要 <code>-E</code></strong>：不加 <code>-E</code> 时 <code>|</code> 会被当普通字符，要加 <code>-E</code> 才当「或」用。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">进阶提示（可跳过）</div>
+        <p>完整正则还有 <code>?</code>（零或一个）、<code>{n,m}</code>（n 到 m 次）、<code>\b</code>（词边界）等。生信最常用的是「锚定 + 字符类 + 或」，够排查 90% 的问题。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>正则是 grep / sed / awk / vim 共同的底层语言（Lesson 12 sed、Lesson 11 awk 都会用到）。这一课打地基。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <div class="card">
+      <p>Follow along. 不需要 sudo，建议在 tmux 里做。</p>
+      <pre><code>tmux new -s greplab                      <span class="c"># tmux 习惯</span>
+mkdir -p greplab && cd greplab
+printf 'INFO: start\nERROR: bam truncated\nINFO: done\nERROR: disk full\n' &gt; align.log
+cat align.log                            <span class="c"># 看原文</span>
+
+grep "ERROR" align.log                   <span class="c"># 两行 ERROR</span>
+grep -i "error" align.log                <span class="c"># 忽略大小写（error 也匹配 ERROR）</span>
+grep -n "ERROR" align.log                <span class="c"># 带行号</span>
+grep -v "ERROR" align.log                <span class="c"># 反选：只要 INFO</span>
+grep -c "ERROR" align.log                <span class="c"># 数 ERROR 有几行 → 2</span>
+grep -E "^ERROR" align.log               <span class="c"># 只匹配以 ERROR 开头的行</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 实战实验</h2>
+    <p class="muted">16 题，分三级。不需要 sudo。答案在最后。文件名用真实测序/生信风格。</p>
+
+    <h3>Level 1 · Foundation（4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">在 <code>align.log</code> 里找出所有含 <code>error</code> 的行。</div>
+      <div class="field"><b>Hint</b>：<code>grep "error" align.log</code>。</div>
+      <div class="field"><b>Verification</b>：只输出含 error 的行。</div>
+      <div class="field"><b>Expected Result</b>：匹配行列出。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">忽略大小写地搜 <code>error</code>（同时匹配 Error / ERROR）。</div>
+      <div class="field"><b>Hint</b>：<code>grep -i "error" align.log</code>。</div>
+      <div class="field"><b>Verification</b>：大小写变体都出现。</div>
+      <div class="field"><b>Expected Result</b>：-i 生效。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">带行号地搜 <code>TP53</code>。</div>
+      <div class="field"><b>Hint</b>：<code>grep -n "TP53" gene_expression.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：每行前面有行号。</div>
+      <div class="field"><b>Expected Result</b>：行号 + 匹配行。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">反选：输出所有<strong>不含</strong> <code>INFO</code> 的行。</div>
+      <div class="field"><b>Hint</b>：<code>grep -v "INFO" align.log</code>。</div>
+      <div class="field"><b>Verification</b>：INFO 行消失。</div>
+      <div class="field"><b>Expected Result</b>：-v 反选。</div></div>
+
+    <h3>Level 2 · Integration（6 题，组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">组合 -n + -i：带行号且忽略大小写地搜 error。</div>
+      <div class="field"><b>Hint</b>：<code>grep -ni "error" align.log</code>。</div>
+      <div class="field"><b>Verification</b>：行号 + 大小写都匹配。</div>
+      <div class="field"><b>Expected Result</b>：flag 可叠加。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">组合 -r + 模式：递归搜 <code>data/</code> 下所有文件里的 <code>TP53</code>。</div>
+      <div class="field"><b>Hint</b>：<code>grep -r "TP53" data/</code>。</div>
+      <div class="field"><b>Verification</b>：子目录里的文件也被搜到。</div>
+      <div class="field"><b>Expected Result</b>：跨目录搜索。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">组合 -l + 通配：找出哪些 <code>.tsv</code> 文件含 <code>TP53</code>（只列文件名）。</div>
+      <div class="field"><b>Hint</b>：<code>grep -l "TP53" *.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：只输出文件名，不输出内容。</div>
+      <div class="field"><b>Expected Result</b>：-l 列文件名。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">组合 -c + 模式：统计每个文件里 <code>error</code> 出现几行。</div>
+      <div class="field"><b>Hint</b>：<code>grep -c "error" *.log</code>。</div>
+      <div class="field"><b>Verification</b>：每个文件名后跟一个数字。</div>
+      <div class="field"><b>Expected Result</b>：-c 统计行数。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">组合 find + grep：先 find 出所有 <code>.log</code>，再 grep 搜 error。</div>
+      <div class="field"><b>Hint</b>：<code>grep -r "error" $(find . -name "*.log")</code> 或 <code>find . -name "*.log" -exec grep -n "error" {} \;</code>。</div>
+      <div class="field"><b>Verification</b>：只搜 .log 文件，不搜其他类型。</div>
+      <div class="field"><b>Expected Result</b>：find 与 grep 黄金搭档。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">组合 -E + 锚点：找出以 <code>ERROR</code> 开头的行（排除 INFO 里含 error 的干扰）。</div>
+      <div class="field"><b>Hint</b>：<code>grep -E "^ERROR" align.log</code>。</div>
+      <div class="field"><b>Verification</b>：只有行首是 ERROR 的才输出。</div>
+      <div class="field"><b>Expected Result</b>：锚定行首。</div></div>
+
+    <h3>Level 3 · Engineering（6 题：制造问题 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先 <code>grep "Error"</code>（大写 E）发现匹配不到，再用 <code>-i</code> 或小写修好，理解大小写敏感。</div>
+      <div class="field"><b>Hint</b>：先 <code>grep "Error" align.log</code>（可能无结果），再 <code>grep -i "error"</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清为什么第一个没匹配到。</div>
+      <div class="field"><b>Expected Result</b>：理解大小写敏感 + -i。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：统计日志里「真正的错误次数」（用 <code>-o</code> 只输出匹配词 + <code>wc -l</code> 数次数）。</div>
+      <div class="field"><b>Hint</b>：<code>grep -o "error" align.log | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：输出一个数字（总出现次数，非行数）。</div>
+      <div class="field"><b>Expected Result</b>：-o + wc 数次数。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「查某基因在哪些样本表里出现」的标准命令，带注释，三个月后同事能用。</div>
+      <div class="field"><b>Hint</b>：<code>grep -l "基因名" data/*.tsv</code>，注释写清用途。</div>
+      <div class="field"><b>Verification</b>：命令可读、有注释。</div>
+      <div class="field"><b>Expected Result</b>：一段可交接检索命令。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>验证失败时的排查步骤</strong>：<code>grep -c</code> 结果和预期不符，排查「行数 vs 次数」的坑。</div>
+      <div class="field"><b>Hint</b>：<code>-c</code> 数的是行，一行多次匹配只算 1；用 <code>-o | wc -l</code> 数次数。</div>
+      <div class="field"><b>Verification</b>：你能说清 -c 与 -o|wc 的区别。</div>
+      <div class="field"><b>Expected Result</b>：理解统计口径差异。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal">用正则提取 VCF 里 <code>chr</code> 开头后跟数字的记录，锚定行首 + 字符类。</div>
+      <div class="field"><b>Hint</b>：<code>grep -E "^chr[0-9]+" sample.vcf</code>。</div>
+      <div class="field"><b>Verification</b>：只匹配 chr1、chr22 这类，不匹配 chrX。</div>
+      <div class="field"><b>Expected Result</b>：正则组合。</div></div>
+
+    <div class="task"><div class="level l3">Lab 16 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 分屏里完成一次日志排查——左屏 grep 搜错误、右屏看原始日志，最后用 <code>-E "error|failed"</code> 兜底捞所有错误类，截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏 + grep 组合。</div>
+      <div class="field"><b>Verification</b>：截图体现分屏 + 检索。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>grep "Error"</code> 无输出，但文件里明明有 error</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：搜 "Error" 没结果。</div>
+        <div class="think">💭 <b>Think</b>：大小写对得上吗？</div>
+        <div class="step"><b>Answer</b>：grep 默认区分大小写，加 <code>-i</code>：<code>grep -i "error"</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>Error</code>（大写 E）和 <code>error</code>（全小写）是两个不同的模式。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>grep disk full log</code> 报错或结果不对</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想搜「disk full」这个短语，结果不对。</div>
+        <div class="think">💭 <b>Think</b>：空格被当成参数分隔了吗？</div>
+        <div class="step"><b>Answer</b>：加引号：<code>grep "disk full" log</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：不加引号，<code>disk</code> 是模式，<code>full</code> 和 <code>log</code> 被当成文件名。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>grep "chr1."</code> 匹配到 chr1A、chr1x 等</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想找「chr1.」却匹配到 chr1A。</div>
+        <div class="think">💭 <b>Think</b>：<code>.</code> 是普通点号还是通配？</div>
+        <div class="step"><b>Answer</b>：转义：<code>grep "chr1\."</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：正则里 <code>.</code> 是「任意单字符」，要匹配真正的点号用 <code>\.</code>。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>grep -c "error"</code> 统计结果比预期少</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：一行里有多个 error，-c 只算 1。</div>
+        <div class="think">💭 <b>Think</b>：-c 数的是什么？</div>
+        <div class="step"><b>Answer</b>：<code>-c</code> 数「匹配的行数」，要数「总次数」用 <code>grep -o "error" | wc -l</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：-c 是 count lines，不是 count matches。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>grep -E "error|failed"</code> 不加 -E 时 <code>|</code> 没当「或」</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：不加 -E，<code>|</code> 没生效。</div>
+        <div class="think">💭 <b>Think</b>：<code>|</code> 需要扩展正则吗？</div>
+        <div class="step"><b>Answer</b>：加 <code>-E</code>：<code>grep -E "error|failed"</code>；或用基础语法 <code>grep -e error -e failed</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：基础正则里 <code>|</code> 是普通字符，-E（扩展正则）才把它当「或」。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景</h2>
+    <p class="muted">先写自己的方案，再展开看答案。每个场景想「三个月后的人能否看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>一个 5 万行的比对日志，你只要「ERROR 级别」的行（排除 INFO 里提到 error 的干扰）。怎么写最精确？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>grep -E "^ERROR" align.log</code>——用 <code>^</code> 锚定行首，只匹配以 ERROR 开头的行。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>一个基因表达目录有 500 个 <code>.tsv</code>，你想知道「TP53 在哪些样本里出现」，只想要文件名清单。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>grep -l "TP53" data/*.tsv</code>——<code>-l</code> 只列文件名，不输出内容，一眼看清范围。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>你要统计每个日志文件里 error 的行数，做成一份「错误概览」交给同事。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>grep -c "error" *.log</code>——每个文件名后跟一个数字，就是一份错误概览。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>VCF 文件里染色体字段是 <code>chr1</code>…<code>chr22</code>、<code>chrX</code>、<code>chrY</code>，你只要常染色体的记录（chr1–22）。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>grep -E "^chr[0-9]+" sample.vcf</code>——<code>^</code> 锚定行首 + <code>[0-9]+</code> 匹配数字，chrX/chrY 被排除。</p></div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>在 tmux 里完成一次完整的「日志排查 + 基因检索」，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建 <code>grep_battle/</code>，造一个 <code>align.log</code>（含 INFO/ERROR/WARNING 各行）和一个 <code>gene_expression.tsv</code>（含 TP53/BRCA1/EGFR 等基因）。</li>
+        <li>用 <code>grep -n</code> 找出所有 ERROR 行（带行号）。</li>
+        <li>用 <code>grep -E "^ERROR"</code> 精确只取 ERROR 级别的行。</li>
+        <li>用 <code>grep -l "TP53" *.tsv</code> 列出含 TP53 的文件。</li>
+        <li>用 <code>grep -c</code> 统计 error 行数，再用 <code>grep -o | wc -l</code> 统计总次数，对比两个数字。</li>
+        <li>全程 tmux 分屏（左屏 grep、右屏 cat 原文），截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你写的 <code>grep -E "chr1."</code> 想找「chr1 后面跟点号」，结果把 chr1A、chr1x 也匹配出来了。你要自己发现「<code>.</code> 是任意字符」这个坑，改成 <code>grep -E "chr1\."</code> 修好，并截图「发现 → 修复」。</p>
+      </div>
+      <p><strong>验收清单：</strong>日志/基因表 ✅ grep 各 flag ✅ 正则锚定 ✅ 统计对比 ✅ 埋坑已修复 ✅ 截图 + 命令进 <code>github/lesson07/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <tr><th>Time</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会 grep 基本用法，说清 -i/-n/-v 各管什么</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（组合 flag + find+grep 搭档）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查大小写/正则/统计口径三类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含正则 . 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 答案</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>grep "error" align.log</code>。</p>
+        <p><b>Lab 2：</b><code>grep -i "error" align.log</code>。</p>
+        <p><b>Lab 3：</b><code>grep -n "TP53" gene_expression.tsv</code>。</p>
+        <p><b>Lab 4：</b><code>grep -v "INFO" align.log</code>。</p>
+        <p><b>Lab 5：</b><code>grep -ni "error" align.log</code>。</p>
+        <p><b>Lab 6：</b><code>grep -r "TP53" data/</code>。</p>
+        <p><b>Lab 7：</b><code>grep -l "TP53" *.tsv</code>。</p>
+        <p><b>Lab 8：</b><code>grep -c "error" *.log</code>。</p>
+        <p><b>Lab 9：</b><code>find . -name "*.log" -exec grep -n "error" {} \;</code>。</p>
+        <p><b>Lab 10：</b><code>grep -E "^ERROR" align.log</code>。</p>
+        <p><b>Lab 11：</b><code>grep "Error"</code> 无结果 → <code>grep -i "error"</code>。</p>
+        <p><b>Lab 12：</b><code>grep -o "error" align.log | wc -l</code>。</p>
+        <p><b>Lab 13：</b><code>grep -l "基因名" data/*.tsv</code>（带注释）。</p>
+        <p><b>Lab 14：</b>-c 数行数，-o|wc -l 数次数。</p>
+        <p><b>Lab 15：</b><code>grep -E "^chr[0-9]+" sample.vcf</code>。</p>
+        <p><b>Lab 16：</b>tmux 分屏 + grep -E "error|failed" 兜底。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 卡组</h2>
+    <p class="muted">可导入的 TSV 在 <code>github/anki/lesson07-grep.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>grep "pattern" file</code></td><td>打印含 pattern 的行</td></tr>
+      <tr><td><code>grep -i</code></td><td>忽略大小写</td></tr>
+      <tr><td><code>grep -n</code></td><td>显示行号</td></tr>
+      <tr><td><code>grep -v</code></td><td>反选（不含）</td></tr>
+      <tr><td><code>grep -r</code></td><td>递归搜目录</td></tr>
+      <tr><td><code>grep -c</code></td><td>统计匹配行数</td></tr>
+      <tr><td><code>grep -l</code></td><td>只列文件名</td></tr>
+      <tr><td><code>grep -o</code></td><td>只输出匹配部分</td></tr>
+      <tr><td><code>grep -E</code></td><td>扩展正则（| + 可用）</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>grep 全称？</td><td>global regular expression print</td></tr>
+      <tr><td>find vs grep？</td><td>find 找文件，grep 找内容</td></tr>
+      <tr><td>-c 数行还是次数？</td><td>行数（次数用 -o|wc -l）</td></tr>
+      <tr><td>正则 . 是什么？</td><td>任意单字符，真正的点号要 \.</td></tr>
+      <tr><td>^ 和 $ 是什么？</td><td>行首锚点 / 行尾锚点</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>grep "Error" 无结果</td><td>加 -i 忽略大小写</td></tr>
+      <tr><td>搜短语结果不对</td><td>加引号 "disk full"</td></tr>
+      <tr><td>chr1. 匹配到 chr1A</td><td>. 是任意字符，用 chr1\.</td></tr>
+      <tr><td>| 没当「或」</td><td>加 -E</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> Quick Quiz 小测</h2>
+    <div class="quiz" id="q1">
+      <p class="q">Which flag ignores case?（忽略大小写用哪个 flag？）</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">-n</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">-i</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">-v</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">grep -c counts what?（-c 统计什么？）</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">total matches 次数</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">matching lines 行数</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">files 文件数</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">To match lines starting with ERROR?（匹配以 ERROR 开头的行？）</p>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">grep -E "^ERROR"</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">grep "ERROR$"</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">grep -i "ERROR"</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">Which lists only filenames?（只列文件名用哪个？）</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">-c</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">-l</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">-n</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub Homework 作业</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson07/</code>，README 记录费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 07: Grep"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ Correct!' : '❌ Try again — see the Knowledge section.';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+grep "pattern" file	打印文件里所有含 pattern 的行（整行输出）
+grep -i	忽略大小写（error 也匹配 Error/ERROR）
+grep -n	显示行号，方便跳到出错位置
+grep -v	反选：输出不含 pattern 的行
+grep -r	递归搜索整个目录（含子目录）
+grep -c	统计匹配的行数（不是出现次数）
+grep -l	只列出含匹配的文件名，不输出内容
+grep -o	只输出匹配的那部分文字，配合 wc -l 数次数
+grep -E	启用扩展正则，让 | + 等符号生效
+grep 全称是什么？	global regular expression print（全局正则表达式打印）
+find 和 grep 的区别？	find 按文件名/属性找文件，grep 在文件内容里找文本
+grep -c 数的是行还是次数？	行数；要数总次数用 grep -o "词" | wc -l
+正则里的 . 是什么？	任意单个字符；想匹配真正的点号要转义成 \.
+正则里的 ^ 和 $ 是什么？	^ 锚定行首，$ 锚定行尾
+grep "Error" 无结果但文件有 error	grep 默认区分大小写，加 -i 忽略大小写
+搜短语 "disk full" 结果不对	加引号：grep "disk full" log，否则空格被当参数分隔
+grep "chr1." 匹配到了 chr1A	. 是任意字符，想匹配点号用 grep "chr1\."
+grep "error|failed" 的 | 没生效	加 -E：grep -E "error|failed"，或 grep -e error -e failed
