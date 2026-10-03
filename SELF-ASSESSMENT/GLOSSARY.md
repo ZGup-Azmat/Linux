@@ -339,3 +339,41 @@ Print only the matched part; with `wc -l` it counts total occurrences.
 **-E（grep）**
 启用扩展正则（extended regex），让 `|`、`+` 等符号生效。
 Enable extended regex so symbols like `|` and `+` work.
+
+## Lesson 08 · Compression
+
+**gzip**
+把单个文件压缩成 `.gz`（默认删除原文件）。`-k` 保留原文件、`-d` 解压。
+Compress a single file into `.gz` (removes the original by default); `-k` keeps it, `-d` decompresses.
+
+**gunzip**
+解压 `.gz` 文件，还原原文件（等价 `gzip -d`）。
+Decompress a `.gz` file back to the original (same as `gzip -d`).
+
+**zcat / zgrep / zless**
+不解压直接读/搜/浏览 `.gz` 文件（`zcat f.gz | head`、`zgrep pat f.gz`）。
+Read/search/browse a `.gz` file without decompressing it first.
+
+**tar**
+把多个文件/目录打包成一个归档（tape archive）。只打包不压缩，`-z` 才加 gzip 压缩。
+Bundle many files/directories into one archive (tape archive); only packs, `-z` adds gzip.
+
+**tarball / .tar.gz**
+tar 打包 + gzip 压缩得到的归档文件，是 Linux 分发/备份的标准格式。
+An archive produced by tar + gzip; the standard Linux format for distribution/backup.
+
+**bzip2 / bunzip2**
+压缩率比 gzip 更高的压缩工具（`.bz2`），速度更慢。`-j` 用于 tar。
+A compressor (`.bz2`) with a better ratio than gzip but slower; use `-j` with tar.
+
+**xz / unxz**
+压缩率最高（`.xz`）但最慢、内存占用高的压缩工具。`-J` 用于 tar。
+The highest-ratio compressor (`.xz`) but slowest; use `-J` with tar.
+
+**zip / unzip**
+跨平台压缩工具（`.zip`），常用于和 Windows 交换。Ubuntu 需 `sudo apt install zip unzip` 预装。
+Cross-platform compressor (`.zip`), used to exchange with Windows; needs `sudo apt install zip unzip` on Ubuntu.
+
+**compression ratio / 压缩率**
+压缩后与压缩前的大小比。FASTQ 纯文本用 gzip 通常能压掉 60–75%。
+The size ratio after vs before compression; plain-text FASTQ typically shrinks 60–75% with gzip.

@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 08 · Compression ｜ Compress & Archive Files</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 20%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 08 · Part I · Linux Foundations</div>
+    <h1>Compression</h1>
+    <p class="sub">Compress &amp; archive files —— 压缩与打包文件</p>
+    <div class="progress-label"><span>Progress</span><span>08 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">压缩/打包测序数据并验证</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 01 文件系统 + Lesson 07 grep</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>测序中心刚下机一批原始数据：一个 <code>SRR12345678.fastq</code> 就 5 GB，磁盘眼看要满。主管让你：</p>
+      <ul>
+        <li>🗜️ 把这批 <code>.fastq</code> 压缩起来，省出空间（FASTQ 是纯文本，gzip 能压掉 60–75%）。</li>
+        <li>📦 把一个项目的 <code>raw_data/</code> + <code>results/</code> 打包成<strong>一个</strong>文件，发给合作者。</li>
+        <li>🔍 不解压就能看一眼 5 GB 文件的开头，确认数据没坏。</li>
+      </ul>
+      <p>压缩的核心区别：<code>gzip</code> 管<strong>单个文件</strong>，<code>tar</code> 管<strong>打包多个文件/目录</strong>，两者合体就是测序行业最常用的 <code>.tar.gz</code>。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>磁盘满/要传输一堆文件 → 需要压缩 + 打包 → <code>gzip</code>（单文件）/ <code>tar -czf</code>（多文件+压缩）/ <code>zcat</code>（不解压查看）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 知识（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 concepts. Each: 英文定义 + 中文注释 + 心智模型 + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>Concept 1 · gzip / gunzip: compress &amp; decompress a single file</h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>gzip</code> compresses a single file into a <code>.gz</code> file and, by default, <em>removes the original</em>. <code>gunzip</code> (or <code>gzip -d</code>) reverses it.</p>
+      <p><strong>中文：</strong><code>gzip</code> 把单个文件压缩成 <code>.gz</code>（默认删除原文件），<code>gunzip</code>（或 <code>gzip -d</code>）解压还原。</p>
+
+      <div class="diagram">
+        <svg width="620" height="170" viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">gzip 压缩（单文件，原文件被替换）</text>
+          <rect class="f" x="0" y="38" width="260" height="40" rx="6"/><text class="t" x="130" y="63" text-anchor="middle">sample.fastq (5 GB)</text>
+          <rect class="g" x="360" y="38" width="260" height="40" rx="6"/><text class="t" x="490" y="63" text-anchor="middle">sample.fastq.gz (1.5 GB)</text>
+          <text class="lab" x="300" y="63">gzip →</text>
+          <text class="h" x="0" y="112">gunzip 解压（还原原文件）</text>
+          <rect class="g" x="0" y="126" width="260" height="40" rx="6"/><text class="t" x="130" y="151" text-anchor="middle">sample.fastq.gz</text>
+          <rect class="f" x="360" y="126" width="260" height="40" rx="6"/><text class="t" x="490" y="151" text-anchor="middle">sample.fastq</text>
+          <text class="lab" x="300" y="151">gunzip →</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>gzip sample.fastq             <span class="c"># → sample.fastq.gz，原文件被删除</span>
+gunzip sample.fastq.gz        <span class="c"># → 还原 sample.fastq，.gz 被删除</span>
+gzip -d sample.fastq.gz       <span class="c"># -d: decompress，等价 gunzip</span>
+gzip -k sample.fastq          <span class="c"># -k: keep 保留原文件（不删）</span>
+gzip -c sample.fastq &gt; sample.fastq.gz   <span class="c"># -c 输出到 stdout，也保留原文件</span>
+zcat sample.fastq.gz | head -n 4   <span class="c"># 不解压，直接看前 4 行</span>
+zgrep "ERROR" sample.log.gz        <span class="c"># 不解压，直接搜内容</span>
+zless sample.fastq.gz              <span class="c"># 不解压，翻页浏览</span></code></pre>
+
+      <p><strong>实例：</strong>5 GB 的 <code>sample.fastq</code> 跑 <code>gzip</code> 后变成约 1.5 GB 的 <code>sample.fastq.gz</code>，磁盘立刻省出 3.5 GB。想确认压缩没坏、数据头还在，用 <code>zcat sample.fastq.gz | head -n 4</code> 直接看前 4 行，不用先解压整个文件。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>gzip 默认删除原文件</strong>：没有 <code>-k</code> 或 <code>-c</code> 时，<code>gzip file</code> 会删掉原文件只留 <code>.gz</code>。想保留用 <code>-k</code>。</li>
+          <li><strong>gzip 只能压单个文件</strong>：不能直接压一个目录（<code>gzip project/</code> 会报错）。打包多个文件/目录是 <code>tar</code> 的事（概念 2）。</li>
+          <li><strong>已压缩的格式再压几乎不缩</strong>：<code>.bam</code>、<code>.jpg</code>、<code>.png</code>、<code>.gz</code> 本身已压缩，再 gzip 只会浪费 CPU、大小几乎不变。</li>
+          <li><strong>zcat/zgrep 只认 gzip 格式</strong>：对普通文件或 <code>.tar</code> 用 zcat 会报 <code>not in gzip format</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p><code>.fastq.gz</code> 是测序行业的通用格式——NCBI、ENA、GEO 上传的原始数据几乎都是它。学会 gzip + zcat，等于拿到「和全世界交换测序数据」的入场券。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p><code>zgrep</code> 就是 Lesson 07 grep 的「压缩版」，直接对 <code>.gz</code> 搜内容。概念 2 解决 gzip 管不了的「多文件/目录」打包问题。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>Concept 2 · tar: bundle + compress（.tar.gz）</h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>tar</code> (tape archive) bundles many files/directories into one <code>.tar</code> file — that only <em>packs</em>, it does not compress. Adding <code>-z</code> compresses the bundle with gzip, producing the standard <code>.tar.gz</code> ("tarball").</p>
+      <p><strong>中文：</strong><code>tar</code> 把多个文件/目录打包成一个 <code>.tar</code>（只打包不压缩），加 <code>-z</code> 用 gzip 压缩成 <code>.tar.gz</code>（俗称 tarball）。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">打包 + 压缩：tar -czf project.tar.gz project/</text>
+          <rect class="f" x="0" y="38" width="150" height="36" rx="6"/><text class="t" x="75" y="61" text-anchor="middle">raw_data/</text>
+          <rect class="f" x="160" y="38" width="150" height="36" rx="6"/><text class="t" x="235" y="61" text-anchor="middle">results/</text>
+          <rect class="f" x="320" y="38" width="130" height="36" rx="6"/><text class="t" x="385" y="61" text-anchor="middle">logs/</text>
+          <text class="lab" x="470" y="56">→ tar (打包)</text>
+          <rect class="g" x="0" y="96" width="280" height="36" rx="6"/><text class="t" x="140" y="119" text-anchor="middle">project.tar (未压缩)</text>
+          <text class="lab" x="295" y="119">→ gzip</text>
+          <rect class="f" x="360" y="96" width="260" height="36" rx="6"/><text class="t" x="490" y="119" text-anchor="middle">project.tar.gz</text>
+          <text class="lab" x="0" y="156">反向：tar -xzf 解压还原整个目录结构</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>tar -czf project.tar.gz project/    <span class="c"># c=create z=gzip f=file：打包并压缩</span>
+tar -tzf project.tar.gz             <span class="c"># t=list：只列内容，不解压</span>
+tar -xzf project.tar.gz             <span class="c"># x=extract：解压还原</span>
+tar -czvf project.tar.gz project/   <span class="c"># v=verbose：显示过程</span>
+tar -cjf archive.tar.bz2 dir/       <span class="c"># j=bzip2 压缩（概念 3）</span>
+tar -cJf archive.tar.xz  dir/       <span class="c"># J=xz 压缩（概念 3）</span></code></pre>
+
+      <p><strong>实例：</strong>把一整个项目（<code>raw_data/</code> + <code>results/</code> + <code>logs/</code>）打包发合作者：<code>tar -czf project_2026-10-03.tar.gz project/</code> 一个命令产出一个文件，对方 <code>tar -xzf</code> 就能还原整个目录结构。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>忘记 <code>-f</code></strong>：<code>tar -cz archive dir</code> 没写文件名，会报 <code>Refusing to read archive contents from terminal (missing -f option?)</code>。<code>-f</code> 后面必须紧跟归档文件名。</li>
+          <li><strong>创建时忘了 <code>-z</code></strong>：<code>tar -cf x.tar.gz dir/</code> 生成的是<strong>未压缩</strong>的 <code>.tar</code>（只是文件名带 .gz 而已）。解压时强制 <code>-z</code> 会报 <code>not in gzip format</code>。</li>
+          <li><strong>对单个 <code>.gz</code>（非 .tar.gz）用 tar</strong>：<code>tar -xf sample.fastq.gz</code> 会报 <code>This does not look like a tar archive</code>——gzip 文件和 tar 包是两回事。</li>
+          <li><strong>解压会覆盖同名文件</strong>：解压到当前目录会直接覆盖已有同名文件，解压前先 <code>tar -tzf</code> 看清里面有什么。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">进阶提示（可跳过）</div>
+        <p>现代 GNU tar <strong>读</strong>（-x / -t）时会自动识别 gzip/bzip2/xz，所以 <code>tar -xf x.tar.gz</code> 不加 <code>-z</code> 也能解。但<strong>创建时（-c）必须显式加 <code>-z</code></strong> 才会压缩。规范做法：读也写清楚 <code>-z</code>，意图更明白、跨系统更稳。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>概念 1 是「单文件压缩」，tar 是「多文件打包 + 压缩」的组合拳。概念 3 讲压缩工具怎么选。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>Concept 3 · Choosing the tool: gzip / bzip2 / xz / zip + what NOT to compress</h3>
+    <div class="card">
+      <p><strong>English:</strong> Different compressors trade ratio against speed — <code>gzip</code> is fastest with decent ratio, <code>bzip2</code> compresses better, <code>xz</code> best but slowest; <code>zip</code> is for cross-platform (Windows) exchange.</p>
+      <p><strong>中文：</strong>不同工具在「压缩率 vs 速度」间取舍：<code>gzip</code> 最快、<code>bzip2</code> 更小、<code>xz</code> 最小但最慢；<code>zip</code> 用于跨平台（Windows）交换。</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">压缩率与速度的取舍</text>
+          <rect class="g" x="0" y="38" width="290" height="40" rx="6"/><text class="t" x="145" y="63" text-anchor="middle">gzip 快 · 压缩率中 (.gz)</text>
+          <rect class="o" x="310" y="38" width="290" height="40" rx="6"/><text class="t" x="455" y="63" text-anchor="middle">bzip2 较慢 · 更小 (.bz2)</text>
+          <rect class="f" x="0" y="88" width="290" height="40" rx="6"/><text class="t" x="145" y="113" text-anchor="middle">xz 最慢 · 最小 (.xz)</text>
+          <rect class="g" x="310" y="88" width="290" height="40" rx="6"/><text class="t" x="455" y="113" text-anchor="middle">zip 跨平台 · Windows (.zip)</text>
+          <text class="lab" x="0" y="152">已压缩格式（.bam/.jpg/.png/.gz）再压不缩，别浪费 CPU</text>
+          <text class="lab" x="0" y="170">tar -cjf (bzip2) / tar -cJf (xz)</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>bzip2 file        <span class="c"># → file.bz2</span>
+bunzip2 file.bz2  <span class="c"># 解压</span>
+xz file           <span class="c"># → file.xz（压缩率最高，最慢）</span>
+unxz file.xz      <span class="c"># 解压</span>
+zip archive.zip f1 f2   <span class="c"># 打包成 .zip（跨平台）</span>
+unzip archive.zip       <span class="c"># 解压</span></code></pre>
+
+      <p><strong>实例：</strong>FASTQ 用 <code>gzip</code>（快、所有生信工具都认 <code>.fastq.gz</code>）；需要长期归档、追求最小的基因组大索引用 <code>xz</code>；要和用 Windows 的同事交换用 <code>zip</code>。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>zip/unzip 可能没预装</strong>：Ubuntu Server 24.04 最小安装不含 zip/unzip，要 <code>sudo apt install zip unzip</code>（当前无 root，跳过，租服务器后补）。</li>
+          <li><strong>已压缩的格式再压是浪费</strong>：<code>.bam</code>（BGZF 压缩）、<code>.jpg</code>、<code>.png</code>、<code>.zip</code>、<code>.gz</code> 本身已压缩，再 gzip 只会烧 CPU、几乎不缩。</li>
+          <li><strong>xz 解压慢、占内存高</strong>：解一个大的 <code>.xz</code> 比 gzip 慢很多，大文件解压要有耐心、别以为卡死了。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>选错工具不是大错，但「给 Windows 同事发 .tar.gz、给已压缩的 .bam 再套一层 gzip」是典型新手错误。记住一句：<strong>数据要交换看格式，省空间看是否已压缩。</strong></p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>Part II（Shell 工程）会在管道里大量用 <code>zcat file.gz | grep ...</code>、用 <code>tar.gz</code> 做备份和传输。这是 Part I 的收官。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <div class="card">
+      <p>Follow along. 不需要 sudo，建议在 tmux 里做。</p>
+      <pre><code>tmux new -s complab                       <span class="c"># tmux 习惯</span>
+mkdir -p complab && cd complab
+<span class="c"># 造一个 4 行的 FASTQ 风格文件</span>
+printf '@SRR0000001.1\nACGTACGTACGT\n+\nIIIIIIIIIIII\n' &gt; sample.fastq
+ls -lh sample.fastq                        <span class="c"># 看原文件大小</span>
+
+gzip sample.fastq                          <span class="c"># 压缩 → sample.fastq.gz（原文件消失）</span>
+ls -lh sample.fastq.gz                     <span class="c"># 看压缩后</span>
+zcat sample.fastq.gz | head -n 4           <span class="c"># 不解压看前 4 行</span>
+gunzip sample.fastq.gz                     <span class="c"># 解压还原</span>
+
+<span class="c"># tar 打包一个目录</span>
+mkdir -p project/raw project/results
+printf '@SRR0000002.1\nGATTACAGATT\n+\nIIIIIIIIII\n' &gt; project/raw/read1.fastq
+printf 'gene\tcount\nTP53\t120\n' &gt; project/results/counts.txt
+tar -czf project.tar.gz project/           <span class="c"># 打包 + 压缩</span>
+tar -tzf project.tar.gz                    <span class="c"># 只列内容，不解压</span>
+mkdir extract && tar -xzf project.tar.gz -C extract   <span class="c"># 解压到 extract/</span>
+find extract -type f                       <span class="c"># 验证目录结构还原</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 实战实验</h2>
+    <p class="muted">15 题，分三级。不需要 sudo。答案在最后。文件名用真实测序/生信风格。</p>
+
+    <h3>Level 1 · Foundation（4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">Compress <code>sample.fastq</code> into <code>.gz</code>, then decompress it back.</div>
+      <div class="field"><b>Hint</b>：<code>gzip sample.fastq</code> 然后 <code>gunzip sample.fastq.gz</code>。</div>
+      <div class="field"><b>Verification</b>：压缩后出现 <code>.gz</code>，解压后还原原文件。</div>
+      <div class="field"><b>Expected Result</b>：往返一次，文件恢复。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">Compress but <strong>keep</strong> the original file.</div>
+      <div class="field"><b>Hint</b>：<code>gzip -k sample.fastq</code>。</div>
+      <div class="field"><b>Verification</b>：<code>ls</code> 后 <code>sample.fastq</code> 和 <code>sample.fastq.gz</code> 都在。</div>
+      <div class="field"><b>Expected Result</b>：-k 保留原文件。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">Peek at the first 4 lines of a <code>.fastq.gz</code> <strong>without</strong> decompressing it.</div>
+      <div class="field"><b>Hint</b>：<code>zcat sample.fastq.gz | head -n 4</code>。</div>
+      <div class="field"><b>Verification</b>：看到 4 行 FASTQ，磁盘上没有解压出大文件。</div>
+      <div class="field"><b>Expected Result</b>：zcat 不解压直读。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">Create a <code>.tar.gz</code> of directory <code>project/</code>, then <strong>list</strong> its contents without extracting.</div>
+      <div class="field"><b>Hint</b>：<code>tar -czf project.tar.gz project/</code> 然后 <code>tar -tzf project.tar.gz</code>。</div>
+      <div class="field"><b>Verification</b>：<code>tar -tzf</code> 列出所有文件路径。</div>
+      <div class="field"><b>Expected Result</b>：打包 + 列表。</div></div>
+
+    <h3>Level 2 · Integration（6 题，组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">Combine tar + extract-to-dir: extract <code>project.tar.gz</code> into <code>restored/</code> (not current dir).</div>
+      <div class="field"><b>Hint</b>：<code>mkdir restored && tar -xzf project.tar.gz -C restored</code>。</div>
+      <div class="field"><b>Verification</b>：<code>find restored</code> 看到还原的目录结构。</div>
+      <div class="field"><b>Expected Result</b>：<code>-C</code> 指定解压目标。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">Compress multiple <code>.fastq</code> files in one shot (gzip each, no tar).</div>
+      <div class="field"><b>Hint</b>：<code>gzip *.fastq</code>。</div>
+      <div class="field"><b>Verification</b>：每个 <code>.fastq</code> 都变成 <code>.fastq.gz</code>。</div>
+      <div class="field"><b>Expected Result</b>：gzip 支持多文件（逐个压）。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">Combine zgrep + grep skill: search for <code>ERROR</code> inside a <code>.log.gz</code> without decompressing.</div>
+      <div class="field"><b>Hint</b>：<code>gzip -k align.log</code> 后 <code>zgrep "ERROR" align.log.gz</code>。</div>
+      <div class="field"><b>Verification</b>：直接输出含 ERROR 的行，无需先解压。</div>
+      <div class="field"><b>Expected Result</b>：zgrep = grep 的压缩版。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">Combine tar + multiple dirs: archive <code>raw_data/</code> and <code>results/</code> together into one tarball.</div>
+      <div class="field"><b>Hint</b>：<code>tar -czf both.tar.gz raw_data/ results/</code>。</div>
+      <div class="field"><b>Verification</b>：<code>tar -tzf</code> 里两个目录都在。</div>
+      <div class="field"><b>Expected Result</b>：tar 一次打包多个目录。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">Combine zcat + pipe + grep: count lines of a <code>.fastq.gz</code> (a 4-line FASTQ record).</div>
+      <div class="field"><b>Hint</b>：<code>zcat sample.fastq.gz | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：输出一个行数（4 的倍数）。</div>
+      <div class="field"><b>Expected Result</b>：压缩文件也能进管道。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">Compare sizes: <code>ls -lh</code> before and after gzip to see the compression ratio.</div>
+      <div class="field"><b>Hint</b>：<code>ls -lh sample.fastq sample.fastq.gz</code>。</div>
+      <div class="field"><b>Verification</b>：压缩后明显变小。</div>
+      <div class="field"><b>Expected Result</b>：看懂 size 变化。</div></div>
+
+    <h3>Level 3 · Engineering（5 题：制造问题 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先 <code>tar -cf wrong.tar.gz project/</code>（漏了 -z），再用 <code>tar -xzf wrong.tar.gz</code> 强制 gzip 解压，观察报错，然后改用正确命令修好。</div>
+      <div class="field"><b>Hint</b>：报错是 <code>not in gzip format</code>。创建时必须带 <code>-z</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清「文件名带 .gz 不等于真压缩」。</div>
+      <div class="field"><b>Expected Result</b>：理解 -z 的意义。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：把目录下所有 <code>.fastq</code> 逐个 gzip（用通配符），并保留原文件（-k），一条命令完成。</div>
+      <div class="field"><b>Hint</b>：<code>gzip -k *.fastq</code>。</div>
+      <div class="field"><b>Verification</b>：原文件与 .gz 并存。</div>
+      <div class="field"><b>Expected Result</b>：一条命令批量压缩。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「把项目打包成带日期的归档」命令，命名规范到三个月后同事一眼看懂。</div>
+      <div class="field"><b>Hint</b>：<code>tar -czf project_$(date +%F).tar.gz project/</code>，注释写清用途。</div>
+      <div class="field"><b>Verification</b>：生成 <code>project_2026-10-03.tar.gz</code> 这样的名字。</div>
+      <div class="field"><b>Expected Result</b>：可交接的归档命名。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>排查</strong>：你 gzip 了一个 <code>.bam</code> 文件，发现大小几乎没变。排查原因，说明「哪些格式不该再压」。</div>
+      <div class="field"><b>Hint</b>：.bam 本身是 BGZF 压缩的，再 gzip 无效。</div>
+      <div class="field"><b>Verification</b>：你能列出至少 3 个不该再压的格式（.bam/.jpg/.png/.gz/.zip）。</div>
+      <div class="field"><b>Expected Result</b>：理解「已压缩勿再压」。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 分屏里完成一次「压缩 + 验证」——左屏跑 gzip/tar，右屏 <code>ls -lh</code> 和 <code>tar -tzf</code> 验证结果，最后 <code>zcat ... | head</code> 确认数据完好，截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏 + 压缩 + 验证三件套。</div>
+      <div class="field"><b>Verification</b>：截图体现分屏 + 压缩 + 验证。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>tar -xz data.tar.gz</code> 报 <code>Refusing to read archive contents from terminal</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想解压，结果 tar 拒绝读。</div>
+        <div class="think">💭 <b>Think</b>：<code>-f</code>（文件名）是不是漏了？</div>
+        <div class="step"><b>Answer</b>：<code>-f</code> 后面必须跟归档文件名：<code>tar -xzf data.tar.gz</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：没 <code>-f</code> 时 tar 从标准输入（终端）读归档，于是拒绝。记住 <code>-f</code> 永远紧跟文件名。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>tar -xf sample.fastq.gz</code> 报 <code>This does not look like a tar archive</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：对一个 gzip 文件用 tar 解压。</div>
+        <div class="think">💭 <b>Think</b>：<code>.gz</code> 和 <code>.tar.gz</code> 一样吗？</div>
+        <div class="step"><b>Answer</b>：<code>sample.fastq.gz</code> 只是「gzip 压缩的单个文件」，不是 tar 包。要看内容用 <code>zcat</code>，不是 <code>tar</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：gzip 管单文件，tar 管打包。tar 解压 gzip 单文件后看到的不是 tar 格式，所以报错。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>gzip sample.fastq.gz</code> 报 <code>already has .gz suffix -- unchanged</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：对已压缩文件再 gzip。</div>
+        <div class="think">💭 <b>Think</b>：它是不是已经压过了？</div>
+        <div class="step"><b>Answer</b>：文件已经是 <code>.gz</code>，gzip 拒绝二次压缩。先 <code>gunzip</code> 还原，或干脆别压。</div>
+        <div class="explain">🧠 <b>Explanation</b>：gzip 检测到 <code>.gz</code> 后缀会跳过，防止把 <code>file.gz</code> 变成 <code>file.gz.gz</code>。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>gunzip sample.fastq.gz</code> 报 <code>already exists; not overwriting</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：解压时同名文件已存在。</div>
+        <div class="think">💭 <b>Think</b>：当前目录是不是已经有个 <code>sample.fastq</code>？</div>
+        <div class="step"><b>Answer</b>：gzip 默认不覆盖。先删旧的，或用 <code>gunzip -f sample.fastq.gz</code> 强制覆盖。</div>
+        <div class="explain">🧠 <b>Explanation</b>：为避免误覆盖数据，gzip 默认拒绝。确认旧的不要了再 <code>-f</code>。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>zcat data.tar</code> 报 <code>not in gzip format</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：对一个未压缩的 tar 用 zcat。</div>
+        <div class="think">💭 <b>Think</b>：<code>data.tar</code> 是不是没压过？</div>
+        <div class="step"><b>Answer</b>：<code>zcat</code> 只认 gzip。未压缩的 tar 用 <code>tar -tf data.tar</code> 查看。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>zcat</code> = <code>gzip -dc</code>，碰到非 gzip 数据就报 not in gzip format。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景</h2>
+    <p class="muted">先写自己的方案，再展开看答案。每个场景想「三个月后的人能否看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>500 个 <code>.fastq</code> 把磁盘占满了。你想省空间，但后续生信工具（如 fastqc）还需要能直接读这些文件。怎么压缩最合适？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>gzip -k *.fastq</code>（或逐个 gzip）——把每个 FASTQ 压成 <code>.fastq.gz</code>，工具都能直接读 <code>.gz</code>，且省 60–75% 空间。<strong>不要</strong> tar 成一个大包，因为 tar 包不能让工具按文件读取。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>要把整个项目（<code>raw_data/</code> + <code>results/</code> + <code>scripts/</code>）发给合作者。怎么打包让对方三个月后也能立刻看懂？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>tar -czf project_$(date +%F).tar.gz raw_data/ results/ scripts/</code>——文件名带日期、含多个目录、<code>-z</code> 压缩，一个文件发走。对方 <code>tar -xzf</code> 就还原整个结构。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>一个 5 GB 的 <code>.fastq.gz</code>，你只想确认前 4 行数据头（read ID 和序列）没坏，不想解压整个文件。怎么做？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>zcat sample.fastq.gz | head -n 4</code>——流式只读前 4 行就停，不落盘、不占额外空间、秒回。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>你要归档 <code>alignment.bam</code>（已压缩）和 <code>counts.txt</code>（纯文本）两个文件。压缩策略该怎么定？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>.bam</code> 已 BGZF 压缩，<strong>别再 gzip</strong>（纯浪费 CPU）；只压纯文本：<code>gzip counts.txt</code>。若要一起打包，<code>tar -czf archive.tar.gz alignment.bam counts.txt.gz</code>——tar 的 gzip 层对 bam 收益也有限，但打包方便传输。</p></div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>建一个迷你测序项目，正确压缩 + 打包 + 验证，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建 <code>comp_battle/</code>，造 <code>raw_data/</code>（2 个 .fastq）和 <code>results/</code>（1 个 counts.txt）。</li>
+        <li>把每个 <code>.fastq</code> 用 <code>gzip -k</code> 压缩（保留原文件，模拟「工具还能读原文件」）。</li>
+        <li>用 <code>tar -czf comp_battle_$(date +%F).tar.gz raw_data/ results/</code> 打包整个项目。</li>
+        <li>用 <code>tar -tzf</code> 列出归档内容，确认两个目录都在。</li>
+        <li>用 <code>zcat ... | head -n 4</code> 确认某个 <code>.fastq.gz</code> 数据完好。</li>
+        <li>全程 tmux 分屏（左屏执行、右屏验证），截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你打包时手滑写成了 <code>tar -cf comp_battle.tar.gz raw_data/ results/</code>（<strong>漏了 <code>-z</code></strong>，只打包不压缩）。当你用 <code>tar -xzf comp_battle.tar.gz</code> 解压验证时，报错 <code>gzip: stdin: not in gzip format</code>。你要自己发现「创建时漏了 -z，文件名叫 .tar.gz 但其实是未压缩的 .tar」，删掉重来 <code>tar -czf ...</code>，再 <code>tar -tzf</code> 验证成功，截图「报错 → 修复」。</p>
+      </div>
+      <p><strong>验收清单：</strong>项目目录树 ✅ FASTQ 已 gzip ✅ 归档已打包 ✅ 内容已验证 ✅ 埋坑（漏 -z）已修复 ✅ 截图 + 命令进 <code>github/lesson08/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <tr><th>Time</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会 gzip/gunzip 基本用法，说清 -k/-c/-d 各管什么，zcat 不解压直读</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（tar -czf/-xzf/-tzf + 组合管道）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查漏 -f / 漏 -z / 已压缩勿再压三类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含漏 -z 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 答案</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>gzip sample.fastq</code> → <code>gunzip sample.fastq.gz</code>。</p>
+        <p><b>Lab 2：</b><code>gzip -k sample.fastq</code>。</p>
+        <p><b>Lab 3：</b><code>zcat sample.fastq.gz | head -n 4</code>。</p>
+        <p><b>Lab 4：</b><code>tar -czf project.tar.gz project/</code> → <code>tar -tzf project.tar.gz</code>。</p>
+        <p><b>Lab 5：</b><code>mkdir restored && tar -xzf project.tar.gz -C restored</code>。</p>
+        <p><b>Lab 6：</b><code>gzip *.fastq</code>。</p>
+        <p><b>Lab 7：</b><code>gzip -k align.log && zgrep "ERROR" align.log.gz</code>。</p>
+        <p><b>Lab 8：</b><code>tar -czf both.tar.gz raw_data/ results/</code>。</p>
+        <p><b>Lab 9：</b><code>zcat sample.fastq.gz | wc -l</code>。</p>
+        <p><b>Lab 10：</b><code>ls -lh sample.fastq sample.fastq.gz</code>。</p>
+        <p><b>Lab 11：</b>漏 -z → <code>not in gzip format</code>；改用 <code>tar -czf</code>。</p>
+        <p><b>Lab 12：</b><code>gzip -k *.fastq</code>。</p>
+        <p><b>Lab 13：</b><code>tar -czf project_$(date +%F).tar.gz project/</code>。</p>
+        <p><b>Lab 14：</b>.bam/.jpg/.png/.gz/.zip 已压缩，别再压。</p>
+        <p><b>Lab 15：</b>tmux 分屏 + gzip/tar + ls -lh/tar -tzf/zcat 验证。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 卡组</h2>
+    <p class="muted">可导入的 TSV 在 <code>github/anki/lesson08-compression.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>gzip file</code></td><td>压成 file.gz（默认删原文件）</td></tr>
+      <tr><td><code>gunzip file.gz</code></td><td>解压还原</td></tr>
+      <tr><td><code>gzip -k</code></td><td>压缩但保留原文件</td></tr>
+      <tr><td><code>gzip -c file &gt; out.gz</code></td><td>输出到 stdout，保留原文件</td></tr>
+      <tr><td><code>zcat file.gz</code></td><td>不解压直读内容</td></tr>
+      <tr><td><code>zgrep pat file.gz</code></td><td>不解压直接搜</td></tr>
+      <tr><td><code>tar -czf a.tar.gz dir/</code></td><td>打包 + gzip 压缩</td></tr>
+      <tr><td><code>tar -tzf a.tar.gz</code></td><td>只列内容不解压</td></tr>
+      <tr><td><code>tar -xzf a.tar.gz</code></td><td>解压还原</td></tr>
+      <tr><td><code>tar -cjf / -cJf</code></td><td>bzip2(-j) / xz(-J) 压缩</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>gzip 和 tar 的分工？</td><td>gzip 压单文件，tar 打包多文件/目录</td></tr>
+      <tr><td>.tar 和 .tar.gz 区别？</td><td>.tar 只打包不压缩，.tar.gz 打包+压缩</td></tr>
+      <tr><td>gzip 默认会做什么？</td><td>删除原文件（保留用 -k/-c）</td></tr>
+      <tr><td>哪些格式不该再压？</td><td>.bam/.jpg/.png/.gz/.zip（已压缩）</td></tr>
+      <tr><td>gzip/bzip2/xz 怎么选？</td><td>gzip 快、bzip2 更小、xz 最小最慢</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>tar -xz 报 Refusing to read</td><td>漏了 -f，加 -f 文件名</td></tr>
+      <tr><td>tar -xf x.gz 报 not a tar archive</td><td>.gz 单文件不是 tar 包，用 zcat</td></tr>
+      <tr><td>gzip x.gz 报 already has .gz suffix</td><td>已压缩，别再压</td></tr>
+      <tr><td>gunzip 报 already exists not overwriting</td><td>同名文件存在，删旧或 -f 覆盖</td></tr>
+      <tr><td>zcat x.tar 报 not in gzip format</td><td>x.tar 未压缩，用 tar -tf 查看</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> Quick Quiz 小测</h2>
+    <div class="quiz" id="q1">
+      <p class="q">Which flag keeps the original file when compressing?（压缩时保留原文件用哪个？）</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">-d</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">-k</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">-z</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">What does <code>tar -xzf</code> do?（tar -xzf 做什么？）</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">create 创建</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">extract 解压</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">list 列表</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">Which tool bundles a directory (many files)?（打包一个目录用哪个？）</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">gzip</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">tar</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">zcat</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">Which format is already compressed?（哪个格式已压缩？）</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">.fastq</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">.txt</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">.bam</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub Homework 作业</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson08/</code>，README 记录费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 08: Compression"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ Correct!' : '❌ Try again — see the Knowledge section.';
+  }
+</script>
+</body>
+</html>

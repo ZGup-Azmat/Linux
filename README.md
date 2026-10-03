@@ -1,4 +1,4 @@
-# Linux Engineer Course 🐧
+# Linux Engineer Course
 
 ---
 
@@ -8,9 +8,9 @@
 
 每节课产出：
 
-- 📖 **HTML 课件**（深色/浅色主题、SVG 图解、可打印成 PDF）
-- 📝 **学习笔记**（费曼复述 + 记忆锚点 + 每日反思）
-- 🎴 **Anki 卡组**（本地仓库内，可导入 Anki 间隔复习）
+- **HTML 课件**（深色/浅色主题、SVG 图解、可打印成 PDF）
+- **学习笔记**（费曼复述 + 记忆锚点 + 每日反思）
+- **Anki 卡组**（本地仓库内，可导入 Anki 间隔复习）
 
 ---
 
@@ -28,7 +28,7 @@
 
 ## 课程进度
 
-**✅ 已完成 7 课 / 40 课**
+**✅ 已完成 8 课 / 40 课**
 
 ### Part I · Linux Foundations（基础）
 
@@ -42,7 +42,7 @@
 | 05.5 | tmux 精通（延伸课） | ✅ 完成 |
 | 06 | Find 按条件查找 | ✅ 完成 |
 | 07 | Grep 内容检索 | ✅ 完成 |
-| 08 | Compression 压缩 | ⏳ 待学 |
+| 08 | Compression 压缩 | ✅ 完成 |
 
 ### Part II · Shell Engineering（Shell 工程）
 
@@ -137,6 +137,6 @@ Linux/
 ## 作者
 
 - GitHub：[@ZGup-Azmat](https://github.com/ZGup-Azmat)
-- 最后更新：2026-09-20
+- 最后更新：2026-10-03
 
 > 「不是因为看到希望才坚持，而是坚持了才会看到希望。」—— 加油

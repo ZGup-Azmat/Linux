@@ -1,0 +1,25 @@
+gzip file	把单个文件压成 file.gz（默认删除原文件）
+gunzip file.gz	解压还原原文件
+gzip -k	压缩但保留原文件（keep）
+gzip -c file > out.gz	输出到 stdout，保留原文件
+gzip -d file.gz	解压（等价 gunzip）
+zcat file.gz	不解压直接读内容（看开头用 zcat | head）
+zgrep pattern file.gz	不解压直接搜内容（grep 的压缩版）
+tar -czf a.tar.gz dir/	打包 + gzip 压缩（c=create z=gzip f=file）
+tar -tzf a.tar.gz	只列出归档内容，不解压
+tar -xzf a.tar.gz	解压还原
+tar -xzf a.tar.gz -C dir	解压到指定目录 dir
+tar -cjf a.tar.bz2 dir/	用 bzip2 压缩打包（-j）
+tar -cJf a.tar.xz dir/	用 xz 压缩打包（-J）
+gzip 和 tar 的分工？	gzip 压单个文件，tar 打包多个文件/目录
+.tar 和 .tar.gz 区别？	.tar 只打包不压缩，.tar.gz 打包+压缩
+gzip 默认会对原文件做什么？	删除原文件（保留用 -k 或 -c）
+哪些格式不该再压缩？	.bam / .jpg / .png / .gz / .zip（已压缩，再压不缩）
+gzip / bzip2 / xz 怎么选？	gzip 快压缩率中，bzip2 更小较慢，xz 最小最慢
+zip 什么时候用？	和 Windows 用户交换时（跨平台）
+tar -xz 报 Refusing to read from terminal	漏了 -f，加 -f 文件名
+tar -xf sample.fastq.gz 报 not a tar archive	.gz 单文件不是 tar 包，用 zcat 看内容
+gzip x.gz 报 already has .gz suffix	文件已压缩，别再压（先 gunzip 或跳过）
+gunzip 报 already exists; not overwriting	同名文件已存在，删旧的或用 -f 强制覆盖
+zcat data.tar 报 not in gzip format	data.tar 未压缩，用 tar -tf 查看
+创建 tar 时漏了 -z 会怎样？	生成未压缩的 .tar（即使文件名叫 .tar.gz），解压时强制 -z 会报 not in gzip format
