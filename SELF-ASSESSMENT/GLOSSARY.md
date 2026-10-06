@@ -377,3 +377,45 @@ Cross-platform compressor (`.zip`), used to exchange with Windows; needs `sudo a
 **compression ratio / 压缩率**
 压缩后与压缩前的大小比。FASTQ 纯文本用 gzip 通常能压掉 60–75%。
 The size ratio after vs before compression; plain-text FASTQ typically shrinks 60–75% with gzip.
+
+## Lesson 09 · Pipe
+
+**pipe / 管道**
+把左边命令的 stdout 接到右边命令 stdin 的符号 `|`，数据从左流向右。
+The `|` operator that connects the left command's stdout to the right command's stdin; data flows left to right.
+
+**stdin / stdout / stderr**
+标准输入（0）/ 标准输出（1）/ 标准错误（2）三条数据流。管道只传 stdout，stderr 直接上屏。
+The three standard streams: input (0), output (1), error (2). Pipes carry only stdout; stderr goes straight to screen.
+
+**filter / 过滤器**
+读 stdin、写 stdout 的命令，可串进管道逐级处理（grep / sort / uniq / head / wc 等）。
+A command that reads stdin and writes stdout, chainable in a pipeline (grep, sort, uniq, head, wc, …).
+
+**head / tail**
+取流/文件的前 N 行（head）或后 N 行（tail），`-n N` 指定行数。
+Output the first N lines (head) or last N lines (tail); `-n N` sets the count.
+
+**sort**
+排序。默认字典序，`-n` 数字序、`-nr` 数字降序。读完全部输入才输出。
+Sort lines; lexicographic by default, `-n` numeric, `-nr` numeric descending. Buffers all input before output.
+
+**uniq**
+去掉「相邻」重复行，`-c` 计数。要正确去重须先 sort。
+Remove adjacent duplicate lines; `-c` counts them. Sort first for correct dedup.
+
+**cut**
+按列切分文本，`-f1` 取第一列（Tab 分隔）。
+Slice text by field; `-f1` takes the first tab-separated column.
+
+**wc**
+统计行数（`-l`）、词数（`-w`）、字节数（`-c`）。
+Count lines (`-l`), words (`-w`), or bytes (`-c`).
+
+**tee**
+把 stdin 一份写进文件、一份继续输出到 stdout，用于管道中「留档 + 继续处理」。`-a` 追加。
+Write stdin to a file and also pass it through to stdout; `-a` appends.
+
+**redirection / 重定向**
+把 stdout 写到文件（`>` 覆盖、`>>` 追加）。区别于管道（`|` 接命令）。
+Send stdout to a file (`>` overwrite, `>>` append), unlike a pipe (`|`), which feeds a command.

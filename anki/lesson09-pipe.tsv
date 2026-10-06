@@ -1,0 +1,26 @@
+cmd1 | cmd2	把 cmd1 的 stdout 喂给 cmd2 的 stdin（数据从左流向右）
+head -n N	取前 N 行
+tail -n N	取后 N 行
+wc -l	数行数
+sort	按字典序排序
+sort -n	按数字大小排序
+sort -nr	按数字降序排序
+uniq	去掉「相邻」的重复行
+uniq -c	去重并计数（前面通常要 sort）
+cut -f1	取第一列（Tab 分隔）
+tee file	把数据写进文件，同时继续传给下一个命令
+tee -a file	追加写文件（不覆盖），同时继续传
+> file	把 stdout 覆盖写进文件（已有文件会被清空）
+>> file	把 stdout 追加写进文件
+管道传的是哪个流？	只传 stdout→stdin；stderr 不经过管道，直接上屏
+uniq 去掉什么重复？	只去「相邻」重复；想全去重要先 sort
+FASTQ 一条 read 占几行？	4 行：@header / sequence / + / quality
+数 FASTQ 的 read 数怎么写？	zcat f.fastq.gz | grep -c "^@"（或 wc -l 再 ÷4）
+数 VCF 变异记录（跳过 # 头）怎么写？	grep -v "^#" sample.vcf | wc -l
+管道和重定向的区别？	| 把输出接给下一个「命令」，> 把输出写进「文件」
+tee 的作用？	一份写文件留档、一份继续走管道，跑一遍得两样
+uniq 计数不对（同一基因拆成多行）	忘了先 sort，改成 sort | uniq -c
+grep x | ls 结果只剩目录列表	ls 不读 stdin，管道右边要换成读 stdin 的命令
+管道后报错还是打到屏幕	报错是 stderr，不走管道，加 2>/dev/null 静音
+cat f.fastq | wc -l 得到 8 但只有 2 条 read	FASTQ 每 read 4 行，8/4=2；数 read 用 grep -c "^@"
+grep x log > out.txt 把旧 out.txt 覆盖了	> 是覆盖；用 >> 追加，或先 cp 备份

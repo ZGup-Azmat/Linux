@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 09 · Pipe ｜ Chain Commands into a Pipeline</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 22.5%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 09 · Part II · Shell Engineering</div>
+    <h1>Pipe</h1>
+    <p class="sub">Chain commands into a pipeline —— 用管道把命令串成流水线</p>
+    <div class="progress-label"><span>Progress</span><span>09 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★☆☆ Intermediate</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">用管道完成测序数据统计</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 07 grep + Lesson 08 压缩</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>昨天你学会了压缩（Lesson 08）。今天主管要你「<strong>不建中间文件</strong>」就完成一堆统计：</p>
+      <ul>
+        <li>🧬 一个 5 GB 的 <code>SRR12345678.fastq.gz</code>，想知道里面有<strong>几条 read</strong>（不解压、不落盘）。</li>
+        <li>📊 一个 <code>sample.vcf</code> 变异文件，想知道有<strong>多少条变异记录</strong>（跳过 <code>#</code> 开头的注释头）。</li>
+        <li>🏆 一个基因表达表，想找「表达量最高的 <strong>top 10</strong> 基因」。</li>
+        <li>🔍 一堆日志，想捞 ERROR 并数有多少行。</li>
+      </ul>
+      <p>答案全在<strong>管道 <code>|</code></strong> 里。它让命令像流水线一样接起来：一个命令的输出，直接流进下一个命令的输入，中间结果不落盘、不占空间、一气呵成。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>要对数据做多步处理又不想建中间文件 → 需要把命令串起来 → <code>|</code>（管道）+ 过滤器 grep/sort/uniq/wc/head/tail。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 知识（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 concepts. Each: 英文定义 + 中文注释 + 心智模型 + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>Concept 1 · The pipe <code>|</code>: stdout → stdin</h3>
+    <div class="card">
+      <p><strong>English:</strong> The pipe <code>|</code> takes the <em>standard output</em> (stdout) of the left command and feeds it as <em>standard input</em> (stdin) to the right command. Data flows left → right.</p>
+      <p><strong>中文：</strong>管道 <code>|</code> 把左边命令的<strong>标准输出（stdout）</strong>喂给右边命令的<strong>标准输入（stdin）</strong>，数据从左流向右。</p>
+
+      <div class="diagram">
+        <svg width="620" height="170" viewBox="0 0 620 170" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">cat reads.fastq | grep "^@"</text>
+          <rect class="f" x="0" y="40" width="170" height="44" rx="6"/><text class="t" x="85" y="67" text-anchor="middle">cat reads.fastq</text>
+          <text class="lab" x="90" y="104">stdout ↓</text>
+          <text class="lab" x="250" y="67">| 管道</text>
+          <rect class="g" x="380" y="40" width="200" height="44" rx="6"/><text class="t" x="480" y="67" text-anchor="middle">grep "^@" (stdin)</text>
+          <text class="lab" x="200" y="67">→</text>
+          <text class="lab" x="0" y="140">stdout 接 stdin；stderr 不经过管道，直接打印到屏幕</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>cmd1 | cmd2 | cmd3              <span class="c"># 可无限串联，数据从左到右流</span>
+ls -l | grep "\.fastq$"         <span class="c"># ls 的输出喂给 grep 过滤</span>
+cat align.log | grep ERROR | wc -l   <span class="c"># 三段：读 → 滤 → 数</span></code></pre>
+
+      <p><strong>实例：</strong><code>ls -l | grep "\.fastq$"</code>——<code>ls -l</code> 列出所有文件的详细行，管道把这一整块文本喂给 <code>grep</code>，grep 只留下以 <code>.fastq</code> 结尾的行。不用先把 <code>ls</code> 结果存成文件再搜。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>管道只传 stdout，不传 stderr</strong>：命令的报错（stderr）会绕过管道直接打到屏幕，不会被下游处理。</li>
+          <li><strong>右边命令必须读 stdin</strong>：<code>grep ERROR align.log | ls</code> 里 <code>ls</code> 不读 stdin，管道喂的东西被无视，只会看到 <code>ls</code> 自己列目录。</li>
+          <li><strong>管道里每个命令跑在自己的子进程里</strong>：里面 <code>cd</code> 或改的变量不会传回你的 shell（如 <code>echo hi | read x</code> 之后 <code>$x</code> 是空的）。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>生信里「读文件 → 过滤 → 统计 → 排序」是每天的固定动作。管道让你把这些步骤写成一条命令，中间不落盘——5 GB 的文件不用先解压存一份再处理。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>管道的两个「接头」你已经会了：左边常用 <code>cat</code>/<code>zcat</code>（Lesson 08），右边常用 <code>grep</code>（Lesson 07）。概念 2 把右边换成一组「过滤器」。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>Concept 2 · Pipeline filters: grep / head / tail / wc / sort / uniq</h3>
+    <div class="card">
+      <p><strong>English:</strong> A pipeline chains several <em>filter</em> commands, each reading stdin and writing stdout, so data flows through them in stages — filter, count, sort, deduplicate, trim.</p>
+      <p><strong>中文：</strong>管道把多个「过滤器」串起来，每个都读 stdin、写 stdout，数据逐级流过——过滤、统计、排序、去重、截断。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}</style>
+          <text class="h" x="0" y="24">genes.txt | sort | uniq -c | sort -nr | head -n 2</text>
+          <rect class="f" x="0" y="40" width="120" height="40" rx="6"/><text class="t" x="60" y="65" text-anchor="middle">sort 排序</text>
+          <rect class="f" x="130" y="40" width="120" height="40" rx="6"/><text class="t" x="190" y="65" text-anchor="middle">uniq -c 计数</text>
+          <rect class="f" x="260" y="40" width="130" height="40" rx="6"/><text class="t" x="325" y="65" text-anchor="middle">sort -nr 降序</text>
+          <rect class="f" x="400" y="40" width="140" height="40" rx="6"/><text class="t" x="470" y="65" text-anchor="middle">head -n 2 取前2</text>
+          <text class="lab" x="62" y="60">→</text>
+          <text class="lab" x="192" y="60">→</text>
+          <text class="lab" x="322" y="60">→</text>
+          <text class="lab" x="455" y="60">→</text>
+          <text class="lab" x="0" y="112">常用过滤器：grep 过滤 · wc -l 数行 · head/tail 截头尾 · sort 排序 · uniq 去重 · cut -f 取列</text>
+          <text class="lab" x="0" y="132">⚠️ uniq 只去掉「相邻」重复，所以去重前必须先 sort</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>zcat sample.fastq.gz | wc -l             <span class="c"># 数总行数（read 数 = 行数/4）</span>
+zcat sample.fastq.gz | grep "^@" | wc -l  <span class="c"># 数 read 数（@ 开头是 header）</span>
+grep -v "^#" sample.vcf | wc -l           <span class="c"># 数变异记录（跳过 # 头）</span>
+grep -c "^>" genome.fa                   <span class="c"># 数 FASTA 序列条数</span>
+cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10   <span class="c"># 表达量 top10</span></code></pre>
+
+      <p><strong>实例：</strong>「表达量最高的 top 10 基因」：<code>cut -f1</code> 取第一列基因名 → <code>sort</code> 排序（让相同的相邻）→ <code>uniq -c</code> 计数 → <code>sort -nr</code> 按次数降序 → <code>head -n 10</code> 取前 10。五段一条命令，几毫秒出结果。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>uniq</code> 只去「相邻」重复</strong>：<code>a a b a</code> 不去重成 <code>a b a</code>。要先 <code>sort</code> 让相同项相邻。</li>
+          <li><strong><code>sort</code> 要等全部输入读完才输出</strong>：大文件排序会先缓冲，看起来像卡住，属正常。</li>
+          <li><strong><code>head</code> 提前退出会让上游收到「broken pipe」</strong>：如 <code>yes | head -n 3</code>，无害但会在 stderr 报一句。</li>
+          <li><strong><code>wc -l</code> 数的是「行」</strong>：FASTQ 每 read 4 行，别把行数当 read 数。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>「这个 VCF 有多少变异」「这个 FASTA 有多少序列」「哪个基因最热」——这些就是生信日常工作，一条管道搞定。养成「能管道就不写中间文件」的习惯。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>这些过滤器只是开胃菜，Lesson 11/12 的 awk、sed 是更强大的过滤器。概念 3 解决「结果想存下来」的问题。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>Concept 3 · Pipe vs redirection + tee</h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>|</code> sends stdout to <em>another command</em>; <code>&gt;</code> / <code>&gt;&gt;</code> write stdout to a <em>file</em>. <code>tee</code> writes to a file <em>and</em> passes the data onward down the pipe.</p>
+      <p><strong>中文：</strong><code>|</code> 把 stdout 送给<strong>下一个命令</strong>，<code>&gt;</code>/<code>&gt;&gt;</code> 把 stdout 写进<strong>文件</strong>；<code>tee</code> 既写文件又继续把数据传下去。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">grep "^@" reads.fastq | tee headers.txt | wc -l</text>
+          <rect class="f" x="0" y="40" width="180" height="44" rx="6"/><text class="t" x="90" y="67" text-anchor="middle">grep "^@"</text>
+          <rect class="g" x="250" y="40" width="160" height="44" rx="6"/><text class="t" x="330" y="67" text-anchor="middle">tee headers.txt</text>
+          <rect class="f" x="470" y="40" width="120" height="44" rx="6"/><text class="t" x="530" y="67" text-anchor="middle">wc -l</text>
+          <text class="lab" x="230" y="67">→</text>
+          <text class="lab" x="450" y="67">→</text>
+          <rect class="f" x="250" y="110" width="160" height="36" rx="6"/><text class="t" x="330" y="133" text-anchor="middle">headers.txt (落盘)</text>
+          <text class="lab" x="330" y="104">↓ 同时写入</text>
+          <text class="lab" x="0" y="156">tee：一份写文件、一份继续走管道 —— 「留档 + 继续处理」两不误</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>grep ERROR align.log &gt; errors.txt          <span class="c"># 写进文件（覆盖）</span>
+grep ERROR align.log &gt;&gt; errors.txt         <span class="c"># 追加到文件</span>
+grep ERROR align.log | tee errors.txt | wc -l  <span class="c"># 存文件 + 继续数行</span>
+grep ERROR align.log | tee -a errors.txt | wc -l  <span class="c"># -a 追加</span></code></pre>
+
+      <p><strong>实例：</strong>排查日志时想「边存边看」：<code>grep ERROR align.log | tee errors.txt | wc -l</code>——先把 ERROR 行存进 <code>errors.txt</code> 留档，同时把行数传给 <code>wc -l</code> 打出来。一份数据两条路。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>&gt;</code> 会静默覆盖</strong>：文件已存在时 <code>&gt;</code> 直接清空重写，不提示。重要文件先备份，或用 <code>&gt;&gt;</code> 追加。</li>
+          <li><strong><code>tee</code> 默认也是覆盖</strong>：追加用 <code>tee -a</code>。</li>
+          <li><strong><code>&gt;</code> 只重定向 stdout</strong>：报错（stderr）不会进文件，要 <code>2&gt;</code>（Lesson 10 细讲）。</li>
+          <li><strong><code>|</code> 和 <code>&gt;</code> 别混</strong>：<code>grep x file | result.txt</code> 是错的，<code>|</code> 后面只能接命令，接文件名要用 <code>&gt;</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>「处理结果既要留档、又要继续往下算」是常态。tee 让你在管道中间「打个岔」存一份检查点，而不打断整条流水线。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>这是 Lesson 10（Redirection Boss 战）的引子——下节课专门把 <code>&gt;</code>/<code>&gt;&gt;</code>/<code>2&gt;</code>/<code>&lt;</code> 这些重定向彻底吃透。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <div class="card">
+      <p>Follow along. 不需要 sudo，建议在 tmux 里做。</p>
+      <pre><code>tmux new -s pipelab                      <span class="c"># tmux 习惯</span>
+mkdir -p pipelab && cd pipelab
+
+<span class="c"># 造一个 8 行（2 条 read）的 FASTQ</span>
+printf '@SRR0000001.1\nACGTACGT\n+\nIIIIIIII\n@SRR0000002.1\nTGCATGCA\n+\nIIIIIIII\n' &gt; reads.fastq
+
+cat reads.fastq | wc -l                   <span class="c"># 8 行</span>
+cat reads.fastq | grep "^@"               <span class="c"># 2 个 @ 开头的 header 行</span>
+cat reads.fastq | grep "^@" | wc -l       <span class="c"># 2 = read 数</span>
+cat reads.fastq | head -n 4               <span class="c"># 第一条 read</span>
+
+<span class="c"># sort | uniq 统计基因出现次数</span>
+printf 'TP53\nEGFR\nTP53\nBRCA1\nEGFR\nEGFR\n' &gt; genes.txt
+cat genes.txt | sort | uniq -c            <span class="c"># 每个基因出现几次</span>
+cat genes.txt | sort | uniq -c | sort -nr | head -n 2   <span class="c"># 最热的 top 2</span>
+
+<span class="c"># tee 边存边数</span>
+cat reads.fastq | grep "^@" | tee headers.txt | wc -l   <span class="c"># 存 headers.txt + 数 2</span>
+cat headers.txt                          <span class="c"># 确认存下来了</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 实战实验</h2>
+    <p class="muted">15 题，分三级。不需要 sudo。答案在最后。文件名用真实测序/生信风格。</p>
+
+    <h3>Level 1 · Foundation（4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">Pipe <code>ls -l</code> into grep to list only <code>.fastq</code> files.</div>
+      <div class="field"><b>Hint</b>：<code>ls -l | grep "\.fastq$"</code>。</div>
+      <div class="field"><b>Verification</b>：只显示 .fastq 结尾的行。</div>
+      <div class="field"><b>Expected Result</b>：管道把 ls 输出喂给 grep。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">Count total lines of <code>reads.fastq</code> using a pipe.</div>
+      <div class="field"><b>Hint</b>：<code>cat reads.fastq | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：输出 8。</div>
+      <div class="field"><b>Expected Result</b>：wc -l 数行。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">Count read headers: pipe grep to wc.</div>
+      <div class="field"><b>Hint</b>：<code>grep "^@" reads.fastq | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：输出 2（read 数）。</div>
+      <div class="field"><b>Expected Result</b>：两段管道。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">Show only the first 4 lines of a file via pipe.</div>
+      <div class="field"><b>Hint</b>：<code>cat reads.fastq | head -n 4</code>。</div>
+      <div class="field"><b>Verification</b>：只出现第一条 read 的 4 行。</div>
+      <div class="field"><b>Expected Result</b>：head 截头。</div></div>
+
+    <h3>Level 2 · Integration（6 题，组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">Combine sort + uniq: count how many times each gene appears in <code>genes.txt</code>.</div>
+      <div class="field"><b>Hint</b>：<code>cat genes.txt | sort | uniq -c</code>。</div>
+      <div class="field"><b>Verification</b>：每个基因后跟出现次数。</div>
+      <div class="field"><b>Expected Result</b>：去重前先 sort。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">Combine sort + uniq + sort -nr + head: find the top 2 most frequent genes.</div>
+      <div class="field"><b>Hint</b>：<code>cat genes.txt | sort | uniq -c | sort -nr | head -n 2</code>。</div>
+      <div class="field"><b>Verification</b>：次数从高到低的前 2。</div>
+      <div class="field"><b>Expected Result</b>：四段管道。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">Combine zcat + grep + wc: count reads in a <code>.fastq.gz</code> without decompressing.</div>
+      <div class="field"><b>Hint</b>：<code>gzip -k reads.fastq</code> 后 <code>zcat reads.fastq.gz | grep "^@" | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：输出 2，且没解压出大文件。</div>
+      <div class="field"><b>Expected Result</b>：zcat 进管道。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">Combine grep -v + wc: count VCF records, skipping <code>#</code> header lines.</div>
+      <div class="field"><b>Hint</b>：<code>grep -v "^#" sample.vcf | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：只数非 # 的变异行。</div>
+      <div class="field"><b>Expected Result</b>：跳过注释头。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">Combine cut + sort + uniq: list how many unique genes (column 1) appear in a TSV.</div>
+      <div class="field"><b>Hint</b>：<code>cut -f1 counts.tsv | sort | uniq -c</code>。</div>
+      <div class="field"><b>Verification</b>：第一列的每个值带计数。</div>
+      <div class="field"><b>Expected Result</b>：cut 取列 + 去重。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">Combine grep + tee + wc: save ERROR lines to a file AND count them.</div>
+      <div class="field"><b>Hint</b>：<code>grep "ERROR" align.log | tee errors.txt | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：<code>errors.txt</code> 生成且屏幕打出数字。</div>
+      <div class="field"><b>Expected Result</b>：tee 边存边继续。</div></div>
+
+    <h3>Level 3 · Engineering（5 题：制造问题 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先 <code>cat genes.txt | uniq -c</code>（没 sort），观察计数不对，再补 <code>sort</code> 修好，理解「uniq 只去相邻」。</div>
+      <div class="field"><b>Hint</b>：先 <code>uniq -c</code> 结果错，改成 <code>sort | uniq -c</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清为什么必须先 sort。</div>
+      <div class="field"><b>Expected Result</b>：理解 uniq 的相邻约束。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：统计某个 <code>.fastq.gz</code> 的 read 数（一条命令，含 zcat + grep + wc）。</div>
+      <div class="field"><b>Hint</b>：<code>zcat sample.fastq.gz | grep -c "^@"</code>（或用 <code>wc -l</code> 再 /4）。</div>
+      <div class="field"><b>Verification</b>：一条命令直接出 read 数。</div>
+      <div class="field"><b>Expected Result</b>：可复用统计管道。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「找 top N 基因」的管道，带注释，参数化 N，三个月后同事能改 N 就用。</div>
+      <div class="field"><b>Hint</b>：<code>cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10</code>，注释写清 N 在哪改。</div>
+      <div class="field"><b>Verification</b>：命令可读、有注释、N 好改。</div>
+      <div class="field"><b>Expected Result</b>：可交接的统计管道。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>排查</strong>：<code>cat reads.fastq | wc -l</code> 得到 8，但你说「不是 2 条 read 吗？」——排查「行数 vs read 数」的口径差异。</div>
+      <div class="field"><b>Hint</b>：FASTQ 每 read 4 行，8/4=2；或直接用 <code>grep -c "^@"</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清两种口径的换算。</div>
+      <div class="field"><b>Expected Result</b>：理解 FASTQ 结构。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 分屏里完成一次「测序数据体检」——左屏跑统计管道，右屏 <code>cat</code>/<code>zcat</code> 看原文核对，最后 <code>tee</code> 把一份统计结果存盘，截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏 + 多段管道 + tee。</div>
+      <div class="field"><b>Verification</b>：截图体现分屏 + 管道 + 存盘。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>grep "SRR" reads.fastq | ls</code> 结果不对，只剩目录列表</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想看 grep 结果，却只看到 ls 列目录。</div>
+        <div class="think">💭 <b>Think</b>：ls 会读 stdin 吗？</div>
+        <div class="step"><b>Answer</b>：<code>ls</code> 不读 stdin，管道喂给它的东西被无视。改成能读 stdin 的命令，如 <code>grep "SRR" reads.fastq | wc -l</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：管道只对「读 stdin 的命令」有意义。ls/cd/rm 这类不读 stdin 的命令接在管道右边是浪费。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>cat genes.txt | uniq -c</code> 计数不对（TP53 出现两次却没合并）</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：uniq 没把重复的合并干净。</div>
+        <div class="think">💭 <b>Think</b>：uniq 去的是「相邻」还是「全部」重复？</div>
+        <div class="step"><b>Answer</b>：uniq 只去相邻重复。先 <code>sort</code>：<code>cat genes.txt | sort | uniq -c</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：sort 把相同项排到一起，uniq 才能正确去重。这是管道最常见的坑。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>grep -r "error" . | wc -l</code> 屏幕还是冒出 Permission denied</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：管道该「接住」报错，但报错还是打到屏幕。</div>
+        <div class="think">💭 <b>Think</b>：管道传的是哪个流？</div>
+        <div class="step"><b>Answer</b>：管道只传 stdout，Permission denied 是 stderr，绕过管道。要静音加 <code>2&gt;/dev/null</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：stdout 走管道、stderr 直接上屏。Lesson 10 会专门讲 stderr 重定向。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>cat reads.fastq | wc -l</code> 得到 8，但你以为是 2 条 read</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：行数和 read 数对不上。</div>
+        <div class="think">💭 <b>Think</b>：一条 read 占几行？</div>
+        <div class="step"><b>Answer</b>：FASTQ 每 read 4 行，8 行 = 2 条 read。直接数 read 用 <code>grep -c "^@" reads.fastq</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：wc -l 数行不数记录。记住 FASTQ 的 4 行结构（@header / seq / + / quality）。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>grep ERROR align.log &gt; errors.txt</code> 把昨天的 errors.txt 覆盖没了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：旧的 errors.txt 被静默清空重写。</div>
+        <div class="think">💭 <b>Think</b>：&gt; 是覆盖还是追加？</div>
+        <div class="step"><b>Answer</b>：<code>&gt;</code> 覆盖、<code>&gt;&gt;</code> 追加。想保留旧内容用 <code>&gt;&gt;</code>，或先 <code>cp errors.txt errors.txt.bak</code> 备份。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>&gt;</code> 在文件已存在时直接截断，无提示。重定向前先想清楚要不要保留旧文件。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景</h2>
+    <p class="muted">先写自己的方案，再展开看答案。每个场景想「三个月后的人能否看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>一个 5 GB 的 <code>SRR12345678.fastq.gz</code>，要数里面有几条 read，但不能解压、不能额外占 5 GB 空间。怎么一条命令搞定？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>zcat SRR12345678.fastq.gz | grep -c "^@"</code>——流式边解边数，不落盘。或用 <code>zcat ... | wc -l</code> 得总行数再 ÷4。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>一个 <code>sample.vcf</code> 前 50 行全是 <code>##</code> 注释和列头，你要统计真正的变异记录有多少条。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>grep -v "^#" sample.vcf | wc -l</code>——<code>-v</code> 反选掉所有 <code>#</code> 开头的行，剩下的就是变异记录。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>一个基因表达表有几万行，你要找「出现次数最多的 top 10 基因」，命令要能被同事复用（改个数字就能要 top 20）。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10</code>——把末尾的 <code>10</code> 改成 <code>20</code> 即可。注释写清「N 在 head -n N」。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>排查日志时，你想把 ERROR 行存成 <code>errors.txt</code> 留档，同时马上知道一共有几行，不想跑两遍。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>grep "ERROR" align.log | tee errors.txt | wc -l</code>——tee 一份写文件、一份继续走管道给 wc，跑一遍得到两样东西。</p></div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>对一个小型测序项目做一次「数据体检」，全程用管道完成，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建 <code>pipe_battle/</code>，造 <code>reads.fastq</code>（4 条 read）、<code>sample.vcf</code>（含 <code>##</code> 头 + 若干变异行）、<code>genes.txt</code>（若干基因，有重复）。</li>
+        <li>用管道统计：read 数、变异记录数、每个基因出现次数、top 2 基因。</li>
+        <li>用 <code>tee</code> 把「基因计数」存成 <code>gene_counts.txt</code>，同时打印到屏幕。</li>
+        <li>全程 tmux 分屏（左屏跑管道、右屏 <code>cat</code> 原文核对），截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你统计基因计数时直接写了 <code>cat genes.txt | uniq -c</code>（<strong>忘了先 <code>sort</code></strong>），结果同一个基因被拆成好几行、计数全错。你要自己发现「uniq 只去相邻重复」这个坑，改成 <code>cat genes.txt | sort | uniq -c</code> 修好，并截图「错误计数 → 修复后正确计数」。</p>
+      </div>
+      <p><strong>验收清单：</strong>read 数 ✅ 变异数 ✅ 基因计数 ✅ top2 ✅ tee 留档 ✅ 埋坑（漏 sort）已修复 ✅ 截图 + 命令进 <code>github/lesson09/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <tr><th>Time</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会用 <code>|</code> 接两个命令，说清 stdout→stdin、stderr 不经过管道</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（sort|uniq、zcat|grep|wc 等多段管道）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查 uniq 没 sort / 行数 vs read 数 / 覆盖丢失三类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含漏 sort 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 答案</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>ls -l | grep "\.fastq$"</code>。</p>
+        <p><b>Lab 2：</b><code>cat reads.fastq | wc -l</code>（8）。</p>
+        <p><b>Lab 3：</b><code>grep "^@" reads.fastq | wc -l</code>（2）。</p>
+        <p><b>Lab 4：</b><code>cat reads.fastq | head -n 4</code>。</p>
+        <p><b>Lab 5：</b><code>cat genes.txt | sort | uniq -c</code>。</p>
+        <p><b>Lab 6：</b><code>cat genes.txt | sort | uniq -c | sort -nr | head -n 2</code>。</p>
+        <p><b>Lab 7：</b><code>gzip -k reads.fastq && zcat reads.fastq.gz | grep "^@" | wc -l</code>。</p>
+        <p><b>Lab 8：</b><code>grep -v "^#" sample.vcf | wc -l</code>。</p>
+        <p><b>Lab 9：</b><code>cut -f1 counts.tsv | sort | uniq -c</code>。</p>
+        <p><b>Lab 10：</b><code>grep "ERROR" align.log | tee errors.txt | wc -l</code>。</p>
+        <p><b>Lab 11：</b>先 <code>uniq -c</code> 错 → 改 <code>sort | uniq -c</code>。</p>
+        <p><b>Lab 12：</b><code>zcat sample.fastq.gz | grep -c "^@"</code>。</p>
+        <p><b>Lab 13：</b><code>cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10</code>（N 在 head）。</p>
+        <p><b>Lab 14：</b>FASTQ 每 read 4 行，8/4=2；或 <code>grep -c "^@"</code>。</p>
+        <p><b>Lab 15：</b>tmux 分屏 + 多段管道 + tee 存盘。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 卡组</h2>
+    <p class="muted">可导入的 TSV 在 <code>github/anki/lesson09-pipe.tsv</code>，这里只做表格展示。</p>
+    <h3>Commands</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>cmd1 | cmd2</code></td><td>把 cmd1 的 stdout 喂给 cmd2 的 stdin</td></tr>
+      <tr><td><code>head -n N</code> / <code>tail -n N</code></td><td>取前 / 后 N 行</td></tr>
+      <tr><td><code>wc -l</code></td><td>数行数</td></tr>
+      <tr><td><code>sort</code> / <code>sort -n</code> / <code>sort -nr</code></td><td>排序 / 数字序 / 数字降序</td></tr>
+      <tr><td><code>uniq</code> / <code>uniq -c</code></td><td>去重（相邻）/ 去重并计数</td></tr>
+      <tr><td><code>cut -f1</code></td><td>取第一列（Tab 分隔）</td></tr>
+      <tr><td><code>tee file</code> / <code>tee -a file</code></td><td>写文件并继续传 / 追加写</td></tr>
+      <tr><td><code>&gt; file</code> / <code>&gt;&gt; file</code></td><td>覆盖写 / 追加写文件</td></tr>
+    </table>
+    <h3>Concepts</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>管道传的是哪个流？</td><td>stdout→stdin，stderr 不经过管道</td></tr>
+      <tr><td>uniq 去什么重复？</td><td>只去「相邻」重复，先 sort</td></tr>
+      <tr><td>FASTQ 一条 read 几行？</td><td>4 行（@header/seq/+/quality）</td></tr>
+      <tr><td>管道 vs 重定向区别？</td><td>| 接命令，&gt; 写文件</td></tr>
+      <tr><td>tee 做什么？</td><td>一份写文件、一份继续走管道</td></tr>
+    </table>
+    <h3>Debugging</h3>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td>uniq 计数不对</td><td>没先 sort，改 sort | uniq -c</td></tr>
+      <tr><td>管道后 ls 只列目录</td><td>ls 不读 stdin，换读 stdin 的命令</td></tr>
+      <tr><td>报错还是打到屏幕</td><td>stderr 不走管道，加 2&gt;/dev/null</td></tr>
+      <tr><td>wc -l 结果 = read 数 ×4</td><td>FASTQ 4 行/read，÷4 或 grep -c "^@"</td></tr>
+      <tr><td>&gt; 把旧文件覆盖了</td><td>用 &gt;&gt; 追加，或先备份</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> Quick Quiz 小测</h2>
+    <div class="quiz" id="q1">
+      <p class="q">What does <code>|</code> connect?（管道连接什么？）</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">stdin → stdout</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">left stdout → right stdin</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">stderr → stdin</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">uniq removes what?（uniq 去什么？）</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">all duplicates 全部重复</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">adjacent duplicates 相邻重复</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">empty lines 空行</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">Which saves to a file AND continues the pipe?（存文件同时继续传？）</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">&gt;</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">tee</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">&gt;&gt;</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q"><code>&gt; file</code> does what?（&gt; 做什么？）</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">append 追加</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">overwrite 覆盖</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">read 读取</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub Homework 作业</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson09/</code>，README 记录费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 09: Pipe"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ Correct!' : '❌ Try again — see the Knowledge section.';
+  }
+</script>
+</body>
+</html>
