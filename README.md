@@ -28,7 +28,7 @@
 
 ## 课程进度
 
-**✅ 已完成 9 课 / 40 课**
+**✅ 已完成 10 课 / 40 课**
 
 ### Part I · Linux Foundations（基础）
 
@@ -49,7 +49,7 @@
 | # | 主题 | 状态 |
 |---|------|------|
 | 09 | Pipe 管道 | ✅ 完成 |
-| 10 | Redirection 重定向（Boss 战） | ⏳ 待学 |
+| 10 | Redirection 重定向（Boss 战） | ✅ 完成 |
 | 11 | awk | ⏳ 待学 |
 | 12 | sed | ⏳ 待学 |
 | 13 | xargs | ⏳ 待学 |
@@ -100,16 +100,13 @@
 
 ## 目录结构
 
-```
+```mariadb
 Linux/
 ├── README.md              # 本文件（课程总览）
 ├── anki/                  # 可导入 Anki 的卡组（每课一个 TSV）
 ├── lesson01/              # 第 1 课
 │   ├── 0001-filesystem.html   # 主课件
 │   ├── README.md              # 学习笔记（费曼复述 + 反思）
-│   ├── notes.md               # 知识点笔记
-│   ├── answers.md             # 练习参考答案
-│   └── commands.sh            # 当天用到的所有命令
 ├── lesson02/
 │   ├── 0002-path.html
 │   └── README.md
@@ -137,6 +134,6 @@ Linux/
 ## 作者
 
 - GitHub：[@ZGup-Azmat](https://github.com/ZGup-Azmat)
-- 最后更新：2026-10-03
+- 最后更新：2026-10-08
 
 > 「不是因为看到希望才坚持，而是坚持了才会看到希望。」—— 加油

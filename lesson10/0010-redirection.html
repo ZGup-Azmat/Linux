@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 10 · Redirection ｜ Control Where Output Goes</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 25%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 10 · Part II · Shell Engineering</div>
+    <h1>Redirection</h1>
+    <p class="sub">Control where output goes —— 控制三流的去向（Boss 战 · 综合前 9 课）</p>
+    <div class="progress-label"><span>Progress</span><span>10 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★★☆ Boss Fight</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">重定向三流 + 重建研究目录</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 09 管道 + Lesson 01–08</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>Lesson 09 你用管道把命令「串起来」了。但管道只管命令<strong>之间</strong>的 stdout。今天主管要你控制<strong>每一条流去哪里</strong>：</p>
+      <ul>
+        <li>📊 跑统计命令，<strong>正确结果</strong>要存进报告文件，<strong>错误</strong>要单独存进日志——不能混在一起。</li>
+        <li>🔇 一个递归 <code>find</code> / <code>grep</code> 刷了满屏 <code>Permission denied</code>，要把它<strong>静音</strong>。</li>
+        <li>📝 要写一个<strong>多行配置文件</strong>（不用一次次 echo）。</li>
+        <li>🧯 最后：综合前 9 课，<strong>重建一个被删坏的研究目录</strong>。</li>
+      </ul>
+      <p>核心是三条流：<code>stdin</code>(0)、<code>stdout</code>(1)、<code>stderr</code>(2)。重定向就是给它们「换个去向」。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>要控制每条输出去哪里 → 需要重定向三流 → <code>&gt;</code>/<code>&gt;&gt;</code>/<code>&lt;</code>/<code>2&gt;</code>/<code>2&gt;&amp;1</code>/<code>&amp;&gt;</code>/<code>/dev/null</code>/heredoc。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 知识（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 concepts. Each: 英文定义 + 中文注释 + 心智模型 + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>Concept 1 · Three streams + <code>&gt;</code> / <code>&gt;&gt;</code> / <code>&lt;</code></h3>
+    <div class="card">
+      <p><strong>English:</strong> Every process has three streams: <em>stdin</em> (0), <em>stdout</em> (1), <em>stderr</em> (2). <code>&gt;</code> redirects stdout to a file (overwrite), <code>&gt;&gt;</code> appends, <code>&lt;</code> feeds a file into stdin.</p>
+      <p><strong>中文：</strong>每个进程有三条流：stdin(0) 输入、stdout(1) 标准输出、stderr(2) 错误。 <code>&gt;</code> 把 stdout 覆盖写进文件、<code>&gt;&gt;</code> 追加、<code>&lt;</code> 把文件喂给 stdin。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">三条流 & 默认去向</text>
+          <rect class="g" x="0" y="36" width="190" height="34" rx="6"/><text class="t" x="95" y="58" text-anchor="middle">0 stdin（键盘）</text>
+          <rect class="f" x="0" y="78" width="190" height="34" rx="6"/><text class="t" x="95" y="100" text-anchor="middle">1 stdout（屏幕）</text>
+          <rect class="o" x="0" y="120" width="190" height="34" rx="6"/><text class="t" x="95" y="142" text-anchor="middle">2 stderr（屏幕）</text>
+          <text class="lab" x="210" y="58">&gt; 重定向 stdout：cmd &gt; file（覆盖）</text>
+          <text class="lab" x="210" y="100">&gt;&gt; 追加：cmd &gt;&gt; file</text>
+          <text class="lab" x="210" y="142">&lt; 喂 stdin：cmd &lt; file</text>
+          <text class="lab" x="0" y="168">&gt; 只重定向 stdout；stderr 仍打到屏幕（见概念 2）</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>ls -l &gt; files.txt             <span class="c"># stdout 覆盖写进 files.txt</span>
+ls -l &gt;&gt; files.txt            <span class="c"># stdout 追加到 files.txt</span>
+wc -l &lt; reads.fastq           <span class="c"># 把文件喂给 wc 的 stdin（等价 wc -l reads.fastq）</span>
+sort &lt; genes.txt              <span class="c"># 从文件读，排序</span></code></pre>
+
+      <p><strong>实例：</strong><code>grep "^@" reads.fastq &gt; headers.txt</code>——把 grep 的结果（stdout）存进 <code>headers.txt</code>，屏幕上不再显示。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>&gt;</code> 会静默覆盖</strong>：文件已存在时 <code>&gt;</code> 直接清空重写，不提示。重要文件先备份，或用 <code>&gt;&gt;</code>。</li>
+          <li><strong><code>&gt;</code> 只重定向 stdout</strong>：报错（stderr）仍然打到屏幕，不会进文件。</li>
+          <li><strong><code>&lt;</code> 大多数时候不必要</strong>：很多命令自己能读文件（<code>wc -l file</code> 不用 <code>&lt;</code>）。但注意：<code>wc -l &lt; file</code> 输出只有数字、不带文件名，而 <code>wc -l file</code> 带文件名。</li>
+          <li><strong><code>&lt;</code> 和 <code>&gt;</code> 方向别搞反</strong>：<code>&lt;</code> 是「喂进命令」，<code>&gt;</code> 是「从命令输出」。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>「把结果存成报告」「把命令输出留档」是每天的动作。学会 <code>&gt;</code>/<code>&gt;&gt;</code>，你的命令输出就能从屏幕「落地」成文件。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>Lesson 09 只提了 <code>&gt;</code>/<code>&gt;&gt;</code> 一笔。这里吃透 stdin/stdout/stderr 三流。概念 2 讲最容易错的 stderr 重定向。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>Concept 2 · stderr: <code>2&gt;</code> / <code>2&gt;&amp;1</code> / <code>&amp;&gt;</code></h3>
+    <div class="card">
+      <p><strong>English:</strong> stderr is file descriptor 2. <code>2&gt;</code> redirects stderr alone; <code>2&gt;&amp;1</code> merges stderr into wherever stdout currently points; <code>&amp;&gt;</code> redirects both at once (bash).</p>
+      <p><strong>中文：</strong>stderr 是文件描述符 2。<code>2&gt;</code> 单独重定向 stderr；<code>2&gt;&amp;1</code> 把 stderr 合并到 stdout 当前指向的地方；<code>&amp;&gt;</code> 一次重定向两者（bash 专属）。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.o{fill:#ff9500}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">正确顺序 vs 错误顺序</text>
+          <text class="lab" x="0" y="48">✅ cmd &gt; log.txt 2&gt;&amp;1 —— stdout 先指向文件，stderr 再跟过去</text>
+          <rect class="f" x="0" y="56" width="300" height="30" rx="6"/><text class="t" x="150" y="76" text-anchor="middle">stdout → log.txt</text>
+          <rect class="o" x="310" y="56" width="300" height="30" rx="6"/><text class="t" x="460" y="76" text-anchor="middle">stderr → 也去 log.txt ✅</text>
+          <text class="lab" x="0" y="118">❌ cmd 2&gt;&amp;1 &gt; log.txt —— stderr 先指向终端，就留在终端</text>
+          <rect class="o" x="0" y="126" width="300" height="30" rx="6"/><text class="t" x="150" y="146" text-anchor="middle">stderr → 终端（被 2&gt;&amp;1 锁定）</text>
+          <rect class="f" x="310" y="126" width="300" height="30" rx="6"/><text class="t" x="460" y="146" text-anchor="middle">stdout → log.txt（只有它去了）</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>grep -r "x" . 2&gt; errors.log          <span class="c"># stderr 单独进文件，stdout 仍上屏</span>
+grep -r "x" . 2&gt;/dev/null            <span class="c"># 静音 stderr</span>
+cmd &gt; out.log 2&gt;&amp;1                    <span class="c"># stdout+stderr 都进 out.log（正确顺序）</span>
+cmd &amp;&gt; out.log                        <span class="c"># 同上，bash 简写</span>
+cmd &gt; out.log 2&gt; err.log              <span class="c"># 正确进 out，错误进 err（分开存）</span></code></pre>
+
+      <p><strong>实例：</strong>跑一条会刷屏的命令 <code>find / -name "*.bam"</code> 有大量 Permission denied：<code>find / -name "*.bam" 2&gt;/dev/null</code> 把错误全丢进黑洞，屏幕只留真正的结果。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>2&gt;&amp;1</code> 顺序极其重要</strong>：<code>&gt; file 2&gt;&amp;1</code> 正确；<code>2&gt;&amp;1 &gt; file</code> 错误（stderr 会留在终端）。记：<strong>先定 stdout 去向，再把 stderr 追过去</strong>。</li>
+          <li><strong><code>&amp;&gt;</code> 是 bash 专属</strong>：POSIX sh（<code>/bin/sh</code>）不认，脚本要可移植就别用，写 <code>&gt; file 2&gt;&amp;1</code>。</li>
+          <li><strong>只 <code>&gt;</code> 不 <code>2&gt;</code> 时 stderr 照常上屏</strong>：这是最常见的「我以为都进文件了」错觉。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>跑 pipeline 时「成功输出」和「错误日志」分开存，是排查问题的基本功。静音 Permission denied 更是扫目录时的日常。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>Lesson 09 的 Debug 3（stderr 不走管道）正是这里的引子。概念 3 讲黑洞 /dev/null 和多行输入 heredoc。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>Concept 3 · <code>/dev/null</code> black hole + heredoc <code>&lt;&lt;</code> / here-string <code>&lt;&lt;&lt;</code></h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>/dev/null</code> is a black hole that discards anything written to it. A heredoc <code>&lt;&lt;EOF … EOF</code> feeds multiple lines into stdin; a here-string <code>&lt;&lt;&lt;</code> feeds a single string.</p>
+      <p><strong>中文：</strong><code>/dev/null</code> 是丢弃一切输出的黑洞。heredoc <code>&lt;&lt;EOF…EOF</code> 把多行文字喂给 stdin；here-string <code>&lt;&lt;&lt;</code> 喂一个字符串。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">/dev/null 黑洞 + heredoc</text>
+          <rect class="o" x="0" y="36" width="300" height="40" rx="6"/><text class="t" x="150" y="61" text-anchor="middle">cmd &gt; /dev/null 2&gt;&amp;1</text>
+          <text class="lab" x="320" y="61">→ 输出全部消失（彻底静音）</text>
+          <text class="lab" x="0" y="102">heredoc 写多行配置：</text>
+          <rect class="f" x="0" y="110" width="420" height="44" rx="6"/><text class="t" x="210" y="126" text-anchor="middle">cat &lt;&lt; EOF &gt; config.txt</text>
+          <text class="t" x="210" y="146" text-anchor="middle">name=user · cpu=8 · mem=16G</text>
+          <text class="lab" x="440" y="133">EOF 结束标记必须顶格</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>cmd &gt; /dev/null 2&gt;&amp;1              <span class="c"># 完全静音（stdout+stderr 都丢黑洞）</span>
+cat &lt;&lt; EOF &gt; config.txt          <span class="c"># heredoc 写多行到文件</span>
+name=user
+cpu=8
+EOF                                <span class="c"># 结束标记顶格，不能有空格</span>
+
+grep "TP53" &lt;&lt;&lt; "TP53 BRCA1 EGFR"  <span class="c"># here-string 喂一个字符串</span>
+cat &lt;&lt;- EOF &gt; x.txt               <span class="c"># &lt;&lt;- 允许用 Tab 缩进</span>
+cat &lt;&lt; 'EOF' &gt; x.txt              <span class="c"># 带引号的 EOF 禁止变量展开</span></code></pre>
+
+      <p><strong>实例：</strong>写一个脚本配置文件，不用 10 次 echo：<code>cat &lt;&lt; EOF &gt; config.txt</code> 后直接粘贴多行，最后顶格输入 <code>EOF</code> 结束，内容全写进文件。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>heredoc 结束标记必须顶格</strong>：<code>EOF</code> 前有任何空格/Tab 都会导致 heredoc 不结束（除非用 <code>&lt;&lt;-</code>）。</li>
+          <li><strong><code>/dev/null</code> 是特殊设备文件</strong>：不是普通文件，写进去的东西永久消失，别指望能找回来。</li>
+          <li><strong>here-string <code>&lt;&lt;&lt;</code> 是 bash 专属</strong>：POSIX sh 不认。</li>
+          <li><strong>带引号的 EOF（<code>&lt;&lt; 'EOF'</code>）禁止变量展开</strong>：内容里的 <code>$HOME</code> 等不会被替换成值。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>写脚本、写配置、静音噪音，这三件事每天都在发生。heredoc 让你把「多行内容」直接喂给命令，/dev/null 让你把「不想要的输出」一键清空。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>这是重定向的最后一块拼图。Boss 战会综合 Lesson 01–10 的所有技能。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <div class="card">
+      <p>Follow along. 不需要 sudo，建议在 tmux 里做。</p>
+      <pre><code>tmux new -s redirlab                     <span class="c"># tmux 习惯</span>
+mkdir -p redirlab && cd redirlab
+
+<span class="c"># 基础重定向</span>
+printf '@SRR0000001.1\nACGT\n+\nIIII\n' &gt; reads.fastq
+grep "^@" reads.fastq &gt; headers.txt      <span class="c"># stdout 进文件</span>
+cat headers.txt                          <span class="c"># 看结果</span>
+grep "^@" reads.fastq &gt;&gt; headers.txt      <span class="c"># 追加（内容翻倍）</span>
+wc -l headers.txt
+
+<span class="c"># stderr 重定向</span>
+find /root -name "*.bam" 2&gt; err.log      <span class="c"># 错误进文件</span>
+cat err.log                              <span class="c"># Permission denied 都在里面</span>
+find /root -name "*.bam" 2&gt;/dev/null     <span class="c"># 静音错误</span>
+
+<span class="c"># 合并重定向</span>
+grep "^@" reads.fastq &gt; all.log 2&gt;&amp;1     <span class="c"># stdout+stderr 都进 all.log</span>
+cat all.log
+
+<span class="c"># heredoc 写多行</span>
+cat &lt;&lt; EOF &gt; config.txt
+name=user
+cpu=8
+mem=16G
+EOF
+cat config.txt</code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 实战实验</h2>
+    <p class="muted">15 题，分三级。不需要 sudo。答案在最后。文件名用真实测序/生信风格。</p>
+
+    <h3>Level 1 · Foundation（4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">Save <code>ls -l</code> output into a file (overwrite).</div>
+      <div class="field"><b>Hint</b>：<code>ls -l &gt; listing.txt</code>。</div>
+      <div class="field"><b>Verification</b>：<code>cat listing.txt</code> 能看到内容，屏幕当时不显示。</div>
+      <div class="field"><b>Expected Result</b>：<code>&gt;</code> 覆盖写。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">Append another line to the same file without losing the old content.</div>
+      <div class="field"><b>Hint</b>：<code>echo "more" &gt;&gt; listing.txt</code>。</div>
+      <div class="field"><b>Verification</b>：旧内容还在，新内容在末尾。</div>
+      <div class="field"><b>Expected Result</b>：<code>&gt;&gt;</code> 追加。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">Feed a file into <code>wc -l</code> via <code>&lt;</code>, and notice it prints only the number (no filename).</div>
+      <div class="field"><b>Hint</b>：<code>wc -l &lt; reads.fastq</code> 对比 <code>wc -l reads.fastq</code>。</div>
+      <div class="field"><b>Verification</b>：<code>&lt;</code> 版本只出数字；直接给文件名则带文件名。</div>
+      <div class="field"><b>Expected Result</b>：理解 <code>&lt;</code> 让命令「看不到文件名」。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">Discard a command's output entirely with <code>/dev/null</code>.</div>
+      <div class="field"><b>Hint</b>：<code>ls -l &gt; /dev/null</code>。</div>
+      <div class="field"><b>Verification</b>：屏幕什么都不显示，也没生成文件。</div>
+      <div class="field"><b>Expected Result</b>：黑洞丢弃输出。</div></div>
+
+    <h3>Level 2 · Integration（6 题，组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">Redirect only stderr to a file while stdout still prints to screen.</div>
+      <div class="field"><b>Hint</b>：<code>find /root -name "*.bam" 2&gt; err.log</code>。</div>
+      <div class="field"><b>Verification</b>：错误进 err.log，正确输出上屏。</div>
+      <div class="field"><b>Expected Result</b>：<code>2&gt;</code> 单独管 stderr。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">Merge stdout and stderr into one file (correct order).</div>
+      <div class="field"><b>Hint</b>：<code>cmd &gt; all.log 2&gt;&amp;1</code>。</div>
+      <div class="field"><b>Verification</b>：正确和错误都进 all.log。</div>
+      <div class="field"><b>Expected Result</b>：先 <code>&gt;</code> 后 <code>2&gt;&amp;1</code>。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">Combine grep + redirection: save matched headers to a file AND silence errors with <code>2&gt;/dev/null</code>.</div>
+      <div class="field"><b>Hint</b>：<code>grep -r "^@" data/ &gt; headers.txt 2&gt;/dev/null</code>。</div>
+      <div class="field"><b>Verification</b>：headers.txt 有结果，屏幕无 Permission denied。</div>
+      <div class="field"><b>Expected Result</b>：stdout 进文件 + stderr 静音。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">Combine pipe + tee + redirect: save a pipeline result to a file and still see the count.</div>
+      <div class="field"><b>Hint</b>：<code>cat reads.fastq | grep "^@" | tee h.txt | wc -l &gt; count.txt</code> 后 <code>cat count.txt</code>。</div>
+      <div class="field"><b>Verification</b>：h.txt 有 header，count.txt 有数字。</div>
+      <div class="field"><b>Expected Result</b>：管道 + tee + 重定向三合一。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">Write a multi-line config file using heredoc (not echo).</div>
+      <div class="field"><b>Hint</b>：<code>cat &lt;&lt; EOF &gt; pipeline.conf</code> … <code>EOF</code>（顶格）。</div>
+      <div class="field"><b>Verification</b>：<code>cat pipeline.conf</code> 显示完整多行内容。</div>
+      <div class="field"><b>Expected Result</b>：heredoc 写多行。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">Use <code>&amp;&gt;</code> to capture both streams at once (bash shorthand).</div>
+      <div class="field"><b>Hint</b>：<code>find /root -name "*.bam" &amp;&gt; both.log</code>。</div>
+      <div class="field"><b>Verification</b>：both.log 里既有结果也有错误。</div>
+      <div class="field"><b>Expected Result</b>：<code>&amp;&gt;</code> = <code>&gt; f 2&gt;&amp;1</code>。</div></div>
+
+    <h3>Level 3 · Engineering（5 题：制造问题 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先写 <code>find /root -name "*.bam" 2&gt;&amp;1 &gt; out.log</code>（顺序反了），观察 stderr 还在终端，改成 <code>&gt; out.log 2&gt;&amp;1</code> 修好。</div>
+      <div class="field"><b>Hint</b>：顺序反了，stderr 被锁在终端。先定 stdout 去向。</div>
+      <div class="field"><b>Verification</b>：你能说清「2&gt;&amp;1 顺序」为什么关键。</div>
+      <div class="field"><b>Expected Result</b>：理解顺序陷阱。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：跑统计命令，正确结果进 <code>report.txt</code>、错误进 <code>errors.log</code>，一条命令分开存。</div>
+      <div class="field"><b>Hint</b>：<code>cmd &gt; report.txt 2&gt; errors.log</code>。</div>
+      <div class="field"><b>Verification</b>：两个文件各存各的。</div>
+      <div class="field"><b>Expected Result</b>：stdout/stderr 分存。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「完全静音」的备份命令（stdout+stderr 都进黑洞），带注释，同事三个月后看得懂。</div>
+      <div class="field"><b>Hint</b>：<code>cmd &gt; /dev/null 2&gt;&amp;1</code>，注释写清用途。</div>
+      <div class="field"><b>Verification</b>：命令可读、有注释、彻底静音。</div>
+      <div class="field"><b>Expected Result</b>：可交接的静音命令。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>排查</strong>：你 <code>cmd &gt; log.txt</code> 后，log.txt 里没有错误信息，但屏幕当时有报错。排查「为什么错误没进文件」。</div>
+      <div class="field"><b>Hint</b>：<code>&gt;</code> 只重定向 stdout，stderr 得用 <code>2&gt;</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清 stdout 和 stderr 是两条独立流。</div>
+      <div class="field"><b>Expected Result</b>：理解 stderr 独立性。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 分屏里完成「跑命令 + 三流分流」——左屏跑，右屏实时 <code>tail -f</code> 看日志文件增长，最后确认 stdout 进报告、stderr 进错误日志、噪音进黑洞，截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏 + <code>tail -f</code> + 三流重定向。</div>
+      <div class="field"><b>Verification</b>：截图体现分屏 + tail -f + 分流。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>grep -r "x" . &gt; results.txt</code> 后屏幕还冒 Permission denied</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：结果进文件了，但报错还在屏幕。</div>
+        <div class="think">💭 <b>Think</b>：<code>&gt;</code> 管的是哪条流？</div>
+        <div class="step"><b>Answer</b>：<code>&gt;</code> 只重定向 stdout，Permission denied 是 stderr。加 <code>2&gt;/dev/null</code> 静音，或 <code>2&gt; err.log</code> 单独存。</div>
+        <div class="explain">🧠 <b>Explanation</b>：stdout 和 stderr 是两条独立流，<code>&gt;</code> 默认只碰 stdout。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>cmd 2&gt;&amp;1 &gt; log.txt</code> 后 log.txt 里没有错误信息</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：顺序写反了，错误没进文件。</div>
+        <div class="think">💭 <b>Think</b>：<code>2&gt;&amp;1</code> 和 <code>&gt;</code> 谁先谁后？</div>
+        <div class="step"><b>Answer</b>：<code>2&gt;&amp;1</code> 在 <code>&gt;</code> 之前，stderr 先被指向终端 stdout，之后 <code>&gt;</code> 只改了 stdout。改成 <code>cmd &gt; log.txt 2&gt;&amp;1</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：重定向按从左到右顺序执行。先定 stdout 去向，再让 stderr 追过去。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>cat &lt;&lt; EOF</code> 输入完 EOF 也不结束</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：heredoc 不结束，一直等你输入。</div>
+        <div class="think">💭 <b>Think</b>：结束标记 EOF 前面是不是有空格？</div>
+        <div class="step"><b>Answer</b>：EOF 必须<strong>顶格</strong>（行首无任何空格/Tab）。或用 <code>&lt;&lt;-</code> 允许 Tab 缩进。</div>
+        <div class="explain">🧠 <b>Explanation</b>：结束标记必须单独成行且顶格，否则被当成内容的一部分。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>echo "新报告" &gt; report.txt</code> 把昨天的报告覆盖没了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：旧报告被静默清空重写。</div>
+        <div class="think">💭 <b>Think</b>：<code>&gt;</code> 是覆盖还是追加？</div>
+        <div class="step"><b>Answer</b>：<code>&gt;</code> 覆盖、<code>&gt;&gt;</code> 追加。要保留旧内容用 <code>&gt;&gt;</code>，或先 <code>cp report.txt report.txt.bak</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>&gt;</code> 在文件已存在时直接截断，无提示。重定向前先想清楚。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>wc -l &lt; reads.fastq</code> 输出只有 <code>8</code>，而 <code>wc -l reads.fastq</code> 输出 <code>8 reads.fastq</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：同样的 wc，一个带文件名一个不带。</div>
+        <div class="think">💭 <b>Think</b>：<code>&lt;</code> 让命令知道了什么？</div>
+        <div class="step"><b>Answer</b>：<code>&lt;</code> 把内容喂给 stdin，wc 不知道文件名，所以只打印数字。直接给文件名则 wc 会带上名字。</div>
+        <div class="explain">🧠 <b>Explanation</b>：命令对「文件名参数」和「stdin」的行为不同。脚本里想只要数字时，<code>&lt;</code> 反而更方便。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景</h2>
+    <p class="muted">先写自己的方案，再展开看答案。每个场景想「三个月后的人能否看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>跑一条统计 pipeline，正确结果要存成报告、错误要单独存日志（别混一起），方便同事分别查看。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>cmd &gt; report.txt 2&gt; errors.log</code>——stdout 进报告、stderr 进日志，两条流各走各路。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>递归扫目录找 <code>.bam</code>，Permission denied 刷屏，你只要干净的结果清单。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>find /data -name "*.bam" 2&gt;/dev/null</code>——把 stderr 全丢黑洞，屏幕只剩真正的 .bam 路径。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>要写一个多行配置（用户名、CPU 数、内存、路径），不想用十几次 echo。</p>
+      <details><summary>参考方案</summary><div class="ans"><p>heredoc：<code>cat &lt;&lt; EOF &gt; pipeline.conf</code> 后粘贴多行，顶格 <code>EOF</code> 结束，一次写完整份配置。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>一条命令很吵但结果不要，只要看它「成功还是失败」（退出码）。怎么彻底静音？</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>cmd &gt; /dev/null 2&gt;&amp;1</code> 完全静音，然后 <code>echo $?</code> 看退出码判断成败（0=成功，非 0=失败）。</p></div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight（累计 · 综合 Lesson 01–10 · 20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>重建一个「被删坏的研究目录」，全程用重定向分流输出，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物，综合前 9 课技能）：</strong></p>
+      <ul>
+        <li>建 <code>redir_battle/</code>，用 <code>mkdir -p</code> 重建 <code>raw_data/</code>、<code>results/</code>、<code>logs/</code> 三级目录（Lesson 01 文件系统）。</li>
+        <li>造 <code>raw_data/reads.fastq</code>、<code>results/sample.vcf</code>、<code>logs/align.log</code>（heredoc 写入多行内容）。</li>
+        <li>用管道统计：read 数、变异数（Lesson 09 管道），并把统计结果 <code>&gt;</code> 存进 <code>results/summary.txt</code>。</li>
+        <li>跑一个递归 <code>find</code>/<code>grep</code>，把 Permission denied 用 <code>2&gt;/dev/null</code> 静音（本课）。</li>
+        <li>用 <code>gzip</code>/<code>tar</code> 把整个项目打包归档（Lesson 08 压缩）。</li>
+        <li>全程 tmux 分屏，右屏 <code>tail -f</code> 看 summary.txt 增长，截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你收集完整输出时写成了 <code>grep -r "^@" raw_data/ 2&gt;&amp;1 &gt; results/all.log</code>（<strong><code>2&gt;&amp;1</code> 顺序反了</strong>），结果 all.log 里只有 stdout、错误还是打到屏幕。你要自己发现「顺序重要」，改成 <code>grep -r "^@" raw_data/ &gt; results/all.log 2&gt;&amp;1</code> 修好，截图「报错在屏幕 → 修复后错误也进文件」。</p>
+      </div>
+      <p><strong>验收清单：</strong>目录树重建 ✅ 数据文件造好 ✅ 统计进 summary.txt ✅ 噪音已静音 ✅ 项目已打包 ✅ 埋坑（2&gt;&amp;1 顺序）已修复 ✅ 截图 + 命令进 <code>github/lesson10/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <tr><th>Time</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会用 &gt; / &gt;&gt; / &lt; / /dev/null，说清 stdin/stdout/stderr 三条流</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（2&gt; / 2&gt;&amp;1 / &amp;&gt; / heredoc 组合）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查 2&gt;&amp;1 顺序 / stderr 独立性 / heredoc 顶格 / 覆盖丢失四类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成累计 Boss 战（含 2&gt;&amp;1 顺序的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 答案</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>ls -l &gt; listing.txt</code>。</p>
+        <p><b>Lab 2：</b><code>echo "more" &gt;&gt; listing.txt</code>。</p>
+        <p><b>Lab 3：</b><code>wc -l &lt; reads.fastq</code>（只出数字）。</p>
+        <p><b>Lab 4：</b><code>ls -l &gt; /dev/null</code>。</p>
+        <p><b>Lab 5：</b><code>find /root -name "*.bam" 2&gt; err.log</code>。</p>
+        <p><b>Lab 6：</b><code>cmd &gt; all.log 2&gt;&amp;1</code>。</p>
+        <p><b>Lab 7：</b><code>grep -r "^@" data/ &gt; headers.txt 2&gt;/dev/null</code>。</p>
+        <p><b>Lab 8：</b><code>cat reads.fastq | grep "^@" | tee h.txt | wc -l &gt; count.txt</code>。</p>
+        <p><b>Lab 9：</b><code>cat &lt;&lt; EOF &gt; pipeline.conf</code> … 顶格 <code>EOF</code>。</p>
+        <p><b>Lab 10：</b><code>find /root -name "*.bam" &amp;&gt; both.log</code>。</p>
+        <p><b>Lab 11：</b>先 <code>2&gt;&amp;1 &gt; out.log</code>（错）→ 改 <code>&gt; out.log 2&gt;&amp;1</code>。</p>
+        <p><b>Lab 12：</b><code>cmd &gt; report.txt 2&gt; errors.log</code>。</p>
+        <p><b>Lab 13：</b><code>cmd &gt; /dev/null 2&gt;&amp;1</code>（带注释）。</p>
+        <p><b>Lab 14：</b><code>&gt;</code> 只重定向 stdout，stderr 需 <code>2&gt;</code>。</p>
+        <p><b>Lab 15：</b>tmux 分屏 + <code>tail -f</code> + 三流重定向。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 卡组</h2>
+    <p class="muted">完整 75 张卡在 <code>github/anki/lesson10-redirection.tsv</code>（4 列：Type / Front / Back / Tags，按新标准）。这里只展示代表性示例。</p>
+    <h3>示例（各类型取 1 张）</h3>
+    <table>
+      <tr><th>Type</th><th>Front</th><th>Back</th></tr>
+      <tr><td>Command</td><td><code>2&gt; file</code> 做什么？</td><td>把 stderr（文件描述符 2）重定向到 file</td></tr>
+      <tr><td>Construction</td><td>跑统计命令，正确结果进 report、错误进 errors.log，怎么写？</td><td><code>cmd &gt; report.txt 2&gt; errors.log</code></td></tr>
+      <tr><td>Debug</td><td><code>cmd 2&gt;&amp;1 &gt; log.txt</code> 为什么 log 里没有错误？</td><td>顺序反了，应 <code>cmd &gt; log.txt 2&gt;&amp;1</code></td></tr>
+      <tr><td>Compare</td><td><code>&gt;</code> 和 <code>&gt;&gt;</code> 区别？</td><td><code>&gt;</code> 覆盖，<code>&gt;&gt;</code> 追加</td></tr>
+      <tr><td>Bioinformatics</td><td>统计 VCF 变异数，同时把 Permission denied 静音，怎么写？</td><td><code>grep -v "^#" sample.vcf | wc -l 2&gt;/dev/null</code></td></tr>
+      <tr><td>Workflow</td><td>彻底静音一条命令并只看成败，怎么做？</td><td><code>cmd &gt; /dev/null 2&gt;&amp;1; echo $?</code></td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> Quick Quiz 小测</h2>
+    <div class="quiz" id="q1">
+      <p class="q">Which file descriptor is stderr?（stderr 是几号？）</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">0</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">1</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">2</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">Correct way to merge both streams to a file?（合并两流进文件？）</p>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">cmd &gt; f 2&gt;&amp;1</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">cmd 2&gt;&amp;1 &gt; f</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">cmd 2&gt; f</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">heredoc's end marker must be?（heredoc 结束标记必须？）</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">indented 缩进</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">at column 0 顶格</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">quoted 加引号</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">Which discards all output?（丢弃所有输出？）</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">/dev/zero</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">/dev/null</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">/dev/random</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub Homework 作业</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson10/</code>，README 记录费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 10: Redirection"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ Correct!' : '❌ Try again — see the Knowledge section.';
+  }
+</script>
+</body>
+</html>

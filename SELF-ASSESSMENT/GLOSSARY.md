@@ -419,3 +419,33 @@ Write stdin to a file and also pass it through to stdout; `-a` appends.
 **redirection / 重定向**
 把 stdout 写到文件（`>` 覆盖、`>>` 追加）。区别于管道（`|` 接命令）。
 Send stdout to a file (`>` overwrite, `>>` append), unlike a pipe (`|`), which feeds a command.
+
+## Lesson 10 · Redirection
+
+**file descriptor / 文件描述符**
+内核给每个打开的文件/流分配的非负整数编号：0=stdin、1=stdout、2=stderr。
+The non-negative integer the kernel assigns to each open file/stream: 0=stdin, 1=stdout, 2=stderr.
+
+**2> / 2>>**
+把 stderr（fd 2）重定向到文件：`2>` 覆盖、`2>>` 追加。
+Redirect stderr (fd 2) to a file: `2>` overwrites, `2>>` appends.
+
+**2>&1**
+把 stderr 合并到 stdout 当前指向的地方。必须放在 `>` 之后，否则顺序错、stderr 留在终端。
+Merge stderr into wherever stdout currently points. Must come after `>`, or the order is wrong and stderr stays on screen.
+
+**&>**
+bash 专属：同时重定向 stdout 和 stderr（等价 `> file 2>&1`）。POSIX sh 不认。
+bash-only: redirect both stdout and stderr at once (same as `> file 2>&1`). Not in POSIX sh.
+
+**/dev/null**
+黑洞设备文件，写进去的内容被永久丢弃，用于静音不需要的输出。
+The black-hole device file; anything written to it is discarded, used to silence output.
+
+**heredoc**
+`<< EOF … EOF`：把多行文字作为 stdin 喂给命令；结束标记 EOF 必须顶格。
+`<< EOF … EOF`: feeds multiple lines into stdin; the end marker EOF must be at column 0.
+
+**here-string**
+`<<< "string"`：把单个字符串作为 stdin 喂给命令（bash 专属）。
+`<<< "string"`: feeds a single string as stdin (bash-only).

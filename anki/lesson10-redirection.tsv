@@ -1,0 +1,88 @@
+Concept	每个 Linux 进程默认有哪三条标准流？各自的文件描述符编号是多少？	stdin(0) 标准输入、stdout(1) 标准输出、stderr(2) 标准错误。stdin 默认来自键盘，stdout/stderr 默认打到屏幕。	Linux::Redirection::Concept Lesson10
+Concept	为什么 stdout 和 stderr 要分成两条独立的流？	因为「正常结果」和「错误信息」用途不同：结果要保存或传给下游，错误要单独排查。分成两流才能分别重定向。	Linux::Redirection::Concept Lesson10
+Concept	重定向（redirection）和管道（pipe）的本质区别是什么？	重定向把一条流接到「文件」或「文件描述符」，管道把 stdout 接到「另一个命令的 stdin」。	Linux::Redirection::Concept Lesson10
+Concept	/dev/null 是什么？为什么叫黑洞？	Linux 的特殊设备文件，写进去的内容被永久丢弃，读它读到 EOF（空）。常用于静音不需要的输出。	Linux::Redirection::Concept Lesson10
+Concept	文件描述符（file descriptor）是什么？	内核给每个打开的文件/流分配的非负整数编号，0=stdin、1=stdout、2=stderr，可扩展到其他打开的文件。	Linux::Redirection::Concept Lesson10
+Concept	重定向操作符是按什么顺序生效的？	从左到右依次执行，每个操作符立即改变对应流的去向。这决定了 2>&1 和 > 谁先谁后至关重要。	Linux::Redirection::Concept Lesson10
+Concept	heredoc 是什么？解决什么问题？	heredoc（<<EOF ... EOF）把多行文字作为 stdin 喂给命令，用于一次写入多行内容，不用反复 echo。	Linux::Redirection::Concept Lesson10
+Command	cmd > file 做什么？	把 cmd 的 stdout 覆盖写入 file；file 已存在会被清空重写。	Linux::Redirection::Command Lesson10
+Command	cmd >> file 做什么？	把 cmd 的 stdout 追加到 file 末尾，保留旧内容。	Linux::Redirection::Command Lesson10
+Command	cmd 2> file 做什么？	把 cmd 的 stderr 重定向到 file（覆盖），stdout 仍上屏。	Linux::Redirection::Command Lesson10
+Command	cmd < file 做什么？	把 file 的内容作为 cmd 的 stdin，等价于「喂文件给命令读」。	Linux::Redirection::Command Lesson10
+Command	cmd 2>&1 做什么？	把 stderr（fd 2）合并到 stdout（fd 1）当前指向的地方。	Linux::Redirection::Command Lesson10
+Command	cmd &> file 做什么？	bash 简写，等价 cmd > file 2>&1，把 stdout 和 stderr 都写进 file。	Linux::Redirection::Command Lesson10
+Command	cmd 2>> file 做什么？	把 stderr 追加到 file（不覆盖旧内容）。	Linux::Redirection::Command Lesson10
+Command	cmd > /dev/null 2>&1 做什么？	彻底静音：stdout 进黑洞，stderr 追着 stdout 也进黑洞，屏幕无任何输出。	Linux::Redirection::Command Lesson10
+Command	cmd <<< "string" 做什么？	here-string：把单个字符串作为 cmd 的 stdin（bash 专属语法）。	Linux::Redirection::Command Lesson10
+Recall	三条流的文件描述符编号怎么记？	0=stdin 输入、1=stdout 输出、2=stderr 错误。口诀「0 进 1 出 2 错」。	Linux::Redirection::Recall Lesson10
+Recall	想把命令的 stdout 和 stderr 都写进同一个文件，有哪些写法？	cmd > f 2>&1（可移植）或 cmd &> f（bash）。注意 2>&1 必须在 > 之后。	Linux::Redirection::Recall Lesson10
+Recall	想把「正确结果」和「错误」分开存两个文件，怎么写？	cmd > report.txt 2> errors.log。	Linux::Redirection::Recall Lesson10
+Recall	用 heredoc 写多行时，结束标记有什么硬性要求？	结束标记必须单独成行且顶格（行首无空格/Tab），否则 heredoc 不结束；可用 <<- 允许 Tab 缩进。	Linux::Redirection::Recall Lesson10
+Recall	想静音某条命令的所有输出但保留退出码判断成败，怎么做？	cmd > /dev/null 2>&1; echo $?，退出码 0=成功、非 0=失败。	Linux::Redirection::Recall Lesson10
+Recall	wc -l < file 和 wc -l file 输出有什么区别？为什么？	前者只输出数字（wc 不知道文件名，读的是 stdin）；后者输出「数字 文件名」。	Linux::Redirection::Recall Lesson10
+Construction	把 ls -l 的结果存进 listing.txt（覆盖旧内容），怎么写？	ls -l > listing.txt	Linux::Redirection::Construction Lesson10
+Construction	把一条命令的输出追加到 log.txt 末尾（不覆盖已有内容），怎么写？	cmd >> log.txt	Linux::Redirection::Construction Lesson10
+Construction	跑一条会报错的命令，把错误单独存进 err.log、正确结果仍显示在屏幕，怎么写？	cmd 2> err.log	Linux::Redirection::Construction Lesson10
+Construction	递归扫目录找 .bam，但不想看到满屏 Permission denied，怎么写？	find /data -name "*.bam" 2>/dev/null	Linux::Redirection::Construction Lesson10
+Construction	把命令的 stdout 和 stderr 都写进同一个 all.log，正确顺序怎么写？	cmd > all.log 2>&1	Linux::Redirection::Construction Lesson10
+Construction	把一条统计命令的「正确结果」存 report.txt、「错误」存 errors.log，一次分开，怎么写？	cmd > report.txt 2> errors.log	Linux::Redirection::Construction Lesson10
+Construction	用 heredoc 一次写入三行配置（name=user、cpu=8、mem=16G）到 config.txt，怎么写？	cat << EOF > config.txt 后贴三行内容，最后顶格输入 EOF	Linux::Redirection::Construction Lesson10
+Construction	完全静音一条很吵的命令（stdout 和 stderr 都不要），怎么写？	cmd > /dev/null 2>&1	Linux::Redirection::Construction Lesson10
+Construction	用一条命令同时做到「把 grep 结果存文件」和「把结果行数也存文件」，怎么写？	grep "^@" reads.fastq | tee headers.txt | wc -l > count.txt	Linux::Redirection::Construction Lesson10
+Construction	想把 sort 的输入从文件 genes.txt 读进来（用重定向而不是参数），怎么写？	sort < genes.txt	Linux::Redirection::Construction Lesson10
+Construction	用 here-string 让 grep 直接在字符串 "TP53 BRCA1 EGFR" 里搜 TP53，怎么写？	grep "TP53" <<< "TP53 BRCA1 EGFR"	Linux::Redirection::Construction Lesson10
+Construction	想只把 stderr 静音、stdout 照常显示，用最简洁的写法。	cmd 2>/dev/null	Linux::Redirection::Construction Lesson10
+Construction	把某命令的 stdout 存进 out.txt，同时 stderr 追加到 err.log（不覆盖旧错误），怎么写？	cmd > out.txt 2>> err.log	Linux::Redirection::Construction Lesson10
+Decomposition	cmd > out.log 2>&1 中，2>&1 这一段是什么意思？	把 stderr（fd 2）重定向到 fd 1（stdout）当前指向的地方，即 out.log。	Linux::Redirection::Decomposition Lesson10
+Decomposition	grep -r "^@" data/ > headers.txt 2>/dev/null 里，2>/dev/null 的作用是什么？	把 stderr（如 Permission denied）丢进黑洞，让屏幕只剩干净的结果。	Linux::Redirection::Decomposition Lesson10
+Decomposition	解释 cat reads.fastq | grep "^@" | tee h.txt | wc -l > count.txt 每一段做什么？	cat 读文件 → grep 滤 header → tee 存 h.txt 并继续传 → wc -l 数行 → > 把数字存 count.txt。	Linux::Redirection::Decomposition Lesson10
+Decomposition	cmd > /dev/null 2>&1 中，为什么要 2>&1 而不只是 > /dev/null？	因为 > /dev/null 只丢 stdout，stderr 仍会打到屏幕；加 2>&1 让 stderr 也跟着进黑洞，才彻底静音。	Linux::Redirection::Decomposition Lesson10
+Decomposition	heredoc cat << EOF > config.txt 中，> config.txt 和 << EOF 各自管什么？	<< EOF 把后续多行喂给 cat 的 stdin，> config.txt 把 cat 的 stdout 重定向到文件，两者配合「多行直接落盘」。	Linux::Redirection::Decomposition Lesson10
+Decomposition	cmd > report.txt 2> errors.log 中两个重定向分别管哪条流？	> report.txt 管 stdout（fd 1），2> errors.log 管 stderr（fd 2），互不干扰。	Linux::Redirection::Decomposition Lesson10
+Decomposition	sort < genes.txt 和 sort genes.txt 都是排序，< 在这里做了什么？	sort genes.txt 让 sort 自己打开文件；< genes.txt 则把文件内容提前喂到 sort 的 stdin。结果一样但机制不同。	Linux::Redirection::Decomposition Lesson10
+Decomposition	cmd &> all.log 等价于哪条完整写法？	等价于 cmd > all.log 2>&1；&> 是 bash 的简写语法。	Linux::Redirection::Decomposition Lesson10
+Debug	你运行 grep -r "x" . > results.txt，结果文件里有了内容，但屏幕还是冒出 Permission denied。问题在哪？怎么修？	> 只重定向 stdout，Permission denied 是 stderr。加 2>/dev/null 静音或 2> err.log 单独存。	Linux::Redirection::Debug Lesson10
+Debug	你运行 cmd 2>&1 > log.txt，却发现 log.txt 里没有错误信息。为什么？	顺序反了：2>&1 先执行把 stderr 指向当时的 stdout（终端），之后 > log.txt 只改 stdout。改成 cmd > log.txt 2>&1。	Linux::Redirection::Debug Lesson10
+Debug	你输入 heredoc cat << EOF 后贴了内容、输入了 EOF，但命令不结束。最可能的原因？	结束标记 EOF 前面有空格或缩进。EOF 必须顶格；或用 <<- 允许 Tab 缩进。	Linux::Redirection::Debug Lesson10
+Debug	你 echo "新报告" > report.txt 后，发现昨天的 report.txt 内容全没了。发生了什么？如何避免？	> 是覆盖写入，文件已存在时被静默清空。想保留旧内容用 >>，或先 cp 备份。	Linux::Redirection::Debug Lesson10
+Debug	你运行 wc -l < reads.fastq 输出只有 8，而 wc -l reads.fastq 输出 8 reads.fastq。为什么不一样？	< 把内容喂给 stdin，wc 不知道文件名所以只打印数字；直接给文件名则 wc 会带上名字。	Linux::Redirection::Debug Lesson10
+Debug	你 cmd > log.txt 想把报错也存下来，但 log.txt 里只有正常输出、没有报错。为什么？	> 只重定向 stdout，报错走的是 stderr。要连错误一起存用 cmd > log.txt 2>&1。	Linux::Redirection::Debug Lesson10
+Debug	你用 cmd &> out.log 写脚本，但换到 sh script.sh 运行时报语法错误。为什么？	&> 是 bash 专属语法，POSIX sh 不认。可移植写法是 cmd > out.log 2>&1。	Linux::Redirection::Debug Lesson10
+Debug	你 heredoc 里写了 echo $HOME，结果文件里是真实路径而不是字面 $HOME。如果你想要字面 $HOME，怎么写？	heredoc 默认会展开变量。想禁止展开，把结束标记加引号：cat << 'EOF'。	Linux::Redirection::Debug Lesson10
+Debug	你 find / -name "*.bam" > bams.txt，结果 bams.txt 里没有完整列表、屏幕又刷满 Permission denied。怎么让文件干净、屏幕也干净？	只重定向了 stdout 导致错误上屏。用 find / -name "*.bam" > bams.txt 2>/dev/null。	Linux::Redirection::Debug Lesson10
+Debug	你 cmd > /dev/null 2>&1 后发现命令报错了但你完全不知道。想既静音又能在失败时知道，怎么办？	静音后用退出码判断：cmd > /dev/null 2>&1; echo $?，非 0 表示失败。	Linux::Redirection::Debug Lesson10
+Compare	> 和 >> 的区别？	> 覆盖写入（清空旧内容），>> 追加写入（保留旧内容）。	Linux::Redirection::Compare Lesson10
+Compare	2> 和 2>> 的区别？	2> 覆盖重定向 stderr，2>> 追加重定向 stderr。	Linux::Redirection::Compare Lesson10
+Compare	> file 2>&1 和 2>&1 > file 的区别？	前者 stdout、stderr 都进 file；后者只有 stdout 进 file，stderr 留在终端（顺序陷阱）。	Linux::Redirection::Compare Lesson10
+Compare	重定向 > 和管道 | 的区别？	> 把 stdout 写进「文件」，| 把 stdout 喂给「另一个命令」。	Linux::Redirection::Compare Lesson10
+Compare	heredoc << EOF 和 here-string <<< 的区别？	heredoc 喂多行文字，here-string 喂单个字符串（且 <<< 是 bash 专属）。	Linux::Redirection::Compare Lesson10
+Scenario	服务器上跑一条生信统计命令，正确结果要存报告、错误要单独存日志方便同事分别查，怎么组织？	cmd > report.txt 2> errors.log，两条流分开落盘。	Linux::Redirection::Scenario Lesson10
+Scenario	你 SSH 到服务器，递归扫 /data 找 .bam，Permission denied 刷屏。只要干净清单，怎么做？	find /data -name "*.bam" 2>/dev/null	Linux::Redirection::Scenario Lesson10
+Scenario	要写一份多行 pipeline 配置（用户名、CPU、内存、路径），不想十几次 echo，怎么做？	heredoc：cat << EOF > pipeline.conf 后粘贴多行，顶格 EOF 结束。	Linux::Redirection::Scenario Lesson10
+Scenario	一条命令很吵但你只要知道它成功还是失败，怎么做？	cmd > /dev/null 2>&1; echo $?，看退出码判断成败。	Linux::Redirection::Scenario Lesson10
+Scenario	跑一个长时间任务，想让 stdout 和 stderr 都实时追加进同一个日志，且之后还能追看，怎么做？	后台运行时用 cmd >> run.log 2>&1 &，另开 tail -f run.log 追看。	Linux::Redirection::Scenario Lesson10
+Scenario	你要把一条 pipeline 的中间结果「留档」同时继续往下算，用哪个命令配合重定向？	... | tee checkpoint.txt | ...，tee 边存文件边继续传。	Linux::Redirection::Scenario Lesson10
+Scenario	同事发来一个脚本用了 &>，但在服务器默认 sh 下报错。你如何改成可移植写法？	把 cmd &> f 改成 cmd > f 2>&1。	Linux::Redirection::Scenario Lesson10
+Scenario	你想静音某命令的 stderr，但保留 stdout 显示在屏幕，一行怎么写？	cmd 2>/dev/null	Linux::Redirection::Scenario Lesson10
+Bioinformatics	统计一个 VCF 的变异记录数（跳过 # 头），同时静音可能的 Permission denied，怎么写？	grep -v "^#" sample.vcf | wc -l 2>/dev/null	Linux::Redirection::Bioinformatics Lesson10
+Bioinformatics	统计 sample.fastq.gz 的 read 数，把结果存进 report.txt、错误存进 err.log，怎么写？	zcat sample.fastq.gz | grep -c "^@" > report.txt 2> err.log	Linux::Redirection::Bioinformatics Lesson10
+Bioinformatics	用 heredoc 写一个含 FASTA 参考路径、线程数、输出目录的比对配置 config.txt，怎么写？	cat << EOF > config.txt 写 ref=/data/hg38.fa、threads=8、out=/data/align，顶格 EOF。	Linux::Redirection::Bioinformatics Lesson10
+Bioinformatics	扫描 RNA-seq 目录找所有 .bam，只要文件名清单存 bam_list.txt、错误全静音，怎么写？	find /data/rna -name "*.bam" > bam_list.txt 2>/dev/null	Linux::Redirection::Bioinformatics Lesson10
+Bioinformatics	统计基因表达表 counts.tsv 里每个基因出现次数，结果存 gene_counts.txt，错误静音，怎么写？	cut -f1 counts.tsv | sort | uniq -c > gene_counts.txt 2>/dev/null	Linux::Redirection::Bioinformatics Lesson10
+Bioinformatics	跑比对软件时，想把它的「进度信息」和「错误」都存进 align.log 供事后排查，正确写法？	aligner ... > align.log 2>&1（或 &> align.log）	Linux::Redirection::Bioinformatics Lesson10
+Application	你在写自动化脚本，某一步只需要退出码判断成功失败、不想让用户看到任何输出，怎么写这一步？	cmd > /dev/null 2>&1; if [ $? -eq 0 ]; then ...; fi，静音后靠退出码判断。	Linux::Redirection::Application Lesson10
+Application	你想让脚本把每个步骤的 stdout 都追加进同一个总日志，方便之后追溯，用什么重定向？	每步用 cmd >> total.log 2>&1，追加且合并两流。	Linux::Redirection::Application Lesson10
+Transfer	原任务把统计结果存成 report.txt；现在需求改成「结果要同时存文件和显示在屏幕」，怎么改？	把 > 换成 tee：cmd | tee report.txt（tee 边写文件边输出到屏幕）。	Linux::Redirection::Transfer Lesson10
+Transfer	原命令 cmd > out.txt 2>&1；现在要求错误单独存 err.log、正确单独存 out.txt，怎么改？	把 2>&1 改成 2> err.log：cmd > out.txt 2> err.log。	Linux::Redirection::Transfer Lesson10
+Transfer	原命令对未压缩的 file.txt 用 cat file.txt | ...；现在文件是 file.txt.gz，怎么改？	把 cat 换成 zcat：zcat file.txt.gz | ...。	Linux::Redirection::Transfer Lesson10
+EdgeCase	为什么 2>&1 > file 是错误的顺序？	重定向从左到右执行：2>&1 先把 stderr 指向终端 stdout，之后 > file 只改 stdout，stderr 就留在了终端。	Linux::Redirection::EdgeCase Lesson10
+EdgeCase	heredoc 结束标记 EOF 前有空格会发生什么？	heredoc 不会结束，后续所有输入（含那个 EOF）都被当成内容的一部分。	Linux::Redirection::EdgeCase Lesson10
+EdgeCase	为什么 > file 可能造成数据丢失？	文件已存在时 > 会立即截断（清空）它再写入，且不提示；误用时旧内容永久丢失。	Linux::Redirection::EdgeCase Lesson10
+EdgeCase	wc -l < file 的输出为什么不带文件名？	因为 file 通过 stdin 进入，wc 根本不知道文件名，只知道在数一个输入流的行数。	Linux::Redirection::EdgeCase Lesson10
+EdgeCase	为什么说 &> 和 <<< 不是所有 shell 都能用？	它们是 bash 的扩展语法，POSIX sh（/bin/sh）不支持；脚本要可移植就避免使用。	Linux::Redirection::EdgeCase Lesson10
+Workflow	完整流程：统计 reads.fastq 的 read 数，把 header 存 headers.txt，把数字存 count.txt，错误静音。组织这条命令。	grep "^@" reads.fastq | tee headers.txt | wc -l > count.txt 2>/dev/null	Linux::Redirection::Workflow Lesson10
+Workflow	完整流程：递归找 /data 下 .bam，结果存清单、错误存日志、屏幕保持干净。组织这条命令。	find /data -name "*.bam" > bam_list.txt 2> errors.log（屏幕无输出，两流各落盘）	Linux::Redirection::Workflow Lesson10
+Workflow	完整流程：跑一条命令，正确结果追加进 report.log、错误追加进 error.log，然后查看退出码。组织这条命令。	cmd >> report.log 2>> error.log; echo $?	Linux::Redirection::Workflow Lesson10
+Workflow	完整流程：用 heredoc 写一个脚本文件 script.sh，然后彻底静音地执行它，只看退出码。组织这两个步骤。	先 cat << EOF > script.sh 写内容顶格 EOF；再 bash script.sh > /dev/null 2>&1; echo $?	Linux::Redirection::Workflow Lesson10
+Comprehensive	服务器上有 reads.fastq、sample.vcf、genes.txt、align.log。请完成：(1) 统计 FASTQ read 数存 summary.txt；(2) 统计 VCF 变异数追加进 summary.txt；(3) 统计 genes.txt 每个基因出现次数存 gene_counts.txt；(4) 提取 align.log 的 ERROR 存 errors.txt，错误静音。组织这些命令。	(1) grep -c "^@" reads.fastq > summary.txt；(2) grep -v "^#" sample.vcf | wc -l >> summary.txt；(3) sort genes.txt | uniq -c > gene_counts.txt；(4) grep "ERROR" align.log > errors.txt 2>/dev/null	Linux::Redirection::Comprehensive Lesson10
+Comprehensive	你要做「项目体检」：把 read 数、变异数、基因计数分别统计并写进 summary.txt（第一次覆盖、之后追加），中间 header 存 headers.txt，所有错误静音，最后打包。综合本课 + 前 9 课知识组织。	grep -c "^@" reads.fastq > summary.txt 2>/dev/null；grep -v "^#" sample.vcf | wc -l >> summary.txt 2>/dev/null；sort genes.txt | uniq -c >> summary.txt；grep "^@" reads.fastq | tee headers.txt >> /dev/null；tar -czf project.tar.gz .	Linux::Redirection::Comprehensive Lesson10
