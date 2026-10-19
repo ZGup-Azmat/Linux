@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 11 · awk ｜ Process Columns &amp; Compute</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 27.5%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 11 · Part II · Shell Engineering</div>
+    <h1>awk</h1>
+    <p class="sub">Process columns &amp; compute —— 按列处理文本并做计算</p>
+    <div class="progress-label"><span>Progress</span><span>11 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★★☆ Advanced</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">用 awk 算表达量/过滤变异</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 09 管道 + Lesson 10 重定向</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>grep 能按行「找」，但<strong>不能按列「算」</strong>。今天主管要你对表格数据动真格：</p>
+      <ul>
+        <li>🧬 一个表达矩阵 <code>counts.tsv</code>，要找出<strong>表达量 &gt; 100</strong> 的基因（按第二列数值过滤）。</li>
+        <li>📊 要算出某列所有值的<strong>总和、平均值</strong>（比如样本总 read 数）。</li>
+        <li>🧾 一个 VCF/日志，只要<strong>某几列</strong>（抽出 chr 和 pos）。</li>
+        <li>🔢 要给输出加<strong>表头</strong>、加<strong>行号</strong>、重新排列列的顺序。</li>
+      </ul>
+      <p><code>awk</code> 就是干这个的——按「模式 + 动作」逐行扫描，把每行按分隔符拆成字段，然后你就能对每一列做过滤、计算、格式化。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>要按列过滤/计算/重排 → 需要一个逐行按字段处理的工具 → <code>awk</code>（模式-动作、$1/$2 字段、-F 分隔符、NR/NF、BEGIN/END）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 知识（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 concepts. Each: 英文定义 + 中文注释 + 心智模型 + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>Concept 1 · Pattern–action model + fields $1/$2 + <code>-F</code></h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>awk</code> reads line by line, splits each line into <em>fields</em> ($1, $2, …) by a delimiter (<code>-F</code>, default whitespace), and runs <code>pattern { action }</code> on every line. <code>$0</code> is the whole line.</p>
+      <p><strong>中文：</strong>awk 逐行读入，按分隔符（<code>-F</code>，默认空白）把每行拆成字段 $1/$2/…，然后对每行执行「模式 { 动作 }」。<code>$0</code> 是整行。</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">awk '{print $1, $2}' counts.tsv</text>
+          <text class="lab" x="0" y="48">每行按分隔符拆字段：</text>
+          <rect class="f" x="0" y="56" width="120" height="34" rx="6"/><text class="t" x="60" y="78" text-anchor="middle">TP53</text>
+          <text class="lab" x="130" y="78">$1</text>
+          <rect class="g" x="170" y="56" width="80" height="34" rx="6"/><text class="t" x="210" y="78" text-anchor="middle">120</text>
+          <text class="lab" x="260" y="78">$2</text>
+          <rect class="o" x="300" y="56" width="90" height="34" rx="6"/><text class="t" x="345" y="78" text-anchor="middle">up</text>
+          <text class="lab" x="400" y="78">$3</text>
+          <text class="lab" x="0" y="118">$0 = 整行（TP53 120 up）</text>
+          <text class="lab" x="0" y="138">print $1, $2 → 输出 TP53 120（默认空格连接）</text>
+          <text class="lab" x="0" y="162">-F 指定分隔符：awk -F '\t'（Tab）或 -F ':' 或 -F ','</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>awk '{print $1}' file              <span class="c"># 打印第一列</span>
+awk '{print $1, $3}' file           <span class="c"># 打印第 1、3 列（逗号=空格连接）</span>
+awk -F '\t' '{print $2}' counts.tsv <span class="c"># 用 Tab 分隔，取第 2 列</span>
+awk -F ':' '{print $1}' /etc/passwd <span class="c"># 用冒号分隔</span>
+awk '{print $0}' file               <span class="c"># 打印整行（$0）</span></code></pre>
+
+      <p><strong>实例：</strong><code>awk '{print $1, $2}' counts.tsv</code> 把基因表达表的每行只保留「基因名 + 表达量」两列，其余列全部丢弃——grep 做不到的「按列裁剪」，awk 一条搞定。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>默认分隔符是「连续空白」</strong>：空格、Tab 都被当作分隔；但 Tab 分隔的 TSV 里若有空字段，用默认空白会「吃掉」空列。列是 Tab 分隔时，务必显式 <code>-F '\t'</code>。</li>
+          <li><strong><code>$1</code> 和 shell 的 <code>$1</code> 会撞车</strong>：awk 程序必须用<strong>单引号</strong>包起来，否则 shell 会先把 <code>$1</code> 换成自己的参数。记：<strong>awk 脚本永远单引号</strong>。</li>
+          <li><strong>print $1, $2 的逗号是空格</strong>：想贴在一起用 <code>print $1$2</code>（无逗号）；想自定义分隔用 <code>print $1 ":" $2</code>。</li>
+          <li><strong><code>-F</code> 是分隔符不是字段</strong>：<code>-F '\t'</code> 里的 <code>\t</code> 在单引号里才会被 awk 识别为 Tab。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>生信表格（TSV/BED/GFF/VCF）都是「列对齐」的数据。awk 的字段切分让你能精确抽列、按列过滤，是处理这些格式的基本功。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>grep 是「找行」，awk 是「拆列」。概念 2 讲 awk 的内建变量，让行处理更有上下文。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>Concept 2 · Built-in variables: NR / NF / $0 / FS / OFS</h3>
+    <div class="card">
+      <p><strong>English:</strong> awk tracks state in built-in variables: <code>NR</code> (record/line number so far), <code>NF</code> (number of fields in current line), <code>$0</code> (whole line), <code>FS</code> (input field separator), <code>OFS</code> (output field separator).</p>
+      <p><strong>中文：</strong>awk 用内建变量记录状态：<code>NR</code>（当前行号）、<code>NF</code>（当前行字段数）、<code>$0</code>（整行）、<code>FS</code>（输入分隔符）、<code>OFS</code>（输出分隔符）。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}</style>
+          <text class="h" x="0" y="24">内建变量</text>
+          <rect class="f" x="0" y="36" width="290" height="30" rx="6"/><text class="t" x="145" y="56" text-anchor="middle">NR  当前行号（从 1 数起）</text>
+          <rect class="f" x="0" y="72" width="290" height="30" rx="6"/><text class="t" x="145" y="92" text-anchor="middle">NF  当前行的字段个数</text>
+          <rect class="f" x="0" y="108" width="290" height="30" rx="6"/><text class="t" x="145" y="128" text-anchor="middle">$NF 最后一列（= $列数）</text>
+          <rect class="f" x="0" y="144" width="290" height="30" rx="6"/><text class="t" x="145" y="164" text-anchor="middle">$0 整行 · FS 输入分隔 · OFS 输出分隔</text>
+          <text class="lab" x="310" y="56">awk '{print NR, $0}'</text>
+          <text class="lab" x="310" y="92">awk '{print NF}'</text>
+          <text class="lab" x="310" y="128">awk '{print $NF}'</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>awk '{print NR, $0}' file           <span class="c"># 加行号（NR + 整行）</span>
+awk '{print NF}' file                <span class="c"># 每行有几个字段</span>
+awk '{print $NF}' file               <span class="c"># 打印最后一列（不管有几列）</span>
+awk -v OFS='\t' '{print $1, $2}' file <span class="c"># 输出用 Tab 分隔</span>
+awk 'BEGIN{FS=","} {print $1}' file  <span class="c"># 在程序里设输入分隔为逗号</span></code></pre>
+
+      <p><strong>实例：</strong><code>awk '{print NR, $0}' counts.tsv</code> 给每行加行号——写报告时标注「第 N 行是哪个基因」很方便。<code>awk '{print $NF}'</code> 则不管列数，直接抓最后一列。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>$NF</code> 是最后一列，不是「最后字段号」</strong>：<code>$NF</code> 取的是值，<code>NF</code> 才是数字。别混。</li>
+          <li><strong><code>-v OFS</code> 要在程序前</strong>：<code>awk -v OFS='\t' '{...}'</code> 顺序不能反。</li>
+          <li><strong>NR 对多文件是连续累计的</strong>：<code>awk '{print NR}' a.txt b.txt</code> 会从头数到尾不重置，跨文件行号会接着涨。</li>
+          <li><strong>print 默认 OFS 是空格</strong>：逗号连接的字段之间默认是空格，想要 Tab 用 <code>-v OFS='\t'</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>加行号（NR）、抓最后一列（$NF）、重设输出分隔（OFS），这三个是写报告和转格式的高频动作，比手动数列可靠得多。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>有了字段和变量，概念 3 加「条件」和「BEGIN/END」就能做真正的计算了。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>Concept 3 · Condition filtering + BEGIN/END + arithmetic</h3>
+    <div class="card">
+      <p><strong>English:</strong> A <em>pattern</em> before <code>{}</code> filters lines (e.g. <code>$2 &gt; 100</code>). <code>BEGIN {…}</code> runs once before reading input, <code>END {…}</code> once after — used for headers, totals, averages.</p>
+      <p><strong>中文：</strong><code>{}</code> 前的「模式」用来过滤行（如 <code>$2 &gt; 100</code>）。<code>BEGIN{…}</code> 在读输入前执行一次、<code>END{…}</code> 在读完后执行一次——用于加表头、算总和、算平均。</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">awk '$2 &gt; 100 {print $1, $2}' counts.tsv</text>
+          <rect class="g" x="0" y="36" width="200" height="32" rx="6"/><text class="t" x="100" y="57" text-anchor="middle">TP53 120 ← 通过</text>
+          <rect class="o" x="210" y="36" width="200" height="32" rx="6"/><text class="t" x="310" y="57" text-anchor="middle">BRCA1 55 ← 被过滤</text>
+          <rect class="g" x="420" y="36" width="190" height="32" rx="6"/><text class="t" x="515" y="57" text-anchor="middle">EGFR 200 ← 通过</text>
+          <text class="h" x="0" y="100">BEGIN/END 只跑一次：</text>
+          <rect class="f" x="0" y="108" width="290" height="30" rx="6"/><text class="t" x="145" y="128" text-anchor="middle">BEGIN {print "gene\tcount"}</text>
+          <rect class="f" x="0" y="144" width="290" height="30" rx="6"/><text class="t" x="145" y="164" text-anchor="middle">END {print "total:", sum}</text>
+          <text class="lab" x="310" y="128">开始前加表头</text>
+          <text class="lab" x="310" y="164">结束后打总结</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>awk '$2 &gt; 100 {print $1, $2}' counts.tsv          <span class="c"># 过滤第二列 &gt; 100</span>
+awk '$2 &gt; 100 &amp;&amp; $3 == "up" {print}' expr.tsv   <span class="c"># 两个条件同时满足</span>
+awk '{sum += $2} END {print sum}' counts.tsv        <span class="c"># 第二列求和</span>
+awk '{sum += $2; n++} END {print sum/n}' counts.tsv  <span class="c"># 第二列求平均</span>
+awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' counts.tsv  <span class="c"># 加表头</span>
+awk '$3 == "chr1" {print $1, $2}' sample.vcf        <span class="c"># 按第三列（chr）过滤</span></code></pre>
+
+      <p><strong>实例：</strong>「表达量 &gt; 100 的基因」：<code>awk '$2 &gt; 100 {print $1, $2}' counts.tsv</code> 只输出第二列数值大于 100 的行。「样本总 read 数」：<code>awk '{sum += $2} END {print sum}' counts.tsv</code> 把第二列全加起来。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>数值比较要确保字段是数字</strong>：如果字段是 <code>NA</code> 或带单位（如 <code>100bp</code>），<code>$2 &gt; 100</code> 会按字符串或按 0 处理，结果诡异。</li>
+          <li><strong>字符串比较用 <code>==</code> 和引号</strong>：<code>$3 == "chr1"</code> 要带引号；<code>$3 = chr1</code> 是赋值不是比较。</li>
+          <li><strong><code>+=</code> 未初始化时默认 0</strong>：<code>sum += $2</code> 第一次 sum 是空，awk 自动当 0，好用；但 <code>END {print sum/n}</code> 若 n 为 0 会除零。</li>
+          <li><strong>模式里的 <code>&gt;</code> 在 shell 单引号内才安全</strong>：单引号保护下 awk 才拿到 <code>&gt;</code>，否则被 shell 当重定向。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">进阶提示（可跳过）</div>
+        <p>awk 还支持 <code>if/else</code>、数组、<code>printf</code> 格式化、内置函数（length/substr/tolower）。日常生信 90% 用「模式过滤 + BEGIN/END 求和」就够，剩下的用到再查。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>awk 是「列处理」的终点，Lesson 12 的 sed 补上「行内替换/删除」。两者合起来覆盖绝大多数文本整形需求。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <div class="card">
+      <p>Follow along. 不需要 sudo，建议在 tmux 里做。</p>
+      <pre><code>tmux new -s awklab                       <span class="c"># tmux 习惯</span>
+mkdir -p awklab && cd awklab
+
+<span class="c"># 造一个基因表达表（Tab 分隔）</span>
+printf 'gene\tcount\tstatus\nTP53\t120\tup\nBRCA1\t55\tdown\nEGFR\t200\tup\nKRAS\t0\tdown\n' &gt; counts.tsv
+cat counts.tsv
+
+awk '{print $1}' counts.tsv              <span class="c"># 第 1 列</span>
+awk '{print $1, $2}' counts.tsv          <span class="c"># 第 1、2 列</span>
+awk -F '\t' '{print $2}' counts.tsv      <span class="c"># 显式 Tab 分隔，取第 2 列</span>
+awk '{print NR, $0}' counts.tsv          <span class="c"># 加行号</span>
+awk '{print NF}' counts.tsv              <span class="c"># 每行字段数（都是 3）</span>
+awk '{print $NF}' counts.tsv             <span class="c"># 最后一列</span>
+awk '$2 &gt; 100 {print $1, $2}' counts.tsv  <span class="c"># 过滤 count &gt; 100</span>
+awk '{sum += $2} END {print sum}' counts.tsv    <span class="c"># 求和 = 375</span>
+awk '{sum += $2; n++} END {print sum/n}' counts.tsv   <span class="c"># 平均 = 93.75</span>
+awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' counts.tsv  <span class="c"># 加表头</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 实战实验</h2>
+    <p class="muted">15 题，分三级。不需要 sudo。答案在最后。文件名用真实测序/生信风格。</p>
+
+    <h3>Level 1 · Foundation（4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">Print the first column of <code>counts.tsv</code>.</div>
+      <div class="field"><b>Hint</b>：<code>awk '{print $1}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：只输出基因名那一列。</div>
+      <div class="field"><b>Expected Result</b>：$1 取第一列。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">Print columns 1 and 3 (gene + status).</div>
+      <div class="field"><b>Hint</b>：<code>awk '{print $1, $3}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：只显示两列。</div>
+      <div class="field"><b>Expected Result</b>：多列打印。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">Extract column 2 using explicit Tab delimiter.</div>
+      <div class="field"><b>Hint</b>：<code>awk -F '\t' '{print $2}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：输出 count 那一列。</div>
+      <div class="field"><b>Expected Result</b>：-F 指定分隔符。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">Print each line with its line number (NR).</div>
+      <div class="field"><b>Hint</b>：<code>awk '{print NR, $0}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：每行前面有递增的数字。</div>
+      <div class="field"><b>Expected Result</b>：NR 行号。</div></div>
+
+    <h3>Level 2 · Integration（6 题，组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">Combine condition + fields: print genes with count &gt; 100.</div>
+      <div class="field"><b>Hint</b>：<code>awk '$2 &gt; 100 {print $1, $2}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：只出现 TP53 和 EGFR。</div>
+      <div class="field"><b>Expected Result</b>：模式过滤。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">Combine multiple conditions: gene count &gt; 50 AND status == "up".</div>
+      <div class="field"><b>Hint</b>：<code>awk '$2 &gt; 50 &amp;&amp; $3 == "up" {print $1}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：只输出 TP53、EGFR。</div>
+      <div class="field"><b>Expected Result</b>：&amp;&amp; 复合条件。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">Combine BEGIN + print: add a header line before output.</div>
+      <div class="field"><b>Hint</b>：<code>awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：第一行是表头。</div>
+      <div class="field"><b>Expected Result</b>：BEGIN 加表头。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">Combine sum + END: total of column 2.</div>
+      <div class="field"><b>Hint</b>：<code>awk '{sum += $2} END {print sum}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：输出 375。</div>
+      <div class="field"><b>Expected Result</b>：累加求和。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">Combine sum + count + END: average of column 2.</div>
+      <div class="field"><b>Hint</b>：<code>awk '{sum += $2; n++} END {print sum/n}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：输出 93.75。</div>
+      <div class="field"><b>Expected Result</b>：求平均。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">Combine awk + sort + head: print genes with count &gt; 0, sorted descending, top 1.</div>
+      <div class="field"><b>Hint</b>：<code>awk '$2 &gt; 0 {print $1, $2}' counts.tsv | sort -k2 -nr | head -n 1</code>。</div>
+      <div class="field"><b>Verification</b>：输出 EGFR 200。</div>
+      <div class="field"><b>Expected Result</b>：awk 进管道。</div></div>
+
+    <h3>Level 3 · Engineering（5 题：制造问题 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先 <code>awk '{print $2}' counts.tsv</code> 发现和 <code>-F '\t'</code> 结果一样（本表无空列），再理解「默认空白 vs Tab」什么时候会出差异。</div>
+      <div class="field"><b>Hint</b>：有连续空格/空列时，默认空白会合并，Tab 不会。</div>
+      <div class="field"><b>Verification</b>：你能说清默认分隔符 vs -F '\t' 的区别。</div>
+      <div class="field"><b>Expected Result</b>：理解分隔符陷阱。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：统计一个表达矩阵的「总 read 数」（某列求和），一条 awk 完成。</div>
+      <div class="field"><b>Hint</b>：<code>awk '{sum += $2} END {print sum}' counts.tsv</code>。</div>
+      <div class="field"><b>Verification</b>：直接出一个总和数字。</div>
+      <div class="field"><b>Expected Result</b>：可复用求和命令。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「提取表达量 &gt; 阈值 N 的基因」命令，带注释，参数化阈值，三个月后同事能改 N 就用。</div>
+      <div class="field"><b>Hint</b>：<code>awk -v th=100 '$2 &gt; th {print $1}' counts.tsv</code>，注释写清 th 在哪改。</div>
+      <div class="field"><b>Verification</b>：命令可读、有注释、阈值好改。</div>
+      <div class="field"><b>Expected Result</b>：可交接的过滤命令。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>排查</strong>：<code>awk '$2 &gt; 100'</code> 结果里混进了一个 NA 或带单位的行，排查「数值比较为什么不准」。</div>
+      <div class="field"><b>Hint</b>：字段非纯数字时 awk 按字符串/0 处理，结果诡异。</div>
+      <div class="field"><b>Verification</b>：你能说清数字字段必须先干净。</div>
+      <div class="field"><b>Expected Result</b>：理解数值比较前提。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 分屏里完成「表达表体检」——左屏跑 awk 过滤/求和/求平均，右屏 cat 看原文核对，最后把结果 &gt; 存进 summary，截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏 + awk + 重定向。</div>
+      <div class="field"><b>Verification</b>：截图体现分屏 + awk 计算 + 存盘。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>awk {print $1} file</code> 报错或结果不对</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：没加单引号，awk 程序被 shell 拆开。</div>
+        <div class="think">💭 <b>Think</b>：<code>{}</code> 和 <code>$1</code> 会被 shell 抢吗？</div>
+        <div class="step"><b>Answer</b>：awk 程序必须单引号：<code>awk '{print $1}' file</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：不加引号，shell 会把 <code>$1</code> 换成自己的参数、把 <code>{}</code> 当特殊字符，awk 拿到的是残缺程序。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>awk '$2 &gt; 100' counts.tsv</code> 结果里混进 NA / 带单位的行</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：数值比较把非数字也放行了。</div>
+        <div class="think">💭 <b>Think</b>：字段真的是数字吗？</div>
+        <div class="step"><b>Answer</b>：awk 对 <code>NA</code> 等非数字按字符串或 0 比较，结果诡异。先确认字段干净，或加 <code>$2+0 == $2</code> 判断是数字。</div>
+        <div class="explain">🧠 <b>Explanation</b>：数值比较的前提是字段可解析为数字，脏数据会破坏过滤。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>awk '$3 = "chr1"' sample.vcf</code> 打印了所有行</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想过滤 chr1，结果全输出了。</div>
+        <div class="think">💭 <b>Think</b>：用了 <code>=</code> 还是 <code>==</code>？</div>
+        <div class="step"><b>Answer</b>：<code>=</code> 是赋值，<code>==</code> 才是比较。改成 <code>awk '$3 == "chr1"' sample.vcf</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：<code>$3 = "chr1"</code> 给 $3 赋了值且恒为真，所以每行都打印。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>awk '{print $1, $2}'</code> 输出的两列之间是空格，但你想要 Tab</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：print 用逗号，输出分隔是空格。</div>
+        <div class="think">💭 <b>Think</b>：怎么改输出分隔符？</div>
+        <div class="step"><b>Answer</b>：用 <code>-v OFS='\t'</code>，或显式 <code>print $1 "\t" $2</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：print 里逗号连接的字段默认用 OFS（空格）分开，改 OFS 或手工插分隔符。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>awk '{print NR}' a.txt b.txt</code> 的行号跨文件一直涨</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：第二个文件的行号不是从 1 开始。</div>
+        <div class="think">💭 <b>Think</b>：NR 会跨文件重置吗？</div>
+        <div class="step"><b>Answer</b>：NR 是全局累计，跨文件不重置。想每个文件单独数用 FNR（每个文件的当前行号）。</div>
+        <div class="explain">🧠 <b>Explanation</b>：NR 是「到目前为止读过的总行数」，FNR 才是「当前文件的行号」。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景</h2>
+    <p class="muted">先写自己的方案，再展开看答案。每个场景想「三个月后的人能否看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>一个表达矩阵（基因、count、状态三列），要找出「count &gt; 100 且状态为 up」的基因名。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>awk '$2 &gt; 100 &amp;&amp; $3 == "up" {print $1}' counts.tsv</code>——模式里用 <code>&amp;&amp;</code> 组合数值和字符串条件。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>一个样本有几千行 read 计数，要算「总 read 数」和「平均 read 数」写进报告。</p>
+      <details><summary>参考方案</summary><div class="ans"><p>求和 <code>awk '{s+=$2} END {print s}'</code>；平均 <code>awk '{s+=$2; n++} END {print s/n}'</code>。用 BEGIN 打印标签、END 打印结果。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>一个 VCF 表有很多列，你只要 chr 和 pos 两列，并加表头 <code>chr\tpos</code>。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>awk 'BEGIN {print "chr\tpos"} {print $1 "\t" $2}' sample.vcf</code>——BEGIN 加表头，body 抽两列。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>你拿到一个每行列数不固定的表，要抓「最后一列」（可能是 status、可能是别的）。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>awk '{print $NF}' file</code>——$NF 永远指向最后一列，不用管有几列。</p></div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>对一个基因表达矩阵做「差异分析预筛选」，全程 awk 计算，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建 <code>awk_battle/</code>，造一个 <code>counts.tsv</code>（gene / count / status 三列，至少 6 个基因，含一个 count=0 和一个 NA）。</li>
+        <li>用 awk 过滤出 count &gt; 50 的基因（先处理掉 NA 的坑）。</li>
+        <li>用 awk 算出所有基因的 count 总和和平均值。</li>
+        <li>用 BEGIN 给结果加表头，用 END 打印总和。</li>
+        <li>把结果 <code>&gt;</code> 存进 <code>results/summary.txt</code>，错误 <code>2&gt;/dev/null</code> 静音（Lesson 10）。</li>
+        <li>全程 tmux 分屏（左屏 awk 计算、右屏 cat 原文核对），截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你的 <code>counts.tsv</code> 里混了一个 <code>NA</code>。当你写 <code>awk '$2 &gt; 50 {print $1}' counts.tsv</code> 时，NA 那行被当数字 0 或字符串诡异地放行/排除。你要自己发现「数值字段必须干净」，先用 <code>awk '$2+0 == $2'</code> 过滤掉 NA，再做 <code>$2 &gt; 50</code> 过滤，截图「脏数据混入 → 清洗后正确」。</p>
+      </div>
+      <p><strong>验收清单：</strong>counts.tsv 造好 ✅ 过滤 &gt;50 ✅ 求和/平均 ✅ BEGIN 表头 + END 总结 ✅ 结果存盘 ✅ 埋坑（NA）已清洗 ✅ 截图 + 命令进 <code>github/lesson11/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <tr><th>Time</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会用 awk 打印字段（$1/$2/$0），说清 -F 和单引号为什么必需</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（条件过滤 / BEGIN+END / 求和平均 / 进管道）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查单引号丢失 / == 写成 = / 数值脏数据三类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含 NA 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 答案</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>awk '{print $1}' counts.tsv</code>。</p>
+        <p><b>Lab 2：</b><code>awk '{print $1, $3}' counts.tsv</code>。</p>
+        <p><b>Lab 3：</b><code>awk -F '\t' '{print $2}' counts.tsv</code>。</p>
+        <p><b>Lab 4：</b><code>awk '{print NR, $0}' counts.tsv</code>。</p>
+        <p><b>Lab 5：</b><code>awk '$2 &gt; 100 {print $1, $2}' counts.tsv</code>。</p>
+        <p><b>Lab 6：</b><code>awk '$2 &gt; 50 &amp;&amp; $3 == "up" {print $1}' counts.tsv</code>。</p>
+        <p><b>Lab 7：</b><code>awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' counts.tsv</code>。</p>
+        <p><b>Lab 8：</b><code>awk '{sum += $2} END {print sum}' counts.tsv</code>（375）。</p>
+        <p><b>Lab 9：</b><code>awk '{sum += $2; n++} END {print sum/n}' counts.tsv</code>（93.75）。</p>
+        <p><b>Lab 10：</b><code>awk '$2 &gt; 0 {print $1, $2}' counts.tsv | sort -k2 -nr | head -n 1</code>。</p>
+        <p><b>Lab 11：</b>默认空白 vs -F '\t'，空列/连续空格时差异显现。</p>
+        <p><b>Lab 12：</b><code>awk '{sum += $2} END {print sum}' counts.tsv</code>。</p>
+        <p><b>Lab 13：</b><code>awk -v th=100 '$2 &gt; th {print $1}' counts.tsv</code>。</p>
+        <p><b>Lab 14：</b>字段非纯数字时按字符串/0 比较，先清洗。</p>
+        <p><b>Lab 15：</b>tmux 分屏 + awk 计算 + 重定向存盘。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 卡组</h2>
+    <p class="muted">完整卡组在 <code>github/anki/lesson11-awk.tsv</code>（4 列：Type / Front / Back / Tags，按新标准）。这里只展示代表性示例。</p>
+    <h3>示例（各类型取 1 张）</h3>
+    <table>
+      <tr><th>Type</th><th>Front</th><th>Back</th></tr>
+      <tr><td>Command</td><td><code>awk '{print $NF}'</code> 做什么？</td><td>打印每行的最后一列（不管有几列）</td></tr>
+      <tr><td>Construction</td><td>提取 counts.tsv 里 count &gt; 100 的基因名，怎么写？</td><td><code>awk '$2 &gt; 100 {print $1}' counts.tsv</code></td></tr>
+      <tr><td>Debug</td><td><code>awk '$3 = "chr1"'</code> 打印了所有行，为什么？</td><td><code>=</code> 是赋值，应改 <code>==</code></td></tr>
+      <tr><td>Decomposition</td><td><code>awk '{s+=$2; n++} END {print s/n}'</code> 每段做什么？</td><td>累加、计数、结束后求平均</td></tr>
+      <tr><td>Bioinformatics</td><td>算表达矩阵第二列总和，怎么写？</td><td><code>awk '{s+=$2} END {print s}' counts.tsv</code></td></tr>
+      <tr><td>EdgeCase</td><td>NR 和 FNR 区别？</td><td>NR 全局累计，FNR 每个文件单独数</td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> Quick Quiz 小测</h2>
+    <div class="quiz" id="q1">
+      <p class="q">Which variable is the whole current line?（整行是哪个变量？）</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">$1</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">$0</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">$NF</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">Which runs ONCE before reading input?（读输入前执行一次的是？）</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">END</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">BEGIN</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">NR</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">How to set field separator to comma?（分隔符设成逗号？）</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">-F \t</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">-F ','</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">-v OFS=','</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">$NF is what?（$NF 是什么？）</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">field count 字段数</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">last field 最后一列</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">line number 行号</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub Homework 作业</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson11/</code>，README 记录费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 11: awk"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ Correct!' : '❌ Try again — see the Knowledge section.';
+  }
+</script>
+</body>
+</html>

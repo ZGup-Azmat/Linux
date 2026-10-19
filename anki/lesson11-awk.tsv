@@ -1,0 +1,101 @@
+Concept	awk 的核心执行模型是什么？	逐行读入 → 按分隔符拆成字段 → 对每行执行「模式 { 动作}」；模式满足才执行动作，模式省略则每行都执行。	Linux::Awk::Concept Lesson11
+Concept	awk 里 $0、$1、$2 分别是什么？	$0 是整行，$1 是第一列，$2 是第二列，依此类推；$NF 是最后一列。	Linux::Awk::Concept Lesson11
+Concept	awk 为什么必须用单引号把程序包起来？	防止 shell 抢先把 $1、$2 替换成自己的参数、把 {} 当特殊字符。单引号让整段原样传给 awk。	Linux::Awk::Concept Lesson11
+Concept	awk 默认的分隔符是什么？和 -F '\t' 有什么不同？	默认是「连续空白」（空格/Tab 都算且合并）；-F '\t' 只按 Tab 切，空字段不会丢失。列对齐的数据应显式 -F '\t'。	Linux::Awk::Concept Lesson11
+Concept	BEGIN 和 END 块分别在什么时候执行？	BEGIN 在读取任何输入前执行一次（用于加表头/初始化），END 在读完所有输入后执行一次（用于打印总和/平均）。	Linux::Awk::Concept Lesson11
+Concept	awk 里 NR 和 FNR 有什么区别？	NR 是「到目前为止读过的总行数」，跨文件不重置；FNR 是「当前文件内的行号」，每个文件从 1 重新数。	Linux::Awk::Concept Lesson11
+Concept	awk 里模式（pattern）和动作（action）各是什么？	模式是 {} 前面的过滤条件（如 $2 > 100），满足才执行；动作是 {} 里面的操作（如 print $1）。	Linux::Awk::Concept Lesson11
+Concept	为什么 awk 常被称为「grep 的进阶」？	grep 只能整行匹配、不能按列拆分或做算术；awk 能拆列、按列过滤、求和求平均、重排输出，是列级处理工具。	Linux::Awk::Concept Lesson11
+Command	awk '{print $1}' file 做什么？	打印每行的第一列。	Linux::Awk::Command Lesson11
+Command	awk '{print $1, $3}' file 做什么？	打印第 1 和第 3 列，逗号用默认 OFS（空格）连接。	Linux::Awk::Command Lesson11
+Command	awk -F '\t' '{print $2}' file 做什么？	用 Tab 作分隔符，打印第二列。	Linux::Awk::Command Lesson11
+Command	awk '{print $0}' file 做什么？	打印整行（等价于原样输出每行）。	Linux::Awk::Command Lesson11
+Command	awk '{print NR, $0}' file 做什么？	给每行加行号后打印。	Linux::Awk::Command Lesson11
+Command	awk '{print NF}' file 做什么？	打印每行的字段个数。	Linux::Awk::Command Lesson11
+Command	awk '{print $NF}' file 做什么？	打印每行的最后一列，不管该行有几列。	Linux::Awk::Command Lesson11
+Command	awk -v OFS='\t' '{print $1, $2}' file 做什么？	用 Tab 作为输出分隔符打印前两列。	Linux::Awk::Command Lesson11
+Command	awk '$2 > 100 {print $1}' file 做什么？	只打印第二列数值大于 100 的行的第一列。	Linux::Awk::Command Lesson11
+Command	awk '{sum += $2} END {print sum}' file 做什么？	累加第二列的所有值，读完打印总和。	Linux::Awk::Command Lesson11
+Command	awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' file 做什么？	先打印一行表头 gene/count，再打印每行的前两列（Tab 分隔）。	Linux::Awk::Command Lesson11
+Command	awk -v th=100 '$2 > th {print $1}' file 做什么？	用变量 th 传阈值，打印第二列大于该阈值的行的第一列。	Linux::Awk::Command Lesson11
+Recall	awk 里想取「最后一列」，但每行列数不固定，该用哪个变量？	$NF——它永远指向最后一列，不用管具体有几列。	Linux::Awk::Recall Lesson11
+Recall	awk 里「字段个数」和「最后一列的值」分别用什么表示？	字段个数是 NF，最后一列的值是 $NF。	Linux::Awk::Recall Lesson11
+Recall	awk 里 print 用逗号连接字段，默认用什么分隔？想改成 Tab 怎么办？	默认用空格；改成 Tab 用 -v OFS='\t' 或手动 print $1 "\t" $2。	Linux::Awk::Recall Lesson11
+Recall	awk 里怎么表示「字符串相等比较」和「字符串赋值」？	相等比较用 ==（如 $3 == "chr1"），赋值用 =（会改变变量且恒真）。	Linux::Awk::Recall Lesson11
+Recall	awk 里做求和和求平均的完整模板分别是什么？	求和 {s+=$2} END{print s}；平均 {s+=$2; n++} END{print s/n}。	Linux::Awk::Recall Lesson11
+Recall	awk 程序里想给输出加一行表头，放在哪个块？	BEGIN 块：awk 'BEGIN{print "表头"} {…}'。	Linux::Awk::Recall Lesson11
+Recall	awk 处理多个文件时，想让行号在每个文件内从 1 重新开始，用哪个变量？	FNR（每个文件独立的行号），不是 NR。	Linux::Awk::Recall Lesson11
+Recall	awk 里 -F 和 -v OFS 分别控制什么？	-F 控制「输入」分隔符（怎么拆列），-v OFS 控制「输出」分隔符（print 逗号用什么连）。	Linux::Awk::Recall Lesson11
+Construction	提取 counts.tsv 的第一列（基因名），怎么写？	awk '{print $1}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	提取 counts.tsv 的第 1 和第 3 列（基因 + 状态），怎么写？	awk '{print $1, $3}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	用 Tab 分隔提取 counts.tsv 的第二列（count），怎么写？	awk -F '\t' '{print $2}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	给 counts.tsv 每行加行号，怎么写？	awk '{print NR, $0}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	打印 counts.tsv 每行的最后一列，怎么写？	awk '{print $NF}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	找出 counts.tsv 里 count（第 2 列）大于 100 的基因名，怎么写？	awk '$2 > 100 {print $1}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	找出 counts.tsv 里 count 大于 50 且 status 为 up 的基因，怎么写？	awk '$2 > 50 && $3 == "up" {print $1}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	计算 counts.tsv 第二列的总和，怎么写？	awk '{sum += $2} END {print sum}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	计算 counts.tsv 第二列的平均值，怎么写？	awk '{sum += $2; n++} END {print sum/n}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	给 counts.tsv 输出加一行表头 gene/count，再打印前两列，怎么写？	awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	提取表达量大于阈值 100 的基因，阈值要容易改（参数化），怎么写？	awk -v th=100 '$2 > th {print $1}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	输出 counts.tsv 前两列，要求两列之间用 Tab 分隔，怎么写？	awk -v OFS='\t' '{print $1, $2}' counts.tsv	Linux::Awk::Construction Lesson11
+Construction	统计一个 VCF 文件里 chr1 的记录数（第 1 列是 chr），怎么写？	awk '$1 == "chr1" {n++} END {print n}' sample.vcf	Linux::Awk::Construction Lesson11
+Construction	从 /etc/passwd（冒号分隔）里提取所有用户名（第 1 列），怎么写？	awk -F ':' '{print $1}' /etc/passwd	Linux::Awk::Construction Lesson11
+Construction	找出 counts.tsv 里 count 大于 0 的行，按 count 降序排，取 top 1，整条命令怎么写？	awk '$2 > 0 {print $1, $2}' counts.tsv | sort -k2 -nr | head -n 1	Linux::Awk::Construction Lesson11
+Construction	打印 counts.tsv 里 count 字段不是纯数字（如 NA）的行，怎么写？	awk '$2+0 != $2 {print $0}' counts.tsv	Linux::Awk::Construction Lesson11
+Decomposition	awk '{sum += $2; n++} END {print sum/n}' 每一部分分别做什么？	sum += $2 累加第二列；n++ 每行计数；END 读完后执行；print sum/n 输出平均值。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk '$2 > 50 && $3 == "up" {print $1}' 里，&& 和 == 各是什么意思？	&& 表示「且」（两个条件都满足），== 表示字符串相等比较（status 等于 "up"）。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk -F '\t' '{print $1 "\t" $2}' 里，-F '\t' 和 print 里的 "\t" 分别管什么？	-F '\t' 管「输入怎么拆列」，print 里的 "\t" 管「输出时两列之间用什么连」。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk 'BEGIN {print "gene\tcount"} {print $1 "\t" $2}' 里，BEGIN 块的作用是什么？	在读任何数据行之前先打印一次表头，让输出第一行是 gene/count 列名。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk '$2 > 0 {print $1, $2}' counts.tsv | sort -k2 -nr | head -n 1 里，sort -k2 -nr 做什么？	按第 2 列（count）数值降序排序，让最大的排最前面，供 head 取 top 1。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk '{print NF}' 输出 3、3、3，说明什么？	说明每行都被拆成了 3 个字段（比如 gene/count/status 三列）。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk -v th=100 '$2 > th {print $1}' 里，-v th=100 有什么好处？	把阈值作为变量 th 传入，改阈值只改一处，命令可复用，不用改 awk 程序本身。	Linux::Awk::Decomposition Lesson11
+Decomposition	awk '$1 == "chr1" {n++} END {print n}' sample.vcf 里，n++ 和 END 分别做什么？	n++ 每次匹配 chr1 就计数加 1；END 在所有行处理完后打印最终计数。	Linux::Awk::Decomposition Lesson11
+Debug	你运行 awk {print $1} file，报错或结果不对。问题在哪？	awk 程序没加单引号，$1 被 shell 替换、{} 被 shell 解释。改成 awk '{print $1}' file。	Linux::Awk::Debug Lesson11
+Debug	你运行 awk '$3 = "chr1"' sample.vcf，结果打印了所有行。为什么？	= 是赋值不是比较，$3 = "chr1" 恒为真所以每行都打印。改成 $3 == "chr1"。	Linux::Awk::Debug Lesson11
+Debug	你运行 awk '$2 > 100' counts.tsv，结果混进了 NA 或带单位的行。为什么？	数值比较要求字段可解析为数字；NA 等非数字会被当字符串或 0 处理，导致结果诡异。先清洗或加 $2+0 == $2 判断。	Linux::Awk::Debug Lesson11
+Debug	你运行 awk '{print $1, $2}' 想得到 Tab 分隔，结果却是空格。怎么修？	print 逗号默认用 OFS（空格）连接。加 -v OFS='\t'，或 print $1 "\t" $2。	Linux::Awk::Debug Lesson11
+Debug	你运行 awk '{print NR}' a.txt b.txt，第二个文件的行号不是从 1 开始。为什么？	NR 是全局累计行号，跨文件不重置。想每个文件单独数用 FNR。	Linux::Awk::Debug Lesson11
+Debug	你用 awk -F '\t' 提取列，结果和不用 -F 时一样，就以为 -F 没区别。什么情况下会真的不一样？	当数据有连续空格、或 Tab 分隔的列里有空字段时：默认空白会合并连续分隔符、吃掉空列，-F '\t' 则严格按 Tab 切、保留空字段。	Linux::Awk::Debug Lesson11
+Debug	你运行 awk '{print $NF}' 想打印「字段数」，结果打印的是内容。错在哪？	$NF 是最后一列的「值」，NF（不带 $）才是字段个数。要数字用 print NF。	Linux::Awk::Debug Lesson11
+Debug	你的 awk '{sum += $2; n++} END {print sum/n}' 在空文件上运行报除零或输出诡异。为什么？	空文件 n 一直是 0，END 里 sum/n 除零。实际使用时先确认有数据，或 END 里判断 n>0 再除。	Linux::Awk::Debug Lesson11
+Debug	你运行 awk '$2 > 100' file，报错 syntax error 或行为异常，检查发现 > 被 shell 吃了。怎么避免？	> 是 shell 重定向符，必须保证它在 awk 程序的单引号内：awk '$2 > 100 {print}' file，整段单引号保护。	Linux::Awk::Debug Lesson11
+Debug	你 awk '{print $1, $2}' 输出的两列粘在了一起没空格。可能的原因？	写成了 print $1$2（无逗号）——无逗号就是直接拼接。要分隔加逗号或手动 "\t"。	Linux::Awk::Debug Lesson11
+Compare	awk 里 = 和 == 的区别？	= 是赋值（把右边赋给左边，条件恒真），== 是相等比较（判断两边是否相等）。	Linux::Awk::Compare Lesson11
+Compare	NR 和 FNR 的区别？	NR 全局累计行号（跨文件连续），FNR 当前文件内行号（每文件重置）。	Linux::Awk::Compare Lesson11
+Compare	NF 和 $NF 的区别？	NF 是字段个数（数字），$NF 是最后一列的值（内容）。	Linux::Awk::Compare Lesson11
+Compare	-F 和 -v OFS 的区别？	-F 指定输入分隔符（拆列），-v OFS 指定输出分隔符（print 逗号连接）。	Linux::Awk::Compare Lesson11
+Compare	awk 和 grep 的分工？	grep 整行匹配、找内容；awk 拆列、按列过滤、做算术计算。	Linux::Awk::Compare Lesson11
+Compare	print $1, $2（有逗号）和 print $1 $2（无逗号）的区别？	有逗号用 OFS（默认空格）分隔；无逗号直接把两字段拼接、无分隔。	Linux::Awk::Compare Lesson11
+Scenario	服务器上有一个基因表达表 counts.tsv（gene/count/status），要找 count > 100 且 status 为 up 的基因名，怎么做？	awk '$2 > 100 && $3 == "up" {print $1}' counts.tsv	Linux::Awk::Scenario Lesson11
+Scenario	一个样本有几千行 read 计数，要算总 read 数和平均 read 数写进报告，怎么组织？	求和 awk '{s+=$2} END{print s}'；平均 awk '{s+=$2; n++} END{print s/n}'。用 BEGIN 打标签、END 打结果。	Linux::Awk::Scenario Lesson11
+Scenario	一个 VCF 很多列，你只要 chr 和 pos 两列并加表头 chr/pos，怎么做？	awk 'BEGIN {print "chr\tpos"} {print $1 "\t" $2}' sample.vcf	Linux::Awk::Scenario Lesson11
+Scenario	一个每行列数不固定的表，要抓最后一列（可能是 status），怎么做？	awk '{print $NF}' file——$NF 永远指向最后一列。	Linux::Awk::Scenario Lesson11
+Scenario	要提取 /etc/passwd（冒号分隔）里的所有用户名，怎么做？	awk -F ':' '{print $1}' /etc/passwd	Linux::Awk::Scenario Lesson11
+Scenario	要找出表达量最高的基因（按第二列降序取 top 1），怎么做？	awk '{print $1, $2}' counts.tsv | sort -k2 -nr | head -n 1	Linux::Awk::Scenario Lesson11
+Scenario	你想把「提取 count>阈值的基因」这条命令交给同事复用，阈值要好改，怎么做？	awk -v th=100 '$2 > th {print $1}' counts.tsv，改 th 值即可，注释写清。	Linux::Awk::Scenario Lesson11
+Scenario	要快速看一个 TSV 每行有多少列（检查有没有列数不齐的行），怎么做？	awk '{print NF}' file | sort | uniq -c——看每行字段数的分布。	Linux::Awk::Scenario Lesson11
+Scenario	要统计 VCF 里 chr1 的记录数（第 1 列是染色体），怎么做？	awk '$1 == "chr1" {n++} END {print n}' sample.vcf	Linux::Awk::Scenario Lesson11
+Bioinformatics	统计一个基因表达矩阵 counts.tsv 第二列（count）的总 read 数，怎么写？	awk '{s+=$2} END {print s}' counts.tsv	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	从 VCF 里提取第 1、2 列（chr 和 pos）并加表头，怎么写？	awk 'BEGIN {print "chr\tpos"} {print $1 "\t" $2}' sample.vcf	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	统计 VCF 里 chr1 上的变异记录数，怎么写？	awk '$1 == "chr1" {n++} END {print n}' sample.vcf	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	找出表达矩阵里 count > 100 且标记为 up（上调）的基因，怎么写？	awk '$2 > 100 && $3 == "up" {print $1}' counts.tsv	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	计算一个样本所有基因 count 的平均表达量，怎么写？	awk '{s+=$2; n++} END {print s/n}' counts.tsv	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	从 GFF/GTF（Tab 分隔）里提取第 1、4、5 列（seqid、start、end），怎么写？	awk -F '\t' '{print $1, $4, $5}' annotation.gff	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	找出表达矩阵里 count 为 0（不表达）的基因，怎么写？	awk '$2 == 0 {print $1}' counts.tsv	Linux::Awk::Bioinformatics Lesson11
+Bioinformatics	把表达矩阵按 count 降序排，取 top 10 高表达基因，整条命令怎么写？	awk '{print $1, $2}' counts.tsv | sort -k2 -nr | head -n 10	Linux::Awk::Bioinformatics Lesson11
+Application	写脚本时，想给一个 TSV 的输出统一加表头再导出，用 awk 怎么固定格式？	awk 'BEGIN {print "header1\theader2"} {print $1 "\t" $2}' input.tsv > output.tsv	Linux::Awk::Application Lesson11
+Application	想把 awk 计算的结果存进报告文件、错误静音，怎么写？	awk '{s+=$2} END{print s}' counts.tsv > report.txt 2>/dev/null	Linux::Awk::Application Lesson11
+Transfer	原任务提取 count > 100 的基因；现在阈值改成 500，命令怎么改？	把 -v th=100 改成 -v th=500，或 $2 > 100 改成 $2 > 500。	Linux::Awk::Transfer Lesson11
+Transfer	原任务对未压缩的 counts.tsv 用 awk；现在文件是 counts.tsv.gz，怎么改？	前面加 zcat 走管道：zcat counts.tsv.gz | awk '{...}'。	Linux::Awk::Transfer Lesson11
+Transfer	原任务输出两列用默认空格；现在要求输出用 Tab（便于存成 TSV），怎么改？	加 -v OFS='\t'，或把 print $1, $2 改成 print $1 "\t" $2。	Linux::Awk::Transfer Lesson11
+EdgeCase	为什么 awk 的脚本必须用单引号，不能双引号？	双引号里 $1、$2 仍会被 shell 展开成 shell 变量，且双引号内的转义会失真；单引号保证原样传给 awk。	Linux::Awk::EdgeCase Lesson11
+EdgeCase	awk '$2 > 100' 遇到第二列是 NA 会发生什么？	NA 是非数字，awk 按字符串或 0 参与比较，结果可能误包含或误排除，过滤失真。	Linux::Awk::EdgeCase Lesson11
+EdgeCase	为什么 -F '\t' 里的 \t 要写在单引号里？	写在单引号里 awk 才把它解释成 Tab；写成 -F "\t" 双引号时，部分 shell 会先把 \t 处理掉。	Linux::Awk::EdgeCase Lesson11
+EdgeCase	awk 处理空文件时 END {print sum/n} 会怎样？	n 为 0 导致除零，可能输出 0 或报错，取决于实现；真实脚本应先判断 n>0。	Linux::Awk::EdgeCase Lesson11
+EdgeCase	print $1, $2 在字段含空格时为什么可能不是你想要的？	因为字段里若有空格说明切分边界不对（分隔符没设对），print 输出会重新插入空格，与原始结构不一致。	Linux::Awk::EdgeCase Lesson11
+Workflow	完整流程：读 counts.tsv，加表头，过滤 count > 100，按 count 降序，取 top 5，存进结果文件，错误静音。组织这条命令。	awk '$2 > 100 {print $1 "\t" $2}' counts.tsv | sort -k2 -nr | head -n 5 > top5.tsv 2>/dev/null（表头可另用 BEGIN 或 echo 补）	Linux::Awk::Workflow Lesson11
+Workflow	完整流程：统计表达矩阵第二列的总和和平均值，分别打印标签，组织一条 awk 命令。	awk 'BEGIN {print "sum\tavg"} {s+=$2; n++} END {print s "\t" s/n}' counts.tsv	Linux::Awk::Workflow Lesson11
+Workflow	完整流程：从 VCF 抽 chr/pos 两列，加表头，统计 chr1 记录数，组织这些步骤。	先 awk 'BEGIN{print "chr\tpos"}{print $1"\t"$2}' sample.vcf > out.tsv；再 awk '$1=="chr1"{n++} END{print n}' sample.vcf	Linux::Awk::Workflow Lesson11
+Workflow	完整流程：检查 TSV 每行列数是否一致，输出列数分布，组织这条命令。	awk '{print NF}' file | sort | uniq -c	Linux::Awk::Workflow Lesson11
+Comprehensive	服务器上有 counts.tsv（gene/count/status）、sample.vcf（chr/pos/…）。请完成：(1) 统计 count 总和；(2) 找 count>100 且 up 的基因；(3) 统计 VCF 的 chr1 记录数；(4) 把结果存 summary.txt、错误静音。组织这些命令。	(1) awk '{s+=$2} END{print s}' counts.tsv >> summary.txt；(2) awk '$2>100 && $3=="up"{print $1}' counts.tsv >> summary.txt；(3) awk '$1=="chr1"{n++} END{print n}' sample.vcf >> summary.txt；(4) 每条加 2>/dev/null。	Linux::Awk::Comprehensive Lesson11
+Comprehensive	做一次「表达表体检」：求总 read 数、平均 read 数、高表达基因数（count>100）、不表达基因数（count==0），并把四项都写进 summary.txt，错误静音。组织这些命令。	awk '{s+=$2;n++;if($2>100)hi++;if($2==0)lo++} END{print "sum",s;print "avg",s/n;print "high",hi;print "low",lo}' counts.tsv > summary.txt 2>/dev/null	Linux::Awk::Comprehensive Lesson11

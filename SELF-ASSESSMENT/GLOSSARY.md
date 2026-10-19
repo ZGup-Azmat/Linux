@@ -449,3 +449,37 @@ The black-hole device file; anything written to it is discarded, used to silence
 **here-string**
 `<<< "string"`：把单个字符串作为 stdin 喂给命令（bash 专属）。
 `<<< "string"`: feeds a single string as stdin (bash-only).
+
+## Lesson 11 · awk
+
+**awk**
+逐行读入、按分隔符拆成字段、执行「模式 { 动作 }」的列级文本处理与计算工具。
+A column-oriented text processor that reads line by line, splits into fields, and runs `pattern { action }`.
+
+**field / 字段**
+awk 把每行按分隔符切成的列，用 `$1`、`$2`… 引用；`$0` 是整行。
+The columns awk splits each line into, referenced as `$1`, `$2`…; `$0` is the whole line.
+
+**-F / FS**
+指定输入分隔符（默认连续空白）。`-F '\t'` 按 Tab 切列。
+Set the input field separator (default whitespace). `-F '\t'` splits on tabs.
+
+**OFS**
+输出分隔符，`print` 中逗号连接字段时使用的字符（默认空格）。
+The output field separator used by `print` when fields are joined with commas (default space).
+
+**NR / FNR**
+NR 是累计读过的总行数（跨文件不重置）；FNR 是当前文件内的行号（每文件重置）。
+NR is the total lines read so far (not reset across files); FNR is the line number within the current file.
+
+**NF / $NF**
+NF 是当前行的字段个数；`$NF` 是最后一列的值。
+NF is the field count of the current line; `$NF` is the value of the last field.
+
+**BEGIN / END**
+awk 的特殊块：BEGIN 读输入前执行一次，END 读完后执行一次，用于表头、求和、平均。
+awk special blocks: BEGIN runs once before input, END runs once after, for headers, totals, averages.
+
+**pattern / 模式**
+`{}` 前面的过滤条件（如 `$2 > 100`），满足才执行动作。
+The filter condition before `{}` (e.g. `$2 > 100`); the action runs only when it matches.
