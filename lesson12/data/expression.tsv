@@ -1,0 +1,8 @@
+gene	count	status
+TP53	120	up
+BRCA1	55	down
+EGFR	200	up
+KRAS	0	down
+TP53	120	up
+NA	30	unknown
+MYC	180	up

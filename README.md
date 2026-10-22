@@ -28,7 +28,7 @@
 
 ## 课程进度
 
-**✅ 已完成 11 课 / 40 课**
+**✅ 已完成 12 课 / 40 课**
 
 ### Part I · Linux Foundations（基础）
 
@@ -51,7 +51,7 @@
 | 09 | Pipe 管道 | ✅ 完成 |
 | 10 | Redirection 重定向（Boss 战） | ✅ 完成 |
 | 11 | awk | ✅ 完成 |
-| 12 | sed | ⏳ 待学 |
+| 12 | sed | ✅ 完成 |
 | 13 | xargs | ⏳ 待学 |
 | 14 | Bash Script 脚本 | ⏳ 待学 |
 | 15 | Cron 定时任务（Boss 战） | ⏳ 待学 |
@@ -134,6 +134,6 @@ Linux/
 ## 作者
 
 - GitHub：[@ZGup-Azmat](https://github.com/ZGup-Azmat)
-- 最后更新：2026-10-13
+- 最后更新：2026-10-22
 
 > 「不是因为看到希望才坚持，而是坚持了才会看到希望。」—— 加油

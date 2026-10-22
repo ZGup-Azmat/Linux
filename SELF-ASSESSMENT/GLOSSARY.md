@@ -483,3 +483,37 @@ awk special blocks: BEGIN runs once before input, END runs once after, for heade
 **pattern / 模式**
 `{}` 前面的过滤条件（如 `$2 > 100`），满足才执行动作。
 The filter condition before `{}` (e.g. `$2 > 100`); the action runs only when it matches.
+
+## Lesson 12 · sed
+
+**sed**
+流编辑器（stream editor）。逐行读入、按「替换/删除/打印」规则处理行内文字，默认不修改原文件。
+The stream editor; reads line by line and applies substitute/delete/print rules, without modifying the file by default.
+
+**s/old/new/（替换）**
+把每行第一个匹配的 old 替换成 new；加 `g` 替换所有，加数字替换第 n 个。
+Replace the first match of old with new per line; add `g` for all, or a number for the nth.
+
+**g flag / 全局标志**
+替换命令的 `g` 标志，让 `s/old/new/` 替换每行所有匹配而非第一个。
+The `g` flag on substitute, making it replace every match per line, not just the first.
+
+**address / 地址**
+sed 命令前定位行的条件：行号、模式（/pattern/）、范围（1,5）等。
+The part before a sed command that targets lines: a line number, a pattern (/pattern/), or a range (1,5).
+
+**d / p（删除 / 打印）**
+`d` 删除整行；`p` 打印行（常配合 `-n` 抑制默认输出）。
+`d` deletes whole lines; `p` prints them (usually with `-n` to suppress default output).
+
+**-n（sed）**
+抑制默认的每行输出，只输出 `p` 命令指定的行。
+Suppress the default per-line output, printing only lines selected by `p`.
+
+**-i / -i.bak（原地修改）**
+`-i` 把结果写回原文件（不可逆）；`-i.bak` 先备份成 `.bak` 再改。
+`-i` writes the result back to the file (irreversible); `-i.bak` keeps a backup first.
+
+**-e（sed 多命令）**
+连接多条 sed 规则，如 `sed -e 's/a/b/' -e 's/c/d/'`（也可用分号 `;`）。
+Chain multiple sed rules, e.g. `sed -e 's/a/b/' -e 's/c/d/'` (or use `;`).

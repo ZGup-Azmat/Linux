@@ -1,0 +1,5 @@
+chr1	simulated	gene	1000	5000	.	+	.	gene_id "TP53";
+chr1	simulated	exon	1000	2000	.	+	.	gene_id "TP53";
+chr2	simulated	gene	3000	8000	.	-	.	gene_id "BRCA1";
+chr2	simulated	exon	3000	5000	.	-	.	gene_id "BRCA1";
+chrX	simulated	gene	10000	15000	.	+	.	gene_id "EGFR";

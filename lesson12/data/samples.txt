@@ -1,0 +1,9 @@
+# sample_id	group	treatment
+Sample_01	no_TCR	untreated
+Sample_02	no_TCR	untreated
+Sample_03	TCR	anti-CD3
+Sample_04	TCR	anti-CD3
+Sample_05	shRNA_control	control
+Sample_06	shRNA_control	control
+Sample_07	shRNA_TLX1	knockdown
+Sample_08	shRNA_TLX1	knockdown

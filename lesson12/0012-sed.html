@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 12 · sed ｜ Edit Lines In-Place</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 30%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 12 · Part II · Shell Engineering</div>
+    <h1>sed</h1>
+    <p class="sub">Edit lines in-place —— 行内替换、删除与批量修改</p>
+    <div class="progress-label"><span>Progress</span><span>12 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★★☆ Advanced</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">批量清洗/规范化文本文件</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 11 awk + Lesson 07 grep 正则</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>awk 能按列「算」，但改不了<strong>行里的文字</strong>。今天主管丢给你一堆要批量改的文本：</p>
+      <ul>
+        <li>📝 一个样本清单，把所有 <code>chr1</code> 前缀去掉，只留数字（<code>chr1</code> → <code>1</code>）。</li>
+        <li>🧹 一个 VCF/GTF 文件，删掉所有 <code>#</code> 开头的注释行。</li>
+        <li>🏷️ 一个基因表，把样本名 <code>Sample_01</code> 统一改成 <code>SRR00001</code>（批量改名）。</li>
+        <li>📄 一个报告，只要第 5 行到第 20 行，其余不要。</li>
+      </ul>
+      <p><code>sed</code>（stream editor 流编辑器）就是干这个的——逐行读入，按「替换 / 删除 / 打印」规则处理每一行，输出改后的文本。它是批量文本清洗的第一利器。</p>
+    </div>
+    <div class="callout info">
+      <div class="tag">Context → Need → Tool</div>
+      <p>要批量替换/删除/提取「行内文字」 → 需要一个流编辑器 → <code>sed</code>（s/old/new/ 替换、地址定位、d/p 删除打印、-i 原地修改）。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 知识（≤25%，约 15–20 分钟）</h2>
+    <p class="muted">3 concepts. Each: 英文定义 + 中文注释 + 心智模型 + 语法 + 实例 + 边界情况 + 工程场景 + 衔接点。</p>
+
+    <!-- 概念 1 -->
+    <h3>Concept 1 · Substitute: s/old/new/ and its flags</h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>sed 's/old/new/'</code> replaces the <em>first</em> match on each line; add <code>g</code> to replace all (<code>s/old/new/g</code>), or a number to replace the nth (<code>s/old/new/2</code>).</p>
+      <p><strong>中文：</strong><code>sed 's/old/new/'</code> 替换每行<strong>第一个</strong>匹配；加 <code>g</code> 替换所有（<code>s/old/new/g</code>），加数字替换第 n 个（<code>s/old/new/2</code>）。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">sed 's/chr//'  vs  sed 's/chr//g'</text>
+          <rect class="f" x="0" y="36" width="300" height="30" rx="6"/><text class="t" x="150" y="56" text-anchor="middle">chr1  chr2</text>
+          <text class="lab" x="310" y="56">原文</text>
+          <rect class="g" x="0" y="72" width="300" height="30" rx="6"/><text class="t" x="150" y="92" text-anchor="middle">1  chr2   ← 只删第一个 chr</text>
+          <text class="lab" x="310" y="92">s/chr//（无 g）</text>
+          <rect class="g" x="0" y="108" width="300" height="30" rx="6"/><text class="t" x="150" y="128" text-anchor="middle">1  2     ← 全部删掉</text>
+          <text class="lab" x="310" y="128">s/chr//g（有 g）</text>
+          <text class="lab" x="0" y="160">默认只替换「每行第一个」；g = global 全部替换；s/x/y/2 替换第二个</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>sed 's/old/new/' file        <span class="c"># 每行第一个 old → new</span>
+sed 's/old/new/g' file       <span class="c"># 每行所有 old → new（g=global）</span>
+sed 's/old/new/2' file       <span class="c"># 每行第二个 old → new</span>
+sed 's|/old/|/new/|' file    <span class="c"># 换定界符 |，避免转义斜杠</span>
+sed 's/chr//g' sample.txt    <span class="c"># 删掉所有 chr（new 为空）</span></code></pre>
+
+      <p><strong>实例：</strong><code>sed 's/chr//g' sample.txt</code> 把「chr1、chr22、chrX」统一变成「1、22、X」，方便后面做数值比较或排序。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong>默认只替换每行第一个</strong>：<code>s/chr//</code> 一行里有两个 chr 只删第一个，要全删加 <code>g</code>。</li>
+          <li><strong>old/new 里含 <code>/</code> 要转义或换定界符</strong>：替换路径 <code>s/\/a\/b/\/x\/y/</code> 难读，用 <code>s|/a/b|/x/y|</code>。</li>
+          <li><strong>sed 默认不修改原文件</strong>：只把结果打到屏幕。想改文件用 <code>-i</code>（概念 3）。</li>
+          <li><strong>替换里 <code>&amp;</code> 是特殊字符</strong>：new 里的 <code>&amp;</code> 表示「匹配到的 old」，要字面 &amp; 得转义 <code>\&amp;</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>「把 500 个样本名里的 <code>_R1</code> 统一去掉」「把 <code>chr</code> 前缀批量删掉」——这类批量改名，sed 一条命令搞定，比手动一个个改快几千倍。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>sed 的 old/new 支持 Lesson 07 学的正则（<code>^</code> <code>$</code> <code>[0-9]</code>）。概念 2 讲怎么「定位到特定行」再操作。</p>
+      </div>
+    </div>
+
+    <!-- 概念 2 -->
+    <h3>Concept 2 · Addressing lines: delete / print / ranges</h3>
+    <div class="card">
+      <p><strong>English:</strong> sed commands can target specific lines with an <em>address</em> — a line number, a pattern, or a range — combined with <code>d</code> (delete) or <code>p</code> (print, usually with <code>-n</code>).</p>
+      <p><strong>中文：</strong>sed 用「地址」定位到特定行——行号、模式、范围——配合 <code>d</code>（删除）或 <code>p</code>（打印，通常加 <code>-n</code>）。</p>
+
+      <div class="diagram">
+        <svg width="620" height="180" viewBox="0 0 620 180" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.g{fill:#34c759}</style>
+          <text class="h" x="0" y="24">地址定位</text>
+          <rect class="f" x="0" y="36" width="300" height="30" rx="6"/><text class="t" x="150" y="56" text-anchor="middle">sed '1,5d'     删除 1-5 行</text>
+          <rect class="f" x="0" y="72" width="300" height="30" rx="6"/><text class="t" x="150" y="92" text-anchor="middle">sed '/^#/d'    删除 # 开头的行</text>
+          <rect class="f" x="0" y="108" width="300" height="30" rx="6"/><text class="t" x="150" y="128" text-anchor="middle">sed -n '5p'    只打印第 5 行</text>
+          <rect class="f" x="0" y="144" width="300" height="30" rx="6"/><text class="t" x="150" y="164" text-anchor="middle">sed -n '/TP53/p'  打印含 TP53 的行</text>
+          <text class="lab" x="320" y="56">地址=行号/模式/范围</text>
+          <text class="lab" x="320" y="92">d=删除，p=打印</text>
+          <text class="lab" x="320" y="128">-n 抑制默认打印，只出 p 的行</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>sed '1,5d' file               <span class="c"># 删除第 1-5 行</span>
+sed '/^#/d' file              <span class="c"># 删除 # 开头的注释行</span>
+sed '5,20!d' file             <span class="c"># 只保留 5-20 行（! 取反）</span>
+sed -n '5p' file              <span class="c"># 只打印第 5 行</span>
+sed -n '/TP53/p' file         <span class="c"># 只打印含 TP53 的行（grep 替代）</span>
+sed '1,5s/old/new/' file      <span class="c"># 只在 1-5 行内替换</span></code></pre>
+
+      <p><strong>实例：</strong><code>sed '/^#/d' sample.vcf</code> 删掉 VCF 文件所有 <code>#</code> 注释头，只留变异记录——这是生信里洗数据的标准动作。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>-n</code> 和 <code>p</code> 必须搭配</strong>：不加 <code>-n</code>，sed 默认打印所有行，<code>p</code> 会让匹配行出现两次。</li>
+          <li><strong><code>!</code> 是取反</strong>：<code>5,20!d</code> 是「除 5-20 行外都删」，即只留 5-20 行。</li>
+          <li><strong>地址和替换可组合</strong>：<code>1,5s/old/new/</code> 只在 1-5 行替换，不是全文。</li>
+          <li><strong><code>d</code> 是删除整行</strong>：想删「行内某个词」用替换 <code>s/word//</code>，不是 <code>d</code>。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>「删注释行」「只取某几行」「按模式抽行」——sed 的地址定位让它既能洗数据，也能当 grep 用，还能精确到行号。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>概念 1 是「改内容」，概念 2 是「选行」。概念 3 讲怎么把改动真正写回文件 + 组合多条规则。</p>
+      </div>
+    </div>
+
+    <!-- 概念 3 -->
+    <h3>Concept 3 · In-place <code>-i</code> + multiple commands + anchors</h3>
+    <div class="card">
+      <p><strong>English:</strong> <code>-i</code> writes the result back into the file (<code>-i.bak</code> keeps a backup); multiple rules combine with <code>-e</code> or <code>;</code>; anchors <code>^</code>/<code>$</code> insert at line start/end.</p>
+      <p><strong>中文：</strong><code>-i</code> 把结果写回文件（<code>-i.bak</code> 留备份）；多条规则用 <code>-e</code> 或 <code>;</code> 组合；锚点 <code>^</code>/<code>$</code> 在行首/行尾插入。</p>
+
+      <div class="diagram">
+        <svg width="620" height="190" viewBox="0 0 620 190" xmlns="http://www.w3.org/2000/svg">
+          <style>.t{font:13px "SF Mono",Consolas,monospace;fill:#fff}.lab{font:12px -apple-system,sans-serif;fill:#6e6e73}.h{font:13px -apple-system,sans-serif;fill:#1d1d1f;font-weight:700}.f{fill:#0071e3}.o{fill:#ff9500}</style>
+          <text class="h" x="0" y="24">-i 原地修改（危险，先备份）</text>
+          <rect class="o" x="0" y="36" width="300" height="30" rx="6"/><text class="t" x="150" y="56" text-anchor="middle">sed -i 's/old/new/g' file</text>
+          <rect class="f" x="0" y="72" width="300" height="30" rx="6"/><text class="t" x="150" y="92" text-anchor="middle">sed -i.bak 's/old/new/g' file</text>
+          <text class="lab" x="310" y="56">直接改文件，无备份</text>
+          <text class="lab" x="310" y="92">留 file.bak 备份再改</text>
+          <text class="h" x="0" y="128">锚点插入：</text>
+          <rect class="f" x="0" y="136" width="300" height="30" rx="6"/><text class="t" x="150" y="156" text-anchor="middle">sed 's/^/&gt; /'  行首加 &gt;</text>
+          <rect class="f" x="0" y="172" width="300" height="30" rx="6"/><text class="t" x="150" y="192" text-anchor="middle">sed 's/$/,/'     行尾加逗号</text>
+        </svg>
+      </div>
+
+      <p><strong>Syntax：</strong></p>
+      <pre><code>sed -i 's/old/new/g' file          <span class="c"># 原地修改（无备份，危险）</span>
+sed -i.bak 's/old/new/g' file       <span class="c"># 先备份成 file.bak 再改</span>
+sed -e 's/a/b/' -e 's/c/d/' file    <span class="c"># 两条替换（-e 连接）</span>
+sed 's/a/b/; s/c/d/' file           <span class="c"># 同上（分号连接）</span>
+sed 's/^/&gt; /' file                  <span class="c"># 每行行首加 "&gt; "</span>
+sed 's/$/,/' file                   <span class="c"># 每行行尾加逗号</span></code></pre>
+
+      <p><strong>实例：</strong>给一个 FASTQ 的 read 名统一加前缀、同时删掉 <code>chr</code>，一条命令两件事：<code>sed -e 's/^/SRR_/' -e 's/chr//g' sample.txt</code>。</p>
+
+      <div class="callout warn"><div class="tag">边界情况 / 常见失败</div>
+        <ul>
+          <li><strong><code>-i</code> 会覆盖原文件且不可逆</strong>：改错了找不回来。习惯性用 <code>-i.bak</code> 留备份。</li>
+          <li><strong><code>-i</code> 是 GNU sed 扩展</strong>：macOS 的 BSD sed 需要 <code>-i ''</code>，行为不同。</li>
+          <li><strong>行首/行尾用 <code>^</code>/<code>$</code> 锚点</strong>：<code>s/^/x/</code> 在开头插，<code>s/$/x/</code> 在结尾插，new 里 <code>&amp;</code> 会被当特殊字符。</li>
+          <li><strong>多条命令顺序执行</strong>：<code>s/a/b/; s/b/c/</code> 先 a→b 再 b→c，顺序影响结果。</li>
+        </ul>
+      </div>
+
+      <div class="callout tip"><div class="tag">工程场景 / 为什么需要它</div>
+        <p>「给 100 个文件批量加表头 / 去前缀 / 统一格式」——<code>-i</code> 原地修改 + 多条规则，是自动化清洗的核心手段。但一定要先备份。</p>
+      </div>
+
+      <div class="callout info"><div class="tag">衔接点</div>
+        <p>sed 是「行处理」，awk 是「列处理」，两者互补。Lesson 13 xargs 会把 sed/awk 接到「批量处理多个文件」上。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <div class="card">
+      <p>Follow along. 不需要 sudo，建议在 tmux 里做。</p>
+      <pre><code>tmux new -s sedlab                      <span class="c"># tmux 习惯</span>
+mkdir -p sedlab && cd sedlab
+
+printf 'chr1\tgeneA\nchr2\tgeneB\nchrX\tgeneC\n' &gt; genes.txt
+cat genes.txt                            <span class="c"># 看原文</span>
+
+sed 's/chr//g' genes.txt                 <span class="c"># 删掉所有 chr</span>
+sed 's/chr//' genes.txt                  <span class="c"># 只删每行第一个（本行一个 chr，无差别）</span>
+
+printf '##header\n#comment\nchr1\t100\tA\nchr2\t50\tB\n' &gt; sample.vcf
+sed '/^#/d' sample.vcf                   <span class="c"># 删 # 开头行</span>
+sed -n '2p' sample.vcf                   <span class="c"># 只打印第 2 行</span>
+sed -n '/chr2/p' sample.vcf              <span class="c"># 只打印含 chr2 的行</span>
+
+sed -i.bak 's/chr//g' genes.txt          <span class="c"># 原地修改 + 备份</span>
+ls                                      <span class="c"># 看到 genes.txt.bak</span>
+cat genes.txt                            <span class="c"># 已改</span>
+
+sed 's/^/&gt; /' genes.txt                  <span class="c"># 每行行首加 &gt;</span>
+sed -e 's/^/&gt; /' -e 's/\t/ /' genes.txt  <span class="c"># 行首加 &gt; + Tab 换空格</span></code></pre>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 实战实验</h2>
+    <p class="muted">15 题，分三级。不需要 sudo。答案在最后。文件名用真实测序/生信风格。</p>
+
+    <h3>Level 1 · Foundation（4 题）</h3>
+    <div class="task"><div class="level l1">Lab 1 · Level 1</div>
+      <div class="goal">Replace the first <code>chr</code> with <code>chromosome</code> in each line of <code>genes.txt</code>.</div>
+      <div class="field"><b>Hint</b>：<code>sed 's/chr/chromosome/' genes.txt</code>。</div>
+      <div class="field"><b>Verification</b>：每行第一个 chr 变成 chromosome。</div>
+      <div class="field"><b>Expected Result</b>：s/old/new/ 替换。</div></div>
+
+    <div class="task"><div class="level l1">Lab 2 · Level 1</div>
+      <div class="goal">Delete ALL occurrences of <code>chr</code> in every line.</div>
+      <div class="field"><b>Hint</b>：<code>sed 's/chr//g' genes.txt</code>。</div>
+      <div class="field"><b>Verification</b>：所有 chr 都消失。</div>
+      <div class="field"><b>Expected Result</b>：g 全局替换。</div></div>
+
+    <div class="task"><div class="level l1">Lab 3 · Level 1</div>
+      <div class="goal">Delete all lines starting with <code>#</code> in <code>sample.vcf</code>.</div>
+      <div class="field"><b>Hint</b>：<code>sed '/^#/d' sample.vcf</code>。</div>
+      <div class="field"><b>Verification</b>：# 开头的行全消失。</div>
+      <div class="field"><b>Expected Result</b>：地址 + d 删除。</div></div>
+
+    <div class="task"><div class="level l1">Lab 4 · Level 1</div>
+      <div class="goal">Print only line 2 of <code>sample.vcf</code>.</div>
+      <div class="field"><b>Hint</b>：<code>sed -n '2p' sample.vcf</code>。</div>
+      <div class="field"><b>Verification</b>：只输出第 2 行。</div>
+      <div class="field"><b>Expected Result</b>：-n + p 打印。</div></div>
+
+    <h3>Level 2 · Integration（6 题，组合 ≥2 个概念）</h3>
+    <div class="task"><div class="level l2">Lab 5 · Level 2</div>
+      <div class="goal">Combine address + substitute: replace chr only in lines 1-2.</div>
+      <div class="field"><b>Hint</b>：<code>sed '1,2s/chr/CHR/' genes.txt</code>。</div>
+      <div class="field"><b>Verification</b>：只有前两行的 chr 被替换。</div>
+      <div class="field"><b>Expected Result</b>：地址限定替换范围。</div></div>
+
+    <div class="task"><div class="level l2">Lab 6 · Level 2</div>
+      <div class="goal">Combine delete range: keep only lines 3-5 (delete everything else).</div>
+      <div class="field"><b>Hint</b>：<code>sed '3,5!d' file</code>。</div>
+      <div class="field"><b>Verification</b>：只显示 3-5 行。</div>
+      <div class="field"><b>Expected Result</b>：! 取反。</div></div>
+
+    <div class="task"><div class="level l2">Lab 7 · Level 2</div>
+      <div class="goal">Combine multiple substitutes: remove chr AND replace tab with space.</div>
+      <div class="field"><b>Hint</b>：<code>sed -e 's/chr//g' -e 's/\t/ /g' genes.txt</code>。</div>
+      <div class="field"><b>Verification</b>：chr 没了，Tab 变空格。</div>
+      <div class="field"><b>Expected Result</b>：-e 多条命令。</div></div>
+
+    <div class="task"><div class="level l2">Lab 8 · Level 2</div>
+      <div class="goal">Combine anchor + insert: add <code>&gt;</code> at the start of each line.</div>
+      <div class="field"><b>Hint</b>：<code>sed 's/^/&gt; /' genes.txt</code>。</div>
+      <div class="field"><b>Verification</b>：每行行首有 &gt;。</div>
+      <div class="field"><b>Expected Result</b>：^ 锚点。</div></div>
+
+    <div class="task"><div class="level l2">Lab 9 · Level 2</div>
+      <div class="goal">Combine sed + grep: print lines containing chr2, then count them.</div>
+      <div class="field"><b>Hint</b>：<code>sed -n '/chr2/p' sample.vcf | wc -l</code>。</div>
+      <div class="field"><b>Verification</b>：输出一个数字。</div>
+      <div class="field"><b>Expected Result</b>：sed 进管道。</div></div>
+
+    <div class="task"><div class="level l2">Lab 10 · Level 2</div>
+      <div class="goal">Combine in-place + backup: replace chr with CHR in file, keep a .bak.</div>
+      <div class="field"><b>Hint</b>：<code>sed -i.bak 's/chr/CHR/g' genes.txt</code>。</div>
+      <div class="field"><b>Verification</b>：文件已改，genes.txt.bak 保留原内容。</div>
+      <div class="field"><b>Expected Result</b>：-i.bak 备份修改。</div></div>
+
+    <h3>Level 3 · Engineering（5 题：制造问题 / 可复用 / 可交接）</h3>
+    <div class="task"><div class="level l3">Lab 11 · Level 3</div>
+      <div class="goal"><strong>先制造问题再解决</strong>：先 <code>sed 's/chr//'</code> 发现一行多个 chr 只删了一个，改用 <code>g</code> 修好，理解 g 的意义。</div>
+      <div class="field"><b>Hint</b>：造一行含两个 chr 的，对比 s/chr// 和 s/chr//g。</div>
+      <div class="field"><b>Verification</b>：你能说清 g 为什么必需。</div>
+      <div class="field"><b>Expected Result</b>：理解 global 标志。</div></div>
+
+    <div class="task"><div class="level l3">Lab 12 · Level 3</div>
+      <div class="goal">写<strong>一条可复用命令</strong>：批量把样本名 <code>Sample_XX</code> 改成 <code>SRR000XX</code>（去掉 Sample_ 前缀 + 加 SRR000）。</div>
+      <div class="field"><b>Hint</b>：<code>sed 's/Sample_0/SRR000/' samples.txt</code>。</div>
+      <div class="field"><b>Verification</b>：Sample_01 → SRR0001。</div>
+      <div class="field"><b>Expected Result</b>：批量改名。</div></div>
+
+    <div class="task"><div class="level l3">Lab 13 · Level 3</div>
+      <div class="goal"><strong>可交接设计</strong>：写一条「清理 VCF 注释头 + 去 chr 前缀」的命令，带注释，三个月后同事能看懂。</div>
+      <div class="field"><b>Hint</b>：<code>sed -e '/^#/d' -e 's/^chr//' sample.vcf</code>，注释写清用途。</div>
+      <div class="field"><b>Verification</b>：命令可读、有注释、两步都做。</div>
+      <div class="field"><b>Expected Result</b>：可交接的清洗命令。</div></div>
+
+    <div class="task"><div class="level l3">Lab 14 · Level 3</div>
+      <div class="goal"><strong>排查</strong>：你 <code>sed 's/old/new/' file</code> 发现 old 里有斜杠（路径）导致命令报错/结果怪，排查并解决。</div>
+      <div class="field"><b>Hint</b>：斜杠是定界符，换定界符 <code>s|/a/b|/x/y|</code>。</div>
+      <div class="field"><b>Verification</b>：你能说清定界符冲突怎么处理。</div>
+      <div class="field"><b>Expected Result</b>：理解定界符。</div></div>
+
+    <div class="task"><div class="level l3">Lab 15 · Level 3</div>
+      <div class="goal"><strong>综合</strong>：在 tmux 分屏里完成「批量清洗」——左屏 sed 处理文件，右屏 cat 看前后对比，最后 -i.bak 原地改好，截图留证。</div>
+      <div class="field"><b>Hint</b>：tmux 分屏 + sed + -i.bak。</div>
+      <div class="field"><b>Verification</b>：截图体现分屏 + 前后对比。</div>
+      <div class="field"><b>Expected Result</b>：Boss 战预演。</div></div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战</h2>
+    <p class="muted">5 个真实 Ubuntu Server 24.04 会遇到的报错。Problem → Think → Answer → Explanation。</p>
+
+    <details class="dbg"><summary>调试 1 · <code>sed 's/chr//' file</code> 一行两个 chr 只删了一个</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想删所有 chr，结果每行只删了第一个。</div>
+        <div class="think">💭 <b>Think</b>：缺了什么标志？</div>
+        <div class="step"><b>Answer</b>：加 <code>g</code>：<code>sed 's/chr//g' file</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：sed 默认只替换每行第一个匹配，g（global）才替换所有。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 2 · <code>sed 's//a/b//x/y/' file</code> 报错 <code>unterminated s command</code></summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：替换路径时斜杠冲突，命令解析乱。</div>
+        <div class="think">💭 <b>Think</b>：斜杠被当定界符了吗？</div>
+        <div class="step"><b>Answer</b>：换定界符：<code>sed 's|/a/b|/x/y|' file</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：s 命令的 / 是定界符，old/new 里有 / 会冲突，用 | 或 # 等别的字符当定界符。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 3 · <code>sed -n '5p' file</code> 少了 <code>-n</code> 时输出整份文件</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：想只打印第 5 行，结果整份文件都出来了。</div>
+        <div class="think">💭 <b>Think</b>：sed 默认会打印所有行吗？</div>
+        <div class="step"><b>Answer</b>：加 <code>-n</code>：<code>sed -n '5p' file</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：sed 默认每行都输出，p 命令又打印一次。加 -n 抑制默认输出，只出 p 指定的行。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 4 · <code>sed -i 's/old/new/g' file</code> 改错了，想找回原文件</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：-i 直接覆盖，原文件没了。</div>
+        <div class="think">💭 <b>Think</b>：改之前有没有备份？</div>
+        <div class="step"><b>Answer</b>：没备份找不回。以后用 <code>-i.bak</code> 留备份，改错还能从 <code>file.bak</code> 恢复。</div>
+        <div class="explain">🧠 <b>Explanation</b>：-i 原地写回不可逆。-i.bak 会先复制一份 .bak 再改，是安全习惯。</div>
+      </div></details>
+
+    <details class="dbg"><summary>调试 5 · <code>sed 's/^/&gt; /' file</code> 输出每行行首都有 &gt; 但带了个多余空格</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：new 里的空格被当成了替换内容的一部分。</div>
+        <div class="think">💭 <b>Think</b>：s/^/&gt; / 里 /&gt; / 的空格是故意的吗？</div>
+        <div class="step"><b>Answer</b>：<code>s/^/&gt; /</code> 就是「&gt; + 一个空格」，想要没空格写 <code>s/^/&gt;/</code>。</div>
+        <div class="explain">🧠 <b>Explanation</b>：替换文本 new 里的每个字符（含空格）都会原样输出，空格也是内容。</div>
+      </div></details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景</h2>
+    <p class="muted">先写自己的方案，再展开看答案。每个场景想「三个月后的人能否看懂」。</p>
+
+    <div class="card">
+      <p><strong>场景 1：</strong>500 个样本名的清单，全部带 <code>Sample_</code> 前缀，要批量改成不带前缀的编号。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>sed 's/Sample_//' samples.txt</code>——一条命令去掉所有前缀。要写成文件加 <code>-i.bak</code>。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 2：</strong>一个 VCF 前 50 行全是 <code>##</code> 和 <code>#</code> 注释，你要只留变异记录。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>sed '/^#/d' sample.vcf</code>——删掉所有 # 开头的行，剩下的就是变异记录。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 3：</strong>一个基因坐标文件，染色体写成了 <code>chr1</code>…<code>chrX</code>，下游工具只要数字/字母（不要 chr）。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>sed 's/^chr//' coords.txt</code>——用 <code>^</code> 锚定行首，只删开头的 chr，安全不影响中间可能出现的 chr 字样。</p></div></details>
+    </div>
+
+    <div class="card">
+      <p><strong>场景 4：</strong>要给一个 FASTQ 的 read 名统一加 <code>@SRR_</code> 前缀，同时把 <code>chr</code> 全去掉，一条命令做完并留备份。</p>
+      <details><summary>参考方案</summary><div class="ans"><p><code>sed -i.bak -e 's/^@/@SRR_/' -e 's/chr//g' reads.fastq</code>——两条规则组合 + 备份，一次性改好。</p></div></details>
+    </div>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight（15–20 分钟）</h2>
+    <div class="card">
+      <p><strong>任务：</strong>对一个「脏」的样本/注释文件做一次完整清洗，并修好一个被埋的坑。</p>
+      <p><strong>要求（可度量交付物）：</strong></p>
+      <ul>
+        <li>建 <code>sed_battle/</code>，造一个 <code>samples.txt</code>（含 Sample_ 前缀、chr 前缀、注释行、多个 chr 的行）。</li>
+        <li>用 sed 删除所有 <code>#</code> 注释行。</li>
+        <li>用 sed 去掉所有 <code>Sample_</code> 前缀。</li>
+        <li>用 sed 去掉所有 <code>chr</code>（注意一行多个 chr 要全删）。</li>
+        <li>用 <code>-i.bak</code> 原地改好，确认 <code>samples.txt.bak</code> 保留了原内容。</li>
+        <li>全程 tmux 分屏（左屏 sed 处理、右屏 cat 前后对比），截图留证。</li>
+      </ul>
+      <div class="callout warn"><div class="tag">⚠️ 埋了一个坑</div>
+        <p>你清洗时写了 <code>sed 's/chr//' samples.txt</code>（<strong>忘了 <code>g</code></strong>），结果一行里有两个 chr 的行只删了第一个，留下一个 chr 没删干净。你要自己发现「默认只替换每行第一个」这个坑，改成 <code>sed 's/chr//g'</code> 修好，截图「残留 chr → 修复后干净」。</p>
+      </div>
+      <p><strong>验收清单：</strong>注释行已删 ✅ 前缀已去 ✅ chr 全删 ✅ 备份保留 ✅ 埋坑（忘 g）已修复 ✅ 截图 + 命令进 <code>github/lesson12/</code> 并 git push ✅。</p>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <tr><th>Time</th><th>你要能演示的能力</th></tr>
+      <tr><td>⏱ 20 min</td><td>会用 s/old/new/ 替换，说清 g 和数字标志的区别</td></tr>
+      <tr><td>⏱ 40 min</td><td>独立完成 Level 1 + Level 2（地址定位 + d/p + -e 多命令 + -i.bak）</td></tr>
+      <tr><td>⏱ 60 min</td><td>完成 Level 3，能排查忘 g / 定界符冲突 / 忘 -n / -i 不可逆四类失败</td></tr>
+      <tr><td>⏱ 85 min</td><td>完成 Boss 战（含忘 g 的坑），git push 成功</td></tr>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 答案</h2>
+    <div class="callout warn"><div class="tag">先独立完成再翻这里</div></div>
+    <details><summary>展开全部 Lab 答案</summary>
+      <div class="ans">
+        <p><b>Lab 1：</b><code>sed 's/chr/chromosome/' genes.txt</code>。</p>
+        <p><b>Lab 2：</b><code>sed 's/chr//g' genes.txt</code>。</p>
+        <p><b>Lab 3：</b><code>sed '/^#/d' sample.vcf</code>。</p>
+        <p><b>Lab 4：</b><code>sed -n '2p' sample.vcf</code>。</p>
+        <p><b>Lab 5：</b><code>sed '1,2s/chr/CHR/' genes.txt</code>。</p>
+        <p><b>Lab 6：</b><code>sed '3,5!d' file</code>。</p>
+        <p><b>Lab 7：</b><code>sed -e 's/chr//g' -e 's/\t/ /g' genes.txt</code>。</p>
+        <p><b>Lab 8：</b><code>sed 's/^/&gt; /' genes.txt</code>。</p>
+        <p><b>Lab 9：</b><code>sed -n '/chr2/p' sample.vcf | wc -l</code>。</p>
+        <p><b>Lab 10：</b><code>sed -i.bak 's/chr/CHR/g' genes.txt</code>。</p>
+        <p><b>Lab 11：</b>一行两个 chr，s/chr// 只删第一个 → 改 s/chr//g。</p>
+        <p><b>Lab 12：</b><code>sed 's/Sample_0/SRR000/' samples.txt</code>。</p>
+        <p><b>Lab 13：</b><code>sed -e '/^#/d' -e 's/^chr//' sample.vcf</code>。</p>
+        <p><b>Lab 14：</b>斜杠冲突，换定界符 <code>s|/a/b|/x/y|</code>。</p>
+        <p><b>Lab 15：</b>tmux 分屏 + sed + -i.bak。</p>
+      </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 卡组</h2>
+    <p class="muted">完整卡组在 <code>github/anki/lesson12-sed.tsv</code>（纯两列：Front / Back）。这里只展示代表性示例。</p>
+    <table>
+      <tr><th>Front</th><th>Back</th></tr>
+      <tr><td><code>sed 's/old/new/'</code> 替换几个？</td><td>每行第一个匹配</td></tr>
+      <tr><td><code>sed 's/old/new/g'</code> 替换几个？</td><td>每行所有匹配</td></tr>
+      <tr><td>删掉所有 # 开头的行？</td><td><code>sed '/^#/d' file</code></td></tr>
+      <tr><td>只打印第 5 行？</td><td><code>sed -n '5p' file</code></td></tr>
+      <tr><td>原地修改并留备份？</td><td><code>sed -i.bak 's/old/new/g' file</code></td></tr>
+      <tr><td>行首加前缀 &gt;？</td><td><code>sed 's/^/&gt; /' file</code></td></tr>
+    </table>
+  </section>
+
+  <!-- 11. QUIZ -->
+  <section>
+    <h2><span class="num">11</span> Quick Quiz 小测</h2>
+    <div class="quiz" id="q1">
+      <p class="q">Which replaces ALL matches per line?（替换每行所有匹配？）</p>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">s/old/new/</button>
+      <button class="opt" data-c="1" onclick="answer('q1', this)">s/old/new/g</button>
+      <button class="opt" data-c="0" onclick="answer('q1', this)">s/old/new/1</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q2">
+      <p class="q">Which deletes lines starting with #?（删 # 开头的行？）</p>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">sed '/#/p'</button>
+      <button class="opt" data-c="1" onclick="answer('q2', this)">sed '/^#/d'</button>
+      <button class="opt" data-c="0" onclick="answer('q2', this)">sed 's/^#/d/'</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q3">
+      <p class="q">Which modifies the file in-place?（原地修改文件？）</p>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">sed -n</button>
+      <button class="opt" data-c="1" onclick="answer('q3', this)">sed -i</button>
+      <button class="opt" data-c="0" onclick="answer('q3', this)">sed -e</button>
+      <p class="fb"></p>
+    </div>
+    <div class="quiz" id="q4">
+      <p class="q">Print only line 5?（只打印第 5 行？）</p>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">sed '5d'</button>
+      <button class="opt" data-c="0" onclick="answer('q4', this)">sed '5p'</button>
+      <button class="opt" data-c="1" onclick="answer('q4', this)">sed -n '5p'</button>
+      <p class="fb"></p>
+    </div>
+  </section>
+
+  <!-- 12. GITHUB + STOP -->
+  <section>
+    <h2><span class="num">12</span> GitHub Homework 作业</h2>
+    <div class="card">
+      <p>把今天的命令和 Boss 战截图放进 <code>github/lesson12/</code>，README 记录费曼复述。</p>
+      <pre><code>git add .
+git commit -m "Lesson 12: sed"
+git push origin main</code></pre>
+    </div>
+    <div class="stop">
+      <h2>🛑 STOP.</h2>
+      <p>没 push 上 GitHub，这节课就不算完成。现在去 push，loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const next = b.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    b.setAttribute('data-theme', next);
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ Light mode' : '🌙 Dark mode';
+  }
+  function answer(qid, el) {
+    const quiz = document.getElementById(qid);
+    quiz.querySelectorAll('button.opt').forEach(o => {
+      o.disabled = true;
+      if (o.dataset.c === '1') o.classList.add('correct');
+      else if (o === el) o.classList.add('wrong');
+    });
+    quiz.querySelector('.fb').textContent = (el.dataset.c === '1') ? '✅ Correct!' : '❌ Try again — see the Knowledge section.';
+  }
+</script>
+</body>
+</html>

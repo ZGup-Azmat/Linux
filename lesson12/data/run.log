@@ -1,0 +1,7 @@
+[2026-10-22 10:00:00] INFO: pipeline started
+[2026-10-22 10:01:00] INFO: loading samples.txt
+[2026-10-22 10:02:00] ERROR: variants.vcf not found
+[2026-10-22 10:03:00] WARNING: low read depth in Sample_03
+[2026-10-22 10:04:00] INFO: running alignment
+[2026-10-22 10:05:00] ERROR: variants.vcf not found
+[2026-10-22 10:06:00] INFO: pipeline finished

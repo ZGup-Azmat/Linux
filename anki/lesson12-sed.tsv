@@ -1,0 +1,66 @@
+sed 是什么？	流编辑器（stream editor），逐行读入、按规则替换/删除/打印行内文字，默认不修改原文件。
+sed 's/old/new/' 替换每行的几个匹配？	只替换每行第一个匹配；想全换要加 g。
+sed 和 awk 的分工？	sed 改「行内文字」（整行替换/删除），awk 拆「列」做计算，两者互补。
+sed 默认会修改原文件吗？	不会，默认只把结果打到屏幕；要写回文件用 -i。
+sed 的「地址」是什么？	定位到特定行的条件，可以是行号、模式（/pattern/）、范围（1,5）。
+sed 's/old/new/g' 里的 g 是什么意思？	global，替换每行所有匹配，而不是只第一个。
+sed -n 的作用是什么？	抑制默认的每行输出，只输出 p 命令指定的行。
+sed 的 d 和 s/word// 有什么区别？	d 删除整行，s/word// 只删行内的词、保留这一行。
+sed -i 和 -i.bak 的区别？	-i 直接覆盖原文件（不可逆），-i.bak 先备份成 .bak 再改（可恢复）。
+怎么把文件里所有 chr 删掉？	sed 's/chr//g' file
+怎么删掉所有 # 开头的注释行？	sed '/^#/d' file
+怎么只打印第 5 行？	sed -n '5p' file
+怎么只保留第 3 到 5 行（删掉其他行）？	sed '3,5!d' file
+怎么打印所有含 TP53 的行？	sed -n '/TP53/p' file
+怎么原地修改文件并留备份？	sed -i.bak 's/old/new/g' file
+怎么在每行行首加 > 前缀？	sed 's/^/> /' file
+怎么在每行行尾加逗号？	sed 's/$/,/' file
+怎么批量去掉样本名的 Sample_ 前缀？	sed 's/Sample_//' samples.txt
+怎么一条命令做两个替换（先 a→b 再 c→d）？	sed -e 's/a/b/' -e 's/c/d/' file
+替换的 old/new 里含斜杠（路径）怎么处理？	换定界符，如 sed 's|/a/b|/x/y|' file
+怎么只在第 1 到 5 行内做替换？	sed '1,5s/old/new/' file
+怎么把 chr1 里的 chr 前缀去掉只留数字？	sed 's/^chr//' file（^ 锚定行首）
+sed 's/chr//' 对一行有两个 chr 的行会怎样？	只删第一个 chr，第二个残留；想全删要 s/chr//g。
+sed 's/^#/d/' 为什么是错的？	s 是替换命令，d 是删除命令不能混；删 # 开头行用 /^#/d。
+sed -n '5p' 少了 -n 会输出什么？	整个文件 + 第 5 行重复一次（sed 默认打印所有行）。
+sed -i 's/a/b/' 改错了怎么办？	没备份就找不回；以后用 -i.bak 留备份，从 file.bak 恢复。
+sed 's/^/> /' 输出的 > 后面为什么有空格？	替换文本「> 」里的空格是内容的一部分；想要没空格写 s/^/>/。
+sed 's/Sample_01/SRR001/' 为什么可能改不对？	old 和 new 的字符要精确匹配，编号位数不一致会漏；先看清楚再替换。
+把 Sample_XX 批量改成 SRR000XX 怎么写？	sed 's/Sample_0/SRR000/' samples.txt
+清洗一个 VCF：删注释头 + 去 chr 前缀，一条命令怎么写？	sed -e '/^#/d' -e 's/^chr//' sample.vcf
+给 FASTQ 的 read 名加 @SRR_ 前缀、同时去掉 chr，怎么写？	sed -i.bak -e 's/^@/@SRR_/' -e 's/chr//g' reads.fastq
+统计文件里含 chr2 的行有多少？	sed -n '/chr2/p' file | wc -l
+sed 里怎么表示「行首」和「行尾」？	^ 表示行首，$ 表示行尾（和正则一样）。
+sed 's/chr//2' 是什么意思？	只替换每行第 2 个匹配的 chr。
+替换文本 new 里的 & 是什么？	& 代表「匹配到的 old 本身」；要字面 & 需转义 \&。
+sed '1,5s/old/new/' 是替换全文还是前 5 行？	只替换第 1 到 5 行，其他行不动。
+sed 的多条命令除了 -e 还能用什么连接？	用分号，如 sed 's/a/b/; s/c/d/'。
+怎么把一行里的两个 chr 都删掉？	sed 's/chr//g'（加 g 全局替换）。
+怎么验证 sed 改对没有（不实际改文件）？	先不加 -i 跑一遍看输出，确认对再加 -i 写回。
+sed 删掉第 10 行怎么写？	sed '10d' file
+sed 打印第 5 到 10 行怎么写？	sed -n '5,10p' file
+sed 把 tab 换成空格怎么写？	sed 's/\t/ /g' file
+sed 和 grep 都能按模式找行，区别是什么？	sed 除了找还能替换/删除/插入，grep 只能匹配打印。
+为什么「批量改文件」要优先用 sed 而不是手动改？	一条命令能改几百个文件/几千行，且可复现、可写脚本，手动改慢且易漏。
+macOS 的 sed -i 和 Linux 有什么不同？	macOS 的 BSD sed 需要 -i '' 带空参数，GNU/Linux 的 -i 直接写；脚本可移植性要注意。
+sed 's/chr//g' 会不会误删中间的 chr（如 genechr1）？	会，g 全局删所有 chr；只想删行首用 s/^chr//。
+怎么只删行首的 chr、不动中间的？	sed 's/^chr//'（^ 锚定行首）。
+sed 的 ! 取反是什么意思？	如 3,5!d 表示「除了 3-5 行，其他行都删」，即只保留 3-5 行。
+写一条「删注释 + 去前缀 + 原地备份」的可交接清洗命令。	sed -i.bak -e '/^#/d' -e 's/^chr//' -e 's/Sample_//' sample.txt
+sed 's/old/new/' 结果打到屏幕，怎么让它写回文件？	加 -i（或 -i.bak）：sed -i 's/old/new/' file。
+怎么把结果另存到新文件而不动原文件？	sed 's/old/new/' file > newfile.txt（重定向）。
+sed 's/$/,/' 的作用？	在每行行尾加一个逗号（$ 锚定行尾）。
+sed 's/^/@/' 的作用？	在每行行首加一个 @（^ 锚定行首）。
+怎么删除空行？	sed '/^$/d' file（匹配空行并删除）。
+怎么删除只有空白（空格/tab）的行？	sed '/^[[:space:]]*$/d' file。
+sed 处理大文件比手动打开编辑器好在哪？	流式逐行处理，不占大内存，几十 GB 文件也能跑，且可自动化。
+你运行 sed 's/chr//' 发现一行两个 chr 只删了一个，怎么修？	加 g：sed 's/chr//g'。
+你运行 sed 's//a/b//x/y/' 报错 unterminated s command，为什么？	斜杠是定界符，old/new 里的斜杠冲突了；换定界符 s|/a/b|/x/y|。
+你 sed -n '5p' 忘了 -n，输出整份文件，为什么？	sed 默认打印所有行，p 又打印一次；加 -n 抑制默认输出。
+你 sed -i 's/a/b/' 改错想恢复原文件，怎么办？	没备份无法恢复；以后用 -i.bak，从 file.bak 恢复。
+你 sed 's/^/> /' 想要 > 后面没空格但结果有，为什么？	替换文本「> 」里的空格是内容；想没空格写 s/^/>/。
+一行有两个 chr，分别用 s/chr// 和 s/chr//g 结果有什么不同？	s/chr// 只删第一个 chr 留一个，s/chr//g 全删。
+sed '10d' 和 sed 's/10//' 的区别？	10d 删除第 10 行整行；s/10// 删每行第一个「10」这个字符。
+把 chr1、chr22、chrX 统一成 1、22、X，怎么写？	sed 's/^chr//' file
+怎么用 sed 给一个文件所有行加行号？	sed = file（或用 awk '{print NR, $0}'）。
+sed 的替换 new 里想插入换行怎么办？	用 \n（GNU sed）：sed 's/,/,\n/g'，但可移植性差。
