@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 13 · xargs ｜ Build Command Lines From Stdin</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 32%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 13 · Part II · Shell Engineering</div>
+    <h1>xargs</h1>
+    <p class="sub">Build command lines from stdin —— 把标准输入转成命令参数，批量执行</p>
+    <div class="progress-label"><span>Progress</span><span>13 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★★☆ Advanced</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">批量删除/移动/统计测序文件</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 09 pipe + Lesson 06 find</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>测序中心跑完一批 RNA-seq，磁盘上留下了 <strong>几百个 <code>.tmp</code> 临时文件和中间产物</code></strong>。主管说：</p>
+      <blockquote style="border-left:3px solid var(--accent); margin:12px 0; padding:4px 16px; color:var(--text-2);">「把 <code>raw/</code> 里所有 <code>*.tmp</code> 删掉，把 <code>*.bam</code> 统一移到 <code>aligned/</code>，再把每个 <code>.log</code> 的行数统计成一张表。」</blockquote>
+      <p>你立刻想到 <code>find</code>（第 6 课）和管道 <code>|</code>（第 9 课）：</p>
+      <pre>find raw -name "*.tmp" | rm   <span class="c"># ❌ rm 不读标准输入，管道白接</span></pre>
+      <p>问题来了：<code>rm</code>、<code>mv</code>、<code>mkdir</code>、<code>wc</code> 这些命令<strong>只认「参数」，不认「标准输入」</strong>。管道把文件名「流」过来了，但它们不接收。</p>
+      <p>这时候需要一个「中间人」，把标准输入里的每一行，<strong>翻译成命令的参数</strong>——它就是 <code>xargs</code>。</p>
+      <p>Context（场景）→ Need（需求）→ Tool（工具）：<strong>find 找到的文件 → 需要批量当参数传给 rm/mv → xargs 来搭桥</strong>。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 核心知识（≤25%）</h2>
+
+    <div class="card">
+      <h3>概念 1 · xargs 是什么（What is xargs）</h3>
+      <p><strong>定义（English）</strong>：<code>xargs</code> reads items from <strong>standard input</strong> and builds command lines by turning them into <strong>arguments</strong> for another command.</p>
+      <p><strong>定义（中文）</strong>：xargs 从<strong>标准输入</strong>读取数据，把这些数据<strong>转成参数</strong>，再交给另一个命令去执行。</p>
+      <div class="diagram">
+        <svg width="520" height="150" viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="45" width="120" height="60" rx="10" fill="none" stroke="#0071e3" stroke-width="2"/>
+          <text x="70" y="70" text-anchor="middle" font-size="14" fill="#0071e3" font-weight="bold">find</text>
+          <text x="70" y="90" text-anchor="middle" font-size="12" fill="#6e6e73">输出文件名</text>
+          <path d="M130 75 L180 75" stroke="#2997ff" stroke-width="2" marker-end="url(#arr)"/>
+          <text x="155" y="65" text-anchor="middle" font-size="11" fill="#6e6e73">stdin</text>
+          <rect x="185" y="45" width="120" height="60" rx="10" fill="#0071e3"/>
+          <text x="245" y="70" text-anchor="middle" font-size="14" fill="#fff" font-weight="bold">xargs</text>
+          <text x="245" y="90" text-anchor="middle" font-size="12" fill="#dbeafe">stdin→参数</text>
+          <path d="M305 75 L355 75" stroke="#2997ff" stroke-width="2" marker-end="url(#arr)"/>
+          <text x="330" y="65" text-anchor="middle" font-size="11" fill="#6e6e73">args</text>
+          <rect x="360" y="45" width="120" height="60" rx="10" fill="none" stroke="#d70015" stroke-width="2"/>
+          <text x="420" y="70" text-anchor="middle" font-size="14" fill="#d70015" font-weight="bold">rm</text>
+          <text x="420" y="90" text-anchor="middle" font-size="12" fill="#6e6e73">接收参数</text>
+          <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#2997ff"/></marker></defs>
+        </svg>
+      </div>
+      <p><strong>心智模型</strong>：管道是「水流」，命令参数是「杯子」。有的命令（<code>grep</code>、<code>sort</code>）能直接「张嘴接水」；有的命令（<code>rm</code>、<code>mv</code>、<code>echo</code>）只能「用杯子装」。<code>xargs</code> 就是那个「把水流舀进杯子里」的工人。</p>
+      <div class="callout info"><span class="tag">为什么需要它（Why）</span><p style="margin:6px 0 0">管道只能给「读 stdin 的命令」喂数据。对于只认参数的命令，没有 xargs 就只能手写几百次 <code>rm file1; rm file2; …</code>。xargs 把「一个流」自动拆成「一批批参数」，一次性交给命令。</p></div>
+      <p><strong>语法</strong>：</p>
+      <pre><span class="c"># 默认：xargs 后面不写命令时，默认执行 echo</span>
+command-that-outputs-items | xargs [options] [command]
+
+<span class="c"># 例：把三个文件名 echo 出来（等价于 echo a b c）</span>
+printf "a\nb\nc\n" | xargs        <span class="c"># → a b c</span></pre>
+      <p><strong>衔接</strong>：上一课 <code>sed</code> 改「行内文字」，本课 <code>xargs</code> 把「行」变成「参数」——它俩都处理文本流，但 xargs 关心的是「把数据传给下一个命令」，不是「改内容」。</p>
+    </div>
+
+    <div class="card">
+      <h3>概念 2 · 三个核心选项 -n / -I / -0（Key Options）</h3>
+      <table>
+        <thead><tr><th>选项</th><th>作用</th><th>适用场景</th></tr></thead>
+        <tbody>
+          <tr><td><code>-n N</code></td><td>每次取 <strong>N 个</strong>参数执行一次命令</td><td>批量传固定数量的参数（如每次删 5 个）</td></tr>
+          <tr><td><code>-I {}</code></td><td><code>{}</code> 是占位符，<strong>每个输入项单独执行一次</strong>，可替换到命令任意位置</td><td>参数要插在命令中间（如 <code>mv {} dir/</code>）</td></tr>
+          <tr><td><code>-0</code></td><td>输入用 <strong>NUL 字符</strong>分隔（默认是空白）</td><td>配合 <code>find -print0</code> 处理含空格的文件名</td></tr>
+        </tbody>
+      </table>
+
+      <h4>2.1 <code>-n N</code>：控制每批传几个参数</h4>
+      <pre>printf "1 2 3 4\n" | xargs -n 2 echo
+<span class="c"># 1 2</span>
+<span class="c"># 3 4        ← 每 2 个参数执行一次 echo</span></pre>
+
+      <h4>2.2 <code>-I {}</code>：占位符，参数插到任意位置</h4>
+      <pre><span class="c"># 把 3 个目录分别创建（mkdir 不读 stdin，靠 xargs 搭桥）</span>
+printf "raw\nclean\nreport\n" | xargs -I {} mkdir -p {}
+
+<span class="c"># {} 出现在命令中间（不是末尾）也没问题</span>
+printf "SRR1.fastq.gz\nSRR2.fastq.gz\n" | xargs -I {} mv {} raw/</pre>
+      <div class="callout warn"><span class="tag">边界 / 坑</span><p style="margin:6px 0 0">用了 <code>-I {}</code> 就<strong>默认每条输入项单独执行一次</strong>，此时 <code>-n</code> 会被忽略。<code>-I</code> 和 <code>-n</code> 不要混用——要「批量一起传」用 <code>-n</code>，要「一个一个带占位符」用 <code>-I</code>。</p></div>
+
+      <h4>2.3 <code>-0</code>：用 NUL 分隔（配 <code>find -print0</code>）</h4>
+      <pre><span class="c"># 默认：xargs 用「空白」切分输入 → 文件名带空格会被切碎</span>
+printf "my file.txt\n" | xargs echo       <span class="c"># → my file.txt（被当成两个词）</span>
+
+<span class="c"># -print0：find 输出用 NUL 结尾；-0：xargs 按 NUL 切分 → 空格安全</span>
+find . -name "*.tmp" -print0 | xargs -0 rm</pre>
+    </div>
+
+    <div class="card">
+      <h3>概念 3 · xargs + find 黄金组合 与 边界情况</h3>
+      <p><strong>为什么 find 和 xargs 总是配对出现</strong>：<code>find</code> 负责「找到哪些文件」，<code>xargs</code> 负责「把这些文件交给命令」。两个一起，就能对「任意一组符合条件的文件」批量执行任意命令。</p>
+      <p><strong>最安全写法（黄金组合）</strong>：</p>
+      <pre>find . -name "*.tmp" -print0 | xargs -0 rm        <span class="c"># 删所有临时文件（文件名含空格也安全）</span>
+find . -name "*.bam" -print0 | xargs -0 -I {} mv {} aligned/  <span class="c"># 批量移动</span></pre>
+      <div class="callout err"><span class="tag">边界 / 失败场景</span>
+        <p style="margin:6px 0 0"><strong>文件名含空格</strong>：<code>find | xargs rm</code> 会把 <code>my file.txt</code> 切成 <code>my</code> 和 <code>file.txt</code> 两个参数，<code>rm</code> 找不到 <code>my</code> 就报 <code>No such file or directory</code>。</p>
+        <p style="margin:6px 0 0"><strong>空输入</strong>：<code>find</code> 什么都没找到时，<code>xargs rm</code> 仍会执行一次 <code>rm</code>（无参数），可能误删或报错。加 <code>-r</code>（<code>--no-run-if-empty</code>）避免。</p>
+        <p style="margin:6px 0 0"><strong>命令行太长</strong>：参数数量爆炸时超过 ARG_MAX 上限，xargs 会<strong>自动分批</strong>执行，这正是它比手写循环稳的地方。</p>
+      </div>
+      <p><strong>工程场景</strong>：你没法对「几百个文件」手写命令，也没法靠 <code>for</code> 循环处理「含空格文件名」。<code>find -print0 | xargs -0</code> 是工程上「批量 + 安全」的标准答案。</p>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <p>跟着敲一遍，看每条的预期输出，理解「为什么」。</p>
+    <div class="card">
+      <pre><span class="c"># 1. 基本：把 stdin 转成 echo 的参数</span>
+printf "A\nB\nC\n" | xargs
+<span class="c"># A B C        ← xargs 默认执行 echo，把三行合成一行输出</span>
+
+<span class="c"># 2. -n 2：每 2 个参数一批</span>
+printf "1\n2\n3\n4\n5\n" | xargs -n 2 echo
+<span class="c"># 1 2</span>
+<span class="c"># 3 4</span>
+<span class="c"># 5           ← 最后一个不够 2 个，单独一批</span>
+
+<span class="c"># 3. -t：执行前打印「将要执行的命令」</span>
+printf "a\nb\n" | xargs -t rm
+<span class="c"># rm a b      ← -t 打印到 stderr</span>
+
+<span class="c"># 4. -I {}：占位符，一个输入项执行一次</span>
+printf "raw\nclean\n" | xargs -I {} echo "dir: {}"
+<span class="c"># dir: raw</span>
+<span class="c"># dir: clean</span></pre>
+      <p class="muted">为什么 <code>xargs</code> 默认是 <code>echo</code>？因为 echo 是最能「展示参数」的命令，方便你验证 xargs 到底拼出了什么参数——先看对参数，再换成 rm/mv。</p>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 强化实验（12–20 题）</h2>
+    <p>在 <code>tmux</code> 里开一个 pane 做题、一个 pane 看答案。所有命令只用本课 xargs + 之前的知识。</p>
+
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation（基础巩固）</div>
+      <div class="goal">1.1 用 xargs 把 4 个样本 ID 输出成一行</div>
+      <div class="field"><b>Hint</b>：<code>printf "P1\nP2\nP3\nP4\n" | xargs</code></div>
+      <div class="field"><b>Verification</b>：输出 <code>P1 P2 P3 P4</code></div>
+    </div>
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation</div>
+      <div class="goal">1.2 用 <code>-n 2</code> 每次取 2 个参数执行 echo</div>
+      <div class="field"><b>Hint</b>：<code>seq 1 6 | xargs -n 2 echo</code></div>
+      <div class="field"><b>Verification</b>：三行输出 <code>1 2</code> / <code>3 4</code> / <code>5 6</code></div>
+    </div>
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation</div>
+      <div class="goal">1.3 用 <code>-t</code> 看 xargs 实际拼出的命令</div>
+      <div class="field"><b>Hint</b>：<code>printf "a.txt\nb.txt\n" | xargs -t rm</code></div>
+      <div class="field"><b>Verification</b>：stderr 先打印 <code>rm a.txt b.txt</code></div>
+    </div>
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation</div>
+      <div class="goal">1.4 用 <code>-I {}</code> 批量创建 3 个目录</div>
+      <div class="field"><b>Hint</b>：<code>printf "raw\nqc\nreport\n" | xargs -I {} mkdir -p {}</code></div>
+      <div class="field"><b>Verification</b>：<code>ls -d raw qc report</code> 三个目录都在</div>
+    </div>
+
+    <div class="task">
+      <div class="level l2">Level 2 · Integration（组合 ≥2 概念）</div>
+      <div class="goal">2.1 删除当前目录下所有 <code>*.tmp</code>（用 find + xargs）</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.tmp" | xargs rm</code></div>
+      <div class="field"><b>Verification</b>：<code>find . -name "*.tmp"</code> 无输出</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.2 用 <code>-print0 -0</code> 安全删除含空格文件名的文件</div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.tmp" -print0 | xargs -0 rm</code></div>
+      <div class="field"><b>Verification</b>：含空格的 <code>my temp.tmp</code> 也被删掉，不报 No such file</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.3 批量移动所有 <code>*.bam</code> 到 <code>aligned/</code></div>
+      <div class="field"><b>Hint</b>：<code>find . -name "*.bam" -print0 | xargs -0 -I {} mv {} aligned/</code></div>
+      <div class="field"><b>Verification</b>：<code>ls aligned/</code> 能看到所有 bam 文件</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.4 统计 <code>reports/</code> 下所有 <code>.txt</code> 的总行数</div>
+      <div class="field"><b>Hint</b>：<code>find reports -name "*.txt" | xargs wc -l</code>（先看每文件，再想办法求和）</div>
+      <div class="field"><b>Verification</b>：输出每个文件的行数 + 一个 total</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.5 列出 <code>raw/</code> 下所有 <code>.fastq.gz</code>，逐个解压（用 <code>-I</code>）</div>
+      <div class="field"><b>Hint</b>：<code>find raw -name "*.fastq.gz" | xargs -I {} gunzip {}</code></div>
+      <div class="field"><b>Verification</b>：<code>ls raw/</code> 变成 <code>.fastq</code>（无 .gz）</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.6 把 <code>samples.txt</code> 的每个样本名复制成一个目录</div>
+      <div class="field"><b>Hint</b>：<code>cat samples.txt | xargs -I {} mkdir -p {} </code></div>
+      <div class="field"><b>Verification</b>：每个样本名都有对应目录</div>
+    </div>
+
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering（工程实战）</div>
+      <div class="goal">3.1 先「预览」再「执行」：列出要删的 <code>*.log</code>，确认后再删</div>
+      <div class="field"><b>Hint</b>：先 <code>find . -name "*.log" | xargs ls -lh</code> 看清单；确认后用 <code>find . -name "*.log" -print0 | xargs -0 rm</code>。或加 <code>-p</code> 逐个确认。</div>
+      <div class="field"><b>Verification</b>：删除前能看到完整清单，删除后 <code>find . -name "*.log"</code> 无输出</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering</div>
+      <div class="goal">3.2 写一条「三个月后同事能看懂」的批量清理一行命令</div>
+      <div class="field"><b>Hint</b>：语义清晰、加注释、用 <code>-print0 -0</code> 保安全。例如：<code># 清理所有下机临时文件（含空格名安全）</code></div>
+      <div class="field"><b>Verification</b>：命令带注释，同事能直接复用到别的目录</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering</div>
+      <div class="goal">3.3 批量给 <code>variants.vcf</code> 里每个样本生成一个统计（体会 find/grep/xargs 串联）</div>
+      <div class="field"><b>Hint</b>：先用 <code>grep -c "^#CHROM"</code> 或类似的思路，把「找到文件 → 统计」串起来</div>
+      <div class="field"><b>Verification</b>：每个样本对应一条统计输出</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering</div>
+      <div class="goal">3.4 用 <code>-p</code> 交互确认，批量删除 <code>tmp/</code> 下的中间产物（制造问题再解决）</div>
+      <div class="field"><b>Hint</b>：<code>find tmp -type f -print0 | xargs -0 -p rm</code>，体会 <code>-p</code> 如何给危险操作加「保险」</div>
+      <div class="field"><b>Verification</b>：每删一个文件前都停下来问 y/n</div>
+    </div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战（5 题）</h2>
+    <p>每题先自己想，再展开看答案。</p>
+
+    <details class="dbg">
+      <summary>Debug 1 · rm: cannot remove 'my': No such file or directory</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>find . -name "*.tmp" | xargs rm</code> 报 <code>rm: cannot remove 'my': No such file</code>，但文件 <code>my temp.tmp</code> 明明存在。</div>
+        <div class="think">💭 Think：为什么 xargs 找不到「my」？</div>
+        <div class="step"><b>Answer</b>：xargs 默认按<strong>空白</strong>切分输入，<code>my temp.tmp</code> 被切成 <code>my</code> 和 <code>temp.tmp</code> 两个参数，<code>rm my</code> 自然找不到。</div>
+        <div class="explain">🔧 修复：<code>find . -name "*.tmp" -print0 | xargs -0 rm</code> —— find 用 NUL 结尾，xargs 按 NUL 切，空格不再断词。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 2 · 空输入时 rm 被「裸跑」了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：目录里没有任何 <code>*.tmp</code>，运行 <code>find . -name "*.tmp" | xargs rm</code>，结果执行了一次 <code>rm</code>（没有参数），报 <code>rm: missing operand</code>。</div>
+        <div class="think">💭 Think：find 没输出任何东西时，xargs 会做什么？</div>
+        <div class="step"><b>Answer</b>：xargs 默认即使输入为空也会执行一次命令（空参数）。</div>
+        <div class="explain">🔧 修复：加 <code>-r</code>（<code>--no-run-if-empty</code>）：<code>find . -name "*.tmp" | xargs -r rm</code> —— 输入为空就什么都不做。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 3 · -I {} 和 -n 2 一起用，为什么 -n 失效了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>printf "a\nb\nc\nd\n" | xargs -I {} -n 2 echo {}</code>，期望每 2 个一批，结果一个一个输出。</div>
+        <div class="think">💭 Think：-I 和 -n 谁说了算？</div>
+        <div class="step"><b>Answer</b>：<code>-I {}</code> 隐含「每次一行 / 一条输入项执行一次」，会<strong>覆盖</strong> <code>-n</code>。</div>
+        <div class="explain">🔧 结论：<code>-I</code> 用于「一个占位符跑一次」，<code>-n</code> 用于「批量一起传」，二者不混用。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 4 · 文件名带引号/换行，xargs 又切错了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：有个文件叫 <code>don't stop.txt</code> 或文件名含换行，<code>find | xargs</code> 处理出错。</div>
+        <div class="think">💭 Think：默认空白切分还会被哪些字符干扰？</div>
+        <div class="step"><b>Answer</b>：空格、Tab、换行、引号都可能干扰默认切分。</div>
+        <div class="explain">🔧 修复：永远用 <code>-print0 | xargs -0</code>，NUL 是文件名里绝不会出现的字符，切分绝对安全。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 5 · xargs 默认命令是 echo，我「删」的文件只是被打印了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：写了 <code>find . -name "*.tmp" | xargs</code>（忘了写 <code>rm</code>），结果只是把文件名打印出来，文件还在。</div>
+        <div class="think">💭 Think：xargs 后面不写命令时默认执行什么？</div>
+        <div class="step"><b>Answer</b>：默认执行 <code>echo</code>。</div>
+        <div class="explain">🔧 记住：<code>xargs</code> 必须跟一个「要执行的命令」，漏写就是 echo。这其实是个好习惯——先 <code>xargs</code> 预览，再 <code>xargs rm</code> 真删。</div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景（3–6 题）</h2>
+    <p>先写自己的方案，再看参考答案。</p>
+
+    <details>
+      <summary>Scenario 1 · 批量重命名 500 个测序样本（加前缀）</summary>
+      <div class="ans">
+        <p><b>题目</b>：<code>raw/</code> 有 500 个 <code>SRR*.fastq.gz</code>，要统一加前缀 <code>gse65496_</code>，且不能手写 500 次。</p>
+        <p><b>参考答案</b>：</p>
+        <pre>find raw -name "SRR*.fastq.gz" -print0 | xargs -0 -I {} mv {} raw/gse65496_{}
+<span class="c"># 注意：{} 是完整路径，重命名时目标要拼对；更稳妥用 basename 拆分目录</span></pre>
+        <p class="muted">💡 可交接性：把「前缀」抽成一个变量 <code>PREFIX=gse65496_</code>，同事改一个变量就能复用。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scenario 2 · 删除含空格文件名的临时文件，且删前要预览</summary>
+      <div class="ans">
+        <p><b>题目</b>：磁盘有大量 <code>*.tmp</code>，部分文件名含空格（如 <code>sample 01.tmp</code>），要「先看清、再删除、可追溯」。</p>
+        <p><b>参考答案</b>：</p>
+        <pre><span class="c"># 第一步：预览（不删）</span>
+find . -name "*.tmp" -print0 | xargs -0 ls -lh
+<span class="c"># 第二步：删除（NUL 安全 + 空输入不跑）</span>
+find . -name "*.tmp" -print0 | xargs -0 -r rm</pre>
+        <p class="muted">💡 工程判断：破坏性操作永远「先 dry-run 预览，再真执行」，这是三个月后同事能看懂、也敢复用的关键。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scenario 3 · 统计每个 .log 的 ERROR 数量</summary>
+      <div class="ans">
+        <p><b>题目</b>：<code>logs/</code> 下有几十个 <code>.log</code>，要统计每个文件里 <code>ERROR</code> 出现的次数。</p>
+        <p><b>参考答案</b>：</p>
+        <pre>find logs -name "*.log" -print0 | xargs -0 grep -c "ERROR"
+<span class="c"># 每个文件名后跟一个数字（该文件 ERROR 计数）</span></pre>
+        <p class="muted">💡 体会：grep 能读 stdin，但这里我们要「每个文件分别统计」，所以用 xargs 把每个文件当参数传，而不是把内容流给 grep。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scenario 4 · 为什么不能全靠 for 循环，而要用 xargs</summary>
+      <div class="ans">
+        <p><b>题目</b>：有人说「用 <code>for f in $(find …)</code> 不也能批量吗？」请说三个 xargs 更稳的理由。</p>
+        <p><b>参考答案</b>：① <code>for</code> 的 <code>$(…)</code> 同样按空白切分，遇空格文件名一样断词，而 <code>-print0 | xargs -0</code> 天然安全；② xargs 遇到参数过多会自动分批，不会撑爆 ARG_MAX；③ xargs 一条命令写完，可读性和可交接性更好。</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight 终极挑战（15–20 min）</h2>
+    <div class="card">
+      <p><strong>任务</strong>：你是测序中心的运维。今天下班前要清理一个「别人留下的乱摊子」目录 <code>messy/</code>，里面有：</p>
+      <ul>
+        <li>几十个 <code>*.tmp</code> 临时文件（<strong>部分文件名含空格</strong>）</li>
+        <li>十几个 <code>*.log</code> 日志（要先统计每个的 <code>ERROR</code> 数，再删）</li>
+        <li>若干 <code>*.bam</code>（要统一移到 <code>aligned/</code>）</li>
+        <li>可能有 0 个 <code>*.vcf</code>（空输入坑，别让 xargs 裸跑）</li>
+      </ul>
+      <p><strong>交付物</strong>（可度量）：</p>
+      <ol>
+        <li>一张 <code>ERROR 统计表</code>（文件名 + 计数）</li>
+        <li><code>messy/</code> 里只剩 <code>*.vcf</code> 和目录，<code>*.tmp</code>/<code>*.log</code> 清空，<code>*.bam</code> 进了 <code>aligned/</code></li>
+        <li>每一步的命令截图（可用 <code>script</code> 或 tmux 记录）</li>
+      </ol>
+      <div class="callout warn"><span class="tag">故意埋的坑</span><p style="margin:6px 0 0">含空格文件名 + 可能为空的 <code>*.vcf</code> + 破坏性 rm——这三处就是让你 debug 的地方。</p></div>
+      <details><summary>参考答案 / 验收清单</summary><div class="ans">
+        <pre><span class="c"># 1. ERROR 统计表</span>
+find messy -name "*.log" -print0 | xargs -0 grep -c "ERROR"
+
+<span class="c"># 2. 删 tmp（含空格安全 + 空输入不跑）</span>
+find messy -name "*.tmp" -print0 | xargs -0 -r rm
+
+<span class="c"># 3. 删 log（统计完再删）</span>
+find messy -name "*.log" -print0 | xargs -0 -r rm
+
+<span class="c"># 4. 移动 bam（占位符插中间）</span>
+find messy -name "*.bam" -print0 | xargs -0 -I {} mv {} aligned/
+
+<span class="c"># 5. 验收：messy 里应只剩 vcf（或空）</span>
+find messy -type f</pre>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <thead><tr><th>时间</th><th>自检问题（能答上才算过）</th></tr></thead>
+      <tbody>
+        <tr><td>20 min</td><td>说出 xargs 解决的根本问题：为什么 rm 不读 stdin？</td></tr>
+        <tr><td>40 min</td><td><code>-n</code> 和 <code>-I</code> 的区别？什么时候用哪个？</td></tr>
+        <tr><td>60 min</td><td>为什么 <code>find -print0 | xargs -0</code> 是黄金组合？</td></tr>
+        <tr><td>85 min</td><td>空输入时 xargs 会怎样？怎么防？</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 参考答案</h2>
+    <details><summary>Lab 答案（点击展开）</summary><div class="ans">
+      <p><b>2.4 统计总行数</b>：<code>find reports -name "*.txt" | xargs wc -l</code> 输出每文件行数 + total。若只想要总数：<code>find reports -name "*.txt" | xargs cat | wc -l</code>。</p>
+      <p><b>3.3 样本统计</b>：思路是「找到 vcf → 传文件名给命令」。示例：<code>find . -name "*.vcf" -print0 | xargs -0 -I {} sh -c 'echo "{}: $(grep -v "^#" {} | wc -l)"'</code>（用 sh -c 让复杂命令能吃到 {}）。</p>
+      <p class="muted">其余 Lab 答案已写在每题的 Hint/Verification 里，照着做即见分晓。</p>
+    </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 记忆卡（15–30 张）</h2>
+    <p>本课 Anki 卡已生成到 <code>github/anki/lesson13-xargs.tsv</code>（可直接导入）。核心卡一览：</p>
+    <table>
+      <thead><tr><th>Front</th><th>Back</th></tr></thead>
+      <tbody>
+        <tr><td>xargs 解决什么问题？</td><td>把 stdin 转成命令参数，让不读 stdin 的命令（rm/mv/mkdir）也能批量执行</td></tr>
+        <tr><td><code>-n 2</code> 的作用？</td><td>每次取 2 个参数执行一次命令</td></tr>
+        <tr><td><code>-I {}</code> 的作用？</td><td>{} 是占位符，每个输入项单独执行一次，可插到命令任意位置</td></tr>
+        <tr><td>为什么用 <code>find -print0 | xargs -0</code>？</td><td>NUL 分隔，文件名含空格也不会断词</td></tr>
+        <tr><td>空输入时防 xargs 裸跑加什么？</td><td><code>-r</code>（--no-run-if-empty）</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 11. STOP -->
+  <section>
+    <div class="stop">
+      <h2>🚦 STOP — 先 push 再说</h2>
+      <p style="font-size:18px; margin:12px 0;">今天的命令和 Boss Fight 成果，还没 push 到 GitHub，这课就不算完成。</p>
+      <pre style="text-align:left; display:inline-block; margin:12px 0;"><code>git add .
+git commit -m "Lesson 13: xargs"
+git push origin main</code></pre>
+      <p>Go push it now, loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const isDark = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = isDark ? '🌙 Dark mode' : '☀️ Light mode';
+  }
+</script>
+</body>
+</html>

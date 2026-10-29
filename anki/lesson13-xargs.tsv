@@ -1,0 +1,22 @@
+xargs 是什么？	从标准输入读取数据，把这些数据转成命令参数，再交给另一个命令执行。
+xargs 解决的根本问题是什么？	让不读 stdin、只认参数的命令（rm/mv/mkdir/echo 等）也能批量执行。
+xargs 后面不写命令时，默认执行什么命令？	echo（所以常用来「预览」xargs 到底拼出了哪些参数）。
+xargs 默认用什么字符切分输入？	空白（空格、Tab、换行），这是文件名含空格会出错的原因。
+xargs -n 2 的作用？	每次取 2 个参数执行一次命令（控制每批传几个参数）。
+xargs -I {} 的作用？	{} 是占位符，每个输入项单独执行一次，可把参数替换到命令的任意位置。
+-I {} 和 -n 能混用吗？为什么？	不能。-I 隐含「每次一行/一条输入项执行一次」，会覆盖 -n。
+xargs -0 的作用？	用 NUL 字符（而非空白）分隔输入，专门配合 find -print0 使用。
+为什么 find -print0 | xargs -0 是黄金组合？	NUL 是文件名里绝不会出现的字符，文件名含空格/引号/换行都不会被切碎。
+xargs -t 的作用？	执行前把「将要执行的命令」打印到 stderr，用于看清拼出的命令。
+xargs -p 的作用？	执行每个命令前提示确认（y/n），给破坏性操作加保险。
+xargs -r（--no-run-if-empty）的作用？	输入为空时不执行命令，避免 find 没结果时 rm 被「裸跑」。
+删除所有 .tmp 文件，文件名含空格也安全？	"find . -name ""*.tmp"" -print0 | xargs -0 -r rm"
+批量把 .bam 移到 aligned/ 目录？	"find . -name ""*.bam"" -print0 | xargs -0 -I {} mv {} aligned/"
+"find . -name ""*.tmp"" | xargs rm 有什么坑？"	文件名含空格会被切成多个参数，rm 报 No such file or directory。
+空输入时 xargs rm 会发生什么？怎么防？	仍执行一次无参数的 rm（报 missing operand）；加 -r 防裸跑。
+参数过多超过 ARG_MAX 上限时，xargs 怎么办？	自动分批执行，这正是它比手写循环稳的原因。
+统计 logs/ 下每个 .log 里 ERROR 出现次数？	"find logs -name ""*.log"" -print0 | xargs -0 grep -c ""ERROR"""
+批量创建 raw/clean/report 三个目录？	"printf ""raw\\nclean\\nreport\\n"" | xargs -I {} mkdir -p {}"
+xargs 相比 for 循环批量处理的优势？	① -print0 -0 空格安全 ② 自动分批不超 ARG_MAX ③ 一行命令可读性/可交接性好。
+"printf ""1\\n2\\n3\\n"" | xargs -n 2 echo 输出什么？"	"两行：""1 2"" 和 ""3""（最后不足 2 个单独一批）。"
+为什么 -I {} 能把参数插到命令中间？	{} 是占位符，xargs 用每个输入项替换 {} 所在位置，所以可出现在命令任意位置。

@@ -1,0 +1,4 @@
+INFO  pipeline started
+ERROR disk quota exceeded
+ERROR bam write failed
+INFO  retry
