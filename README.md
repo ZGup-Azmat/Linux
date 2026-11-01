@@ -52,7 +52,7 @@
 | 10 | Redirection 重定向（Boss 战） | ✅ 完成 |
 | 11 | awk | ✅ 完成 |
 | 12 | sed | ✅ 完成 |
-| 13 | xargs | ⏳ 待学 |
+| 13 | xargs | ✅ 完成 |
 | 14 | Bash Script 脚本 | ⏳ 待学 |
 | 15 | Cron 定时任务（Boss 战） | ⏳ 待学 |
 | 16 | Environment Variables 环境变量 | ⏳ 待学 |
