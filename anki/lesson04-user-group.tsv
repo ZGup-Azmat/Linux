@@ -1,25 +1,97 @@
-whoami	当前用户名
-id	看 UID/GID/组
-id -un	只看用户名
-who	谁登录了（用户名 终端 时间 IP）
-w	谁登录了 + 正在跑什么命令
-groups	看自己或某用户在哪些组
-getent passwd user	查用户完整信息（passwd 行）
-sudo useradd -m -s /bin/bash user	建用户（家目录 + bash shell）
-sudo passwd user	设/改密码
-sudo usermod -aG group user	追加到组（-a 必加）
-sudo groupadd group	建组
-sudo userdel -r user	删用户 + 家目录
-sudo passwd -l user	锁账号（禁止登录）
-root 的 UID 是？	0（唯一超级用户）
-普通用户 UID 从几开始？	1000（1-999 是系统账号）
-主组 vs 附加组？	主组唯一（新文件默认属组），附加组多个（额外授权）
-usermod -aG 的 -a 作用？	append 追加；不加会覆盖原附加组
-useradd 不带 -m 会怎样？	不建家目录，shell 默认 /bin/sh
-/etc/passwd 7 字段？	用户名/密码占位/UID/GID/描述/家目录/shell
-为什么用组授权？	权限跟组走，人跟组流动，可交接
-useradd 报 Permission denied	缺 root，加 sudo
-useradd 报 already exists	用户名已存在，换名或先删
-改别人密码报无权	加 sudo passwd
-用户突然失去 sudo/bioinfo 组	usermod -G 忘了 -a，被覆盖
-sudo 报 not in sudoers file	新用户不在 sudo 组，usermod -aG sudo
+Linux 内核真正用来区分用户的是什么？为什么说用户名只是给人看的？	数字 UID（User ID）；内核和文件系统只用 UID 标识属主，用户名只是给人看的，所以「属主」本质就是一个 UID。
+root 用户的 UID 是多少？它为什么特殊？	UID 是 0；root 是唯一 UID=0 的超级用户，几乎不受权限限制，别把「自己的账号」和「root」混为一谈。
+给人登录用的普通用户 UID 从几开始？1000 以下的是什么账号？	从 1000 开始；1–999 是系统服务账号（如 www-data、sshd），不是给人登录用的。
+每个用户的主组和附加组分别有几个、各自干什么？	主组唯一（建号时自动指定，新文件默认属组）；附加组零到多个（手动加入，用于额外授权，如 bioinfo 共享、sudo 提权）。
+/etc/passwd 一行由冒号分隔的 7 个字段，按顺序分别是什么？	用户名 / 密码占位 x / UID / GID / 描述 GECOS / 家目录 / 登录 shell。
+Ubuntu 上新建用户的主组默认是什么？	默认等于用户名（例如 user 的主组就是 user）。
+sudo 的提权原理是什么？谁能 sudo 由什么决定？	临时以 root 身份跑单条命令；谁能提权记在 /etc/sudoers，Ubuntu 用 sudo 组管理（在 sudo 组里的用户能提权）。
+为什么团队权限要用「组」管理，而不是给每个文件逐个设属主？	权限跟着组走、人跟着组流动：设一次组权限，人来人往只改组员名单、不动文件；逐个设属主则每来人就要 chown 几百个文件，三个月后没人记得谁是谁。
+`whoami` 输出什么？	当前登录的用户名（如 user）。
+`id` 输出什么？它为什么是排查权限问题的第一步？	输出 uid=1000(user) gid=1000(user) groups=1000(user),27(sudo)；直接告诉你「我是谁、UID 多少、在哪些组」，对应权限判断里的属主/属组。
+`id -un` 和 `id -Gn` 分别只输出什么？	-un 只看用户名；-Gn 只列组名（不带数字），第一个是主组、其余是附加组。
+`who` 和 `w` 的输出有什么区别？	who 看谁登录（用户名/终端/时间/IP）；w 在 who 基础上还显示每个用户正在跑什么命令。
+`groups` 和 `groups newbie` 分别做什么？	groups 看自己在哪些组；groups newbie 看 newbie 在哪些组。
+`getent passwd user` 和 `getent group bioinfo` 分别查什么？	passwd 查 user 的完整账号行（7 字段）；group 查 bioinfo 组信息（成员列表在最后）。
+`sudo useradd -m -s /bin/bash newbie` 里 `-m` 和 `-s` 各是什么作用？	-m 创建家目录；-s /bin/bash 指定登录 shell 为 bash（不带 -m 则不建家目录、shell 默认 /bin/sh）。
+`sudo passwd -l newbie` 和 `sudo passwd -u newbie` 分别做什么？	-l 锁账号（禁止登录，可逆）；-u 解锁（恢复登录）。
+`sudo userdel -r newbie` 里 `-r` 的作用？漏掉会怎样？	-r 连家目录一起删；漏掉则只删账号、家目录和文件残留，离职数据残留是安全隐患。
+Debian/Ubuntu 上 `adduser` 和 `useradd` 有什么区别，各自什么时候用？	adduser 是交互式友好版（自动建家目录、引导设密码），适合手动开几个号；useradd 非交互、可重复，脚本里必须用 useradd。
+多用户服务器出事后要审计「是谁干的」，第一件事用什么命令组合？	who/w 看当下谁在线；id 看某身份有多大权限；getent 查账号是否真实存在。
+想查看系统里「所有用户」（包括没登录的），该用什么？为什么不能用 who？	用 getent passwd 或 cat /etc/passwd；因为 who 只显示当前登录会话，不是全部账号。
+普通用户能改谁的密码？想改别人密码需要什么？	只能改自己的密码（且要验证旧密码）；改别人的密码是 root 特权，需要 sudo passwd 用户名。
+`id -Gn` 输出的组名列表里，第一个组和其余组分别是什么？	第一个是主组，其余是附加组。
+同事之前能 sudo，现在突然不能了，你首先怀疑什么？	有人用 usermod -G 忘了加 -a，把附加组覆盖掉了（最经典的权限事故）。
+给新人开一个标准账号的固定三步模板是什么？	sudo useradd -m -s /bin/bash 用户名 → sudo passwd 用户名 → sudo usermod -aG bioinfo 用户名（建号→设密→拉组）。
+同事离职时，为什么优先锁号而不是直接删号？	锁号（passwd -l）可逆，是「冻结」；删号（userdel -r）不可逆，是「销毁」；先锁号留交接窗口，确认无遗留再删。
+/etc/passwd 和 /etc/group 两个文件分别存什么？	/etc/passwd 存用户账号信息（7 字段）；/etc/group 存所有组（组名/密码占位/GID/成员列表在最后）。
+建一个名为 bioinfo 的组。	sudo groupadd bioinfo
+给新人 newbie 开账号，要求有家目录、能用 bash 登录。	sudo useradd -m -s /bin/bash newbie
+给 newbie 设置（或修改）登录密码。	sudo passwd newbie
+把 newbie 追加进 bioinfo 组，但不能覆盖他已有的其它附加组。	sudo usermod -aG bioinfo newbie（-a 必须加，否则会覆盖）
+给 newbie sudo 提权能力。	sudo usermod -aG sudo newbie（加进 sudo 组后需重新登录生效）
+彻底删除 newbie 账号，连家目录一起删。	sudo userdel -r newbie
+让 newbie 暂时无法登录（不删除账号、保留数据）。	sudo passwd -l newbie（锁账号）
+查出 newbie 的完整账号信息（用户名/UID/家目录/shell 等）。	getent passwd newbie
+查出 newbie 属于哪些组。	groups newbie
+建组 bioinfo 并立刻验证它已存在。	sudo groupadd bioinfo && getent group bioinfo
+建用户 newbie（带家目录）并验证 /home/newbie 已生成。	sudo useradd -m -s /bin/bash newbie && ls -ld /home/newbie
+把 newbie 拉进 bioinfo 组，并验证他已在组里且原来的组没丢。	sudo usermod -aG bioinfo newbie && groups newbie
+读 /etc/passwd 里 newbie 的那一行。	grep newbie /etc/passwd
+一条命令给 a1、a2、a3 三个新用户批量建号并都拉进 bioinfo 组。	for u in a1 a2 a3; do sudo useradd -m -s /bin/bash $u && sudo usermod -aG bioinfo $u; done
+确认 `whoami` 输出的名字和 `id -un` 输出的名字一致。	whoami && id -un（两行输出应完全相同）
+逐段解释 `sudo useradd -m -s /bin/bash newbie` 每个部分的作用。	sudo=临时提权；useradd=建用户；-m=建家目录；-s /bin/bash=指定登录 shell 为 bash；newbie=用户名。
+解释 `id` 输出 `uid=1000(user) gid=1000(user) groups=1000(user),27(sudo)` 每段含义。	uid=1000 用户 ID；gid=1000 主组 ID；groups= 后面列出主组和所有附加组，27(sudo) 表示也在 sudo 组。
+onboarding 三步（useradd → passwd → usermod -aG）为什么顺序不能乱？	必须先建号才有账号可设密、可拉组；没账号时 passwd/usermod 都会失败。
+解释 `getent passwd user` 输出 `user:x:1000:1000:,,,:/home/user:/bin/bash` 里 `x` 和 `,,,` 分别是什么。	x=密码占位符（真实密码存 /etc/shadow）；,,,=GECOS 描述字段（此处为空）。
+解释 `sudo usermod -aG bioinfo newbie` 里 `-a` 和 `-G` 各自含义。	-a=append 追加（保留已有附加组）；-G=指定附加组（groups）；两者合起来是「把 newbie 追加进 bioinfo 组」。
+Boss 战里「建组→建号→设密→拉组→共享目录 chgrp+775」为什么每一步都缺一不可？	先有组才能设组权限；先有用户才能拉组；拉组后组权限才对这些人生效；共享目录还要属组正确+组可写才真正共享。
+解释 `for u in a1 a2 a3; do ... $u ...; done` 里 `$u` 的作用。	循环变量，每次迭代替换成 a1/a2/a3，把同一段命令跑三遍而不用手写三遍。
+普通用户直接跑 `useradd newbie`，报 `Permission denied`。原因和修复？	useradd 要写 /etc/passwd 等系统文件，只有 root 能改；加 sudo → sudo useradd -m newbie。
+建用户报 `user 'newbie' already exists`。原因和修复？	用户名唯一，重复创建被拒（幂等性提示）；先 getent passwd newbie 确认，换名或先 sudo userdel -r newbie 再建；脚本里应先判断是否已存在。
+想给别人改密码，报 `You may not view or modify password information for newbie`。原因和修复？	普通用户只能改自己密码（要验证旧密码），改别人是 root 特权；加 sudo → sudo passwd newbie。
+某人之前能 sudo，现在 `groups` 一看组没了。最可能的原因和修复？	有人用 usermod -G 忘了加 -a，覆盖了附加组；修复 sudo usermod -aG sudo,bioinfo 用户名。
+新用户跑 sudo 报 `newbie is not in the sudoers file. This incident will be reported.` 原因和修复？	新用户默认不在 sudo 组（只有安装时创建的第一个用户在）；sudo usermod -aG sudo newbie，用户重新登录后生效。
+把 newbie 拉进 bioinfo 组后，他立刻 ls 共享目录却 Permission denied，为什么？怎么解决？	组身份在登录时确定，当前会话不刷新；让他重新登录或 newgrp bioinfo。
+建用户时忘了 `-m`，newbie 登录后发现没有家目录、shell 是 /bin/sh。原因和修复？	useradd 不带 -m 不建家目录、shell 默认 /bin/sh；应 sudo useradd -m -s /bin/bash newbie（给人开号务必带 -m）。
+用 `userdel newbie`（没 -r）删号后，发现 /home/newbie 还在。原因和隐患？	userdel 不带 -r 只删账号不删家目录；离职人员数据残留是安全隐患，确认无遗留后手动清理。
+新用户登录不了，请给出排查顺序。	getent passwd 用户名 看 shell/家目录 → ls -ld /home/用户名 看家目录是否存在、属主 → 确认密码是否已设（sudo passwd）。
+用 `who` 想看系统所有用户，结果只显示几个人。为什么？正确做法？	who 看的是登录会话，不是所有用户；想看全部账号用 getent passwd 或 cat /etc/passwd。
+`whoami` 和 `id` 的区别？	whoami 只给用户名；id 给 UID/GID/组的完整信息（权限排查用它）。
+`who` 和 `w` 的区别？	who 看谁登录；w 还额外显示每个用户正在跑什么命令。
+`who` 和 `getent passwd` 的区别？	who 看当前登录会话；getent passwd 看系统所有账号（含未登录的）。
+`usermod -aG bioinfo user` 和 `usermod -G bioinfo user` 的区别？	-aG 追加（保留已有附加组）；-G 单独用会覆盖整份附加组清单（可能突然失去 sudo）。
+`passwd -l`（锁号）和 `userdel -r`（删号）的取舍？	-l 可逆（禁止登录、数据还在）；-r 不可逆（连家目录一起删）；离职先锁号，交接完再删。
+`adduser` 和 `useradd` 的区别？	adduser 交互式友好版（自动建家目录、引导设密码）；useradd 非交互、可重复，脚本里必须用它。
+主组和附加组的区别？	主组唯一（新文件默认属组）；附加组多个（用于额外授权，如 bioinfo 共享、sudo 提权）。
+6 人前列腺癌课题组共享 /data/PRAD/，怎么设计用户与组让三个月后依然一目了然？	按角色建组不按人：groupadd prad（全员）+ groupadd prad_editors（可写负责人）；人来了 usermod -aG、人走了 gpasswd -d；组名自带语义。
+新人入职一次性开好账号，写出 onboarding 三行并说明为什么这么做。	sudo useradd -m -s /bin/bash 用户名（家目录+bash）→ sudo passwd 用户名（设初始密码，本人首次登录后改）→ sudo usermod -aG bioinfo 用户名（拉组，-a 别覆盖）；三行固定模板+注释，可交接。
+同事离职，主管让你删号。A. userdel -r 立刻删 B. passwd -l 先锁号 C. 什么都不做，选哪个最稳妥？为什么？	选 B 先锁号：可逆「冻结」、禁止登录且保留数据；交接完数据、确认无遗留后再 userdel -r 彻底删。
+用一句话说服主管：为什么团队权限用「组」而不是逐个文件设属主？	权限跟着组走、人跟着组流动——设一次组权限，人来人往只改组员名单，不 chown 几百个文件。
+共享测序中心要搭完整「用户+组+权限」体系，列出可度量交付物。	建组 bioinfo（getent group 留证）；开 newbie/colleague（-m -s bash）；设密拉组（groups 验证）；共享目录 PRAD_shared 属组 bioinfo、权限 775；getent+groups+ls -ld 截图整套状态。
+团队里一人离职、一人入职，如何用最少命令完成权限交接（不动任何文件）？	离职者用 gpasswd -d 组名 用户名 退出组；新成员用 sudo usermod -aG 组名 用户名 进组；权限跟组走，只改组员名单、不动文件。
+一份「新人 onboarding」脚本要能交接给三个月后的同事，需要约定什么？	约定用户名=姓名小写、必进 bioinfo 组、shell 用 bash；命令带注释，别人一眼看懂每步在干嘛。
+生信服务器上 results/ 已设「属组 bioinfo、组可写」，但研究员还是写不进去，最可能的根因？	bioinfo 组根本还不存在，或研究员还没被拉进组——权限位有了但「人没就位」，先 groupadd + usermod -aG 把权限分给对的人。
+新研究员要读共享目录 /data/PRAD/（属组 prad、组可读），怎么让他能访问？	sudo usermod -aG prad 研究员（追加进组，-a 别覆盖），重新登录后生效。
+counts.tsv 属主是 newbie，同事 colleague 要共同编辑，如何用组解决（衔接 Lesson 03）？	groupadd bioinfo → 把两人 usermod -aG bioinfo → chgrp bioinfo counts.tsv + 组写权限；权限跟组走，人跟组流动。
+一个 5GB 的 sample.fastq.gz 在共享目录（属组 bioinfo、权限 775），新同事说读不了，先查什么？	先 id / groups 用户名 看他在不在 bioinfo 组；不在就 usermod -aG bioinfo，重新登录。
+审计：某天 /data/PRAD 的 BAM 文件被误删，怎么查当时谁在线、相关账号是否真实存在？	who 或 w 看登录会话；getent passwd 查相关账号是否存在、家目录/shell；配合日志交叉核对（[Extension] 可用 last 查历史登录）。
+scRNA-seq 结果目录要给 6 个成员共享读写，设计最省事的授权方式。	建一个组（如 scrna_team），目录 chgrp 到该组 + 组 rwx（775），成员 usermod -aG 进组；人来人往只改组员。
+离职同事家目录里还有没交接的 alignment log 和 VCF 结果，正确的处理顺序？	先 sudo passwd -l 锁号（冻结、禁止登录）→ 交接完数据 → 确认无遗留 → 再 sudo userdel -r 彻底删。
+新研究员做 RNA-seq 分析，需要读公共参考基因组 genome.fa，又要写 bioinfo 组的 results/。最小权限原则下怎么给他配组？	只把他 usermod -aG bioinfo（附加组）；genome.fa 保持「其他用户可读」则他自动能读，无需改主组或额外提权。
+需求从「拉进 bioinfo 组」变成「拉进 bioinfo 和 sudo 两个组」，怎么写？	sudo usermod -aG bioinfo,sudo 用户名（-a 追加，多组用逗号分隔）。
+脚本里想建号但避免 already exists 报错，应该先做什么？	先 getent passwd 用户名 判断是否已存在，存在则跳过或另行处理（幂等）。
+锁号后要恢复登录，怎么操作？	sudo passwd -u 用户名（解锁）。
+建号时不想要 bash 而想要默认 sh，改哪个参数？	省略 -s（默认 /bin/sh），或显式写 -s /bin/sh。
+共享目录 PRAD_shared 从「组可写 775」改成「组只读 755」，怎么改？	chmod 775 PRAD_shared → chmod 755 PRAD_shared（去掉组的写权限位）。
+批量建号从 3 个（a1 a2 a3）改成 10 个（a1..a10），怎么改循环？	把 for 列表改成 for u in {a1..a10}（或 a1..a10 的名字列表），其余命令不变。
+`usermod -G bioinfo user`（漏了 -a）会发生什么？这是哪种坑？	覆盖：把 user 原来的附加组全清空、只剩 bioinfo（可能突然失去 sudo）；这是最经典的权限事故，必须用 -aG。
+`useradd` 不带 `-m` 会发生什么？	不创建家目录，shell 默认 /bin/sh；用户登录后可能没家目录，给人开号务必带 -m。
+`userdel` 不带 `-r` 会发生什么？	只删账号，家目录和文件还在；离职人员数据残留是安全隐患。
+你运行 `cat /etc/passwd | wc -l` 得到 40，但 `who` 只显示 2 行。两个数为什么差这么多？	/etc/passwd 是所有账号（含 www-data/sshd 等系统服务账号 + 没登录的人）；who 只看当前登录会话，所以数字小得多。
+`id -Gn` 输出的第一个组和后面的组，性质上有什么不同？	第一个是主组（唯一），后面是附加组（可以有多个）。
+完整走一遍「给 bioinfo 组开 newbie、colleague 两个账号 + 设密 + 拉组」并留证。	sudo groupadd bioinfo → sudo useradd -m -s /bin/bash newbie → sudo useradd -m -s /bin/bash colleague → sudo passwd newbie → sudo passwd colleague → sudo usermod -aG bioinfo newbie → sudo usermod -aG bioinfo colleague → groups newbie colleague 验证都含 bioinfo。
+Boss 战全套：建组 bioinfo + 开两账号 + 拉组 + 建共享目录（属组 bioinfo、775）+ 留证。	groupadd bioinfo；useradd -m -s /bin/bash newbie colleague；passwd×2；usermod -aG bioinfo×2；mkdir PRAD_shared && chgrp bioinfo PRAD_shared && chmod 775 PRAD_shared；getent+groups+ls -ld 截图整套状态。
+从零把 results/ 设成「bioinfo 组可写」给研究员用，正确顺序是什么（衔接 Lesson 03）？	先 groupadd bioinfo 建组 → useradd 建号 → usermod -aG bioinfo 拉人；再 chgrp bioinfo results/ + chmod 组写权限；先有「对的人」，权限才生效。
+排查「新用户登录不了」的完整顺序是什么？	getent passwd 用户名 看 shell 和家目录 → ls -ld /home/用户名 看家目录是否存在、属主 → 确认密码是否已设（sudo passwd）；依次排除。
+审计一个新账号「他有多大权限」，完整动作链是什么？	id 用户名 看 UID/GID/组 → groups 用户名 看组列表 → getent passwd 查家目录/shell → 判断是否在 sudo 组。
+写一段可交接的「新人 onboarding」带注释脚本模板。	sudo useradd -m -s /bin/bash 用户名  # 建号+家目录+bash；sudo passwd 用户名  # 设初始密码；sudo usermod -aG bioinfo 用户名  # 拉进课题组（-a 别覆盖）。

@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson 14 · Bash Script ｜ Turn Commands Into a Reusable Program</title>
+<style>
+  :root {
+    --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --text-2: #6e6e73;
+    --accent: #0071e3; --accent-2: #2997ff; --border: #d2d2d7;
+    --code-bg: #1d1d1f; --code-text: #f5f5f7;
+    --ok: #248a3d; --warn: #b25000; --err: #d70015;
+    --callout-tip: #e8f5ee; --callout-warn: #fff4e0; --callout-err: #fdecec; --callout-info: #eaf2fd;
+  }
+  [data-theme="dark"] {
+    --bg: #000000; --card: #1c1c1e; --text: #f5f5f7; --text-2: #a1a1a6;
+    --accent: #0a84ff; --accent-2: #409cff; --border: #3a3a3c;
+    --code-bg: #0d0d0f; --code-text: #f5f5f7;
+    --ok: #30d158; --warn: #ff9f0a; --err: #ff453a;
+    --callout-tip: #1a2b20; --callout-warn: #2b2412; --callout-err: #2b1517; --callout-info: #12233a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 24px 20px 120px; }
+  .topbar {
+    position: sticky; top: 0; z-index: 10; display: flex; justify-content: flex-end; gap: 8px;
+    padding: 10px 20px; background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--border);
+  }
+  .topbar button { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 980px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .hero { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 32px 28px; margin-top: 24px; }
+  .hero .eyebrow { color: var(--accent); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+  .hero h1 { font-size: 40px; margin: 8px 0 4px; font-weight: 700; letter-spacing: -.02em; }
+  .hero .sub { color: var(--text-2); font-size: 18px; margin: 0 0 24px; }
+  .progress-label { display:flex; justify-content:space-between; font-size:13px; color:var(--text-2); margin-bottom:6px; }
+  .progress-track { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 35%; background: var(--accent); border-radius: 999px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-top: 24px; }
+  .meta .item { background: var(--bg); border-radius: 12px; padding: 12px 16px; }
+  .meta .k { font-size: 12px; color: var(--text-2); text-transform: uppercase; letter-spacing:.05em; }
+  .meta .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -.01em; display: flex; align-items: center; gap: 12px; }
+  h2 .num { color: var(--accent); font-weight: 700; }
+  h3 { font-size: 20px; font-weight: 650; margin: 28px 0 8px; }
+  h4 { font-size: 16px; font-weight: 650; margin: 22px 0 8px; }
+  p { margin: 10px 0; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px 24px; margin: 16px 0; }
+  .callout { border-radius: 12px; padding: 14px 18px; margin: 14px 0; border: 1px solid var(--border); }
+  .callout .tag { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing:.05em; }
+  .callout.tip { background: var(--callout-tip); } .callout.tip .tag { color: var(--ok); }
+  .callout.warn { background: var(--callout-warn); } .callout.warn .tag { color: var(--warn); }
+  .callout.err { background: var(--callout-err); } .callout.err .tag { color: var(--err); }
+  .callout.info { background: var(--callout-info); } .callout.info .tag { color: var(--accent); }
+  pre { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 16px 18px; overflow-x: auto; font-family: "SF Mono", "JetBrains Mono", Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.6; }
+  pre .c { color: #8e8e93; }
+  code { font-family: "SF Mono", Consolas, monospace; font-size: .92em; background: var(--bg); padding: 1px 6px; border-radius: 6px; }
+  pre code { background: none; padding: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } .hero h1 { font-size: 30px; } }
+  svg { max-width: 100%; height: auto; }
+  .diagram { text-align: center; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing:.04em; }
+  .task { background: var(--card); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 18px 20px; margin: 16px 0; }
+  .task .level { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing:.06em; }
+  .task .l1 { color: var(--ok); } .task .l2 { color: var(--warn); } .task .l3 { color: var(--err); }
+  .task .goal { font-weight: 650; font-size: 16px; }
+  .task .field { margin-top: 8px; font-size: 14px; }
+  .task .field b { color: var(--accent); }
+  details { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px 18px; margin: 12px 0; }
+  summary { cursor: pointer; font-weight: 600; padding: 12px 0; color: var(--accent); }
+  details .ans { padding-bottom: 14px; }
+  .dbg .step { margin: 10px 0; padding-left: 12px; border-left: 3px solid var(--border); }
+  .dbg .step b { color: var(--accent); }
+  .dbg .think { background: var(--callout-warn); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .dbg .explain { background: var(--callout-info); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
+  .quiz { border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 12px 0; background: var(--card); }
+  .quiz .q { font-weight: 600; }
+  .quiz button.opt { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); cursor: pointer; font-size: 14px; }
+  .quiz button.opt:hover { border-color: var(--accent); }
+  .quiz button.opt.correct { border-color: var(--ok); background: var(--callout-tip); }
+  .quiz button.opt.wrong { border-color: var(--err); background: var(--callout-err); }
+  .quiz .fb { font-size: 13px; margin-top: 8px; color: var(--text-2); }
+  .stop { background: linear-gradient(135deg, #ff2d55, #ff375f); color: #fff; border-radius: 18px; padding: 28px 28px; text-align: center; }
+  .stop h2 { color: #fff; justify-content: center; }
+  .stop code { background: rgba(255,255,255,.2); color: #fff; }
+  .muted { color: var(--text-2); }
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+  @media print {
+    .topbar { display: none; }
+    body { background: #fff; color: #000; }
+    .card, .hero, .task, .quiz, details { border: 1px solid #ccc; background: #fff; }
+    pre { background: #f5f5f7; color: #000; }
+    .stop { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div class="topbar">
+  <button onclick="toggleTheme()" id="themeBtn">🌙 Dark mode</button>
+  <button onclick="window.print()">🖨 Print / Save PDF</button>
+</div>
+<div class="wrap">
+
+  <!-- 0. HERO -->
+  <div class="hero">
+    <div class="eyebrow">Lesson 14 · Part II · Shell Engineering</div>
+    <h1>Bash Script</h1>
+    <p class="sub">Turn commands into a reusable program —— 把一堆命令写进脚本，一键复用</p>
+    <div class="progress-label"><span>Progress</span><span>14 / 40</span></div>
+    <div class="progress-track"><div class="progress-fill"></div></div>
+    <div class="meta">
+      <div class="item"><div class="k">Difficulty</div><div class="v">★★★★★ Core</div></div>
+      <div class="item"><div class="k">Time</div><div class="v">70–90 min</div></div>
+      <div class="item"><div class="k">Deliverable</div><div class="v">一个可复用的 FASTQ 统计脚本 + 报告</div></div>
+      <div class="item"><div class="k">Prereq</div><div class="v">Lesson 05 vim + Lesson 10 重定向 + Lesson 13 xargs</div></div>
+    </div>
+  </div>
+
+  <!-- 1. MISSION CONTEXT -->
+  <section>
+    <h2><span class="num">01</span> Mission Context 任务背景</h2>
+    <div class="card">
+      <p>测序中心每个周一早上，你都要对刚下机的一批 FASTQ 做同样的质控：</p>
+      <blockquote style="border-left:3px solid var(--accent); margin:12px 0; padding:4px 16px; color:var(--text-2);">「统计每个 <code>*.fastq</code> 的 read 数 → 检查样本文件是否齐全 → 统计日志里的 <code>ERROR</code> → 生成一份报告。」</blockquote>
+      <p>你已经连续三周，每周手敲同样的 8 条命令。今天主管说：<strong>「把这件事写成脚本，让任何同事一条命令就能跑完。」</strong></p>
+      <p>前 13 课你学会了文件、路径、权限、<code>grep</code>、管道、重定向、<code>xargs</code>——它们都是「单个动作」。现在要把这些动作<strong>打包成一个可复用的程序</strong>。</p>
+      <p>Context（场景）→ Need（需求）→ Tool（工具）：<strong>每周重复的流程 → 需要自动化、可复用、可交接 → Bash 脚本</strong>。</p>
+    </div>
+  </section>
+
+  <!-- 2. KNOWLEDGE -->
+  <section>
+    <h2><span class="num">02</span> Knowledge 核心知识（≤25%）</h2>
+
+    <div class="card">
+      <h3>概念 1 · 脚本是什么 + 如何运行（What &amp; How to Run）</h3>
+      <p><strong>定义（English）</strong>：A shell script is a plain-text file containing a sequence of shell commands, executed <strong>top-to-bottom</strong> by an interpreter (the shell).</p>
+      <p><strong>定义（中文）</strong>：脚本就是把一条条命令按顺序写进一个文本文件，交给 shell（解释器）<strong>从上到下逐行执行</strong>。</p>
+      <div class="diagram">
+        <svg width="520" height="150" viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="45" width="130" height="60" rx="10" fill="none" stroke="#0071e3" stroke-width="2"/>
+          <text x="75" y="68" text-anchor="middle" font-size="13" fill="#0071e3" font-weight="bold">script.sh</text>
+          <text x="75" y="88" text-anchor="middle" font-size="11" fill="#6e6e73">文本文件(命令清单)</text>
+          <path d="M140 75 L190 75" stroke="#2997ff" stroke-width="2" marker-end="url(#a1)"/>
+          <text x="165" y="65" text-anchor="middle" font-size="11" fill="#6e6e73">#!/bin/bash</text>
+          <rect x="195" y="45" width="120" height="60" rx="10" fill="#0071e3"/>
+          <text x="255" y="68" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">bash</text>
+          <text x="255" y="88" text-anchor="middle" font-size="11" fill="#dbeafe">解释器逐行执行</text>
+          <path d="M315 75 L365 75" stroke="#2997ff" stroke-width="2" marker-end="url(#a1)"/>
+          <text x="340" y="65" text-anchor="middle" font-size="11" fill="#6e6e73">输出</text>
+          <rect x="370" y="45" width="130" height="60" rx="10" fill="none" stroke="#d70015" stroke-width="2"/>
+          <text x="435" y="68" text-anchor="middle" font-size="13" fill="#d70015" font-weight="bold">结果</text>
+          <text x="435" y="88" text-anchor="middle" font-size="11" fill="#6e6e73">复用/交接</text>
+          <defs><marker id="a1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#2997ff"/></marker></defs>
+        </svg>
+      </div>
+      <p><strong>心智模型</strong>：脚本是一份「菜谱」，bash 是照着菜谱一步步做的「厨师」。菜谱的第一行 <code>#!/bin/bash</code>（shebang，读作 sha-bang）告诉系统「用哪个厨师来做」。</p>
+      <p><strong>语法</strong>：</p>
+      <pre><span class="c"># 第一行必须是 shebang，指定解释器</span>
+#!/bin/bash
+
+<span class="c"># 以 # 开头的是注释，不会被执行</span>
+echo "Hello, sequencing center"
+
+<span class="c"># 下面每一行都是一条普通命令，按顺序执行</span>
+mkdir -p qc
+echo "目录已创建"</pre>
+      <p><strong>两种运行方式</strong>：</p>
+      <pre>bash script.sh      <span class="c"># 方式一：显式交给 bash 解释，不需要执行权限</span>
+
+chmod +x script.sh  <span class="c"># 方式二：加执行权限（回顾 Lesson 03 权限）</span>
+./script.sh         <span class="c">#         再用 ./ 运行，读 shebang 决定解释器</span></pre>
+      <div class="callout err"><span class="tag">边界 / 失败场景</span>
+        <p style="margin:6px 0 0"><strong>忘加执行权限</strong>：直接 <code>./script.sh</code> 报 <code>Permission denied</code>——文件没有 <code>x</code> 位。要么 <code>chmod +x</code>，要么改用 <code>bash script.sh</code>。</p>
+        <p style="margin:6px 0 0"><strong>没写 shebang</strong>：<code>./script.sh</code> 时系统不知道用哪个解释器，会用当前 shell 去执行，行为可能和你预期不符（而 <code>bash script.sh</code> 不受 shebang 影响）。</p>
+      </div>
+      <p><strong>工程场景为什么需要它</strong>：手敲命令只能你一个人复现，脚本能「写一次、跑一百次」，还能交给三个月后的同事直接运行——<strong>可复用 + 可交接</strong>，这是从「会敲命令」到「会做工程」的分水岭。</p>
+      <p><strong>衔接</strong>：本课之前学的每条命令（<code>find</code>/<code>grep</code>/<code>wc</code>/管道/重定向）都是脚本的「积木」；脚本文件本身用 <code>vim</code>（Lesson 05）来写。</p>
+    </div>
+
+    <div class="card">
+      <h3>概念 2 · 变量、引用、命令替换（Variables / Quoting / Command Substitution）</h3>
+      <p><strong>定义（English）</strong>：A <strong>variable</strong> is a named box that stores a value; <code>$(command)</code> <strong>command substitution</strong> captures a command's output into a value; <strong>quoting</strong> controls whether the shell expands <code>$</code> or treats text literally.</p>
+      <p><strong>定义（中文）</strong>：<strong>变量</strong>是给值起名字的「盒子」；<code>$(命令)</code> <strong>命令替换</strong>把命令的输出抓回来当值；<strong>引号</strong>决定 shell 要不要展开 <code>$</code>、还是原样照字面。</p>
+      <div class="diagram">
+        <svg width="520" height="150" viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="50" width="110" height="55" rx="10" fill="none" stroke="#0071e3" stroke-width="2"/>
+          <text x="65" y="74" text-anchor="middle" font-size="13" fill="#0071e3" font-weight="bold">命令 date</text>
+          <text x="65" y="92" text-anchor="middle" font-size="11" fill="#6e6e73">输出一行日期</text>
+          <path d="M120 78 L170 78" stroke="#2997ff" stroke-width="2" marker-end="url(#a2)"/>
+          <text x="145" y="68" text-anchor="middle" font-size="11" fill="#6e6e73">$( )</text>
+          <rect x="175" y="45" width="130" height="60" rx="10" fill="#0071e3"/>
+          <text x="240" y="68" text-anchor="middle" font-size="13" fill="#fff" font-weight="bold">变量 today</text>
+          <text x="240" y="88" text-anchor="middle" font-size="11" fill="#dbeafe">today=$(date)</text>
+          <path d="M305 75 L355 75" stroke="#2997ff" stroke-width="2" marker-end="url(#a2)"/>
+          <text x="330" y="65" text-anchor="middle" font-size="11" fill="#6e6e73">$today</text>
+          <rect x="360" y="50" width="140" height="55" rx="10" fill="none" stroke="#d70015" stroke-width="2"/>
+          <text x="430" y="74" text-anchor="middle" font-size="13" fill="#d70015" font-weight="bold">echo $today</text>
+          <text x="430" y="92" text-anchor="middle" font-size="11" fill="#6e6e73">取出值来用</text>
+          <defs><marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#2997ff"/></marker></defs>
+        </svg>
+      </div>
+      <p><strong>语法</strong>：</p>
+      <pre>name=value              <span class="c"># 赋值：等号两边【不能有空格】</span>
+echo "$name"            <span class="c"># 取值：$ 引用</span>
+echo "${name}_suffix"   <span class="c"># ${} 花括号：界定变量名边界，避免和后面字符粘连</span>
+
+today=$(date +%F)       <span class="c"># 命令替换：把 date 的输出存进变量</span>
+echo "today is $today"
+
+read -p "样本 ID: " id   <span class="c"># read：读用户键盘输入，存进变量</span>
+echo "你输入了 $id"</pre>
+      <p><strong>引号规则（易错）</strong>：</p>
+      <pre>echo '$HOME'   <span class="c"># → $HOME       单引号：字面量，不展开变量</span>
+echo "$HOME"   <span class="c"># → /home/user  双引号：展开变量</span></pre>
+      <div class="callout warn"><span class="tag">边界 / 坑</span>
+        <p style="margin:6px 0 0"><strong>赋值有空格</strong>：<code>name = value</code> 会被当成「执行命令 <code>name</code>，参数是 <code>=</code> 和 <code>value</code>」，报 <code>name: command not found</code>。</p>
+        <p style="margin:6px 0 0"><strong>变量不引</strong>：<code>echo $name</code> 当 <code>name</code> 为空或含空格时会「词拆分」出错；<strong>稳妥习惯：永远写 <code>"$name"</code></strong>。</p>
+        <p style="margin:6px 0 0"><strong>反引号</strong>：<code>`date`</code> 也能做命令替换，但嵌套、可读性都差，现代写法统一用 <code>$( )</code>。</p>
+      </div>
+      <p><strong>工程场景为什么需要它</strong>：脚本要处理「会变的东西」——目录名、样本 ID、日期、线程数——写死就失去了复用价值。变量 + 命令替换让脚本「一次写成，处处适用」。</p>
+      <p><strong>衔接</strong>：上一课 <code>xargs</code> 把 stdin 转成参数；本课 <code>$( )</code> 把命令输出转成「值」。它俩都做「搬运」，但 xargs 喂给命令、<code>$( )</code> 喂给变量。</p>
+    </div>
+
+    <div class="card">
+      <h3>概念 3 · 控制流：if / for / while + 退出码（Control Flow）</h3>
+      <p><strong>定义（English）</strong>：<strong>Control flow</strong> lets a script make decisions (<code>if</code>) and repeat work (<code>for</code>/<code>while</code>). Every command returns an <strong>exit status</strong> (<code>$?</code>): <code>0</code> = success, non-zero = failure.</p>
+      <p><strong>定义（中文）</strong>：<strong>控制流</strong>让脚本能「做判断」（<code>if</code>）和「重复干活」（<code>for</code>/<code>while</code>）。每条命令都有<strong>退出码</strong>（<code>$?</code>）：<code>0</code> 表示成功，非 0 表示失败。</p>
+      <div class="diagram">
+        <svg width="520" height="150" viewBox="0 0 520 150" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="90,15 180,60 90,105 0,60" fill="none" stroke="#0071e3" stroke-width="2"/>
+          <text x="90" y="64" text-anchor="middle" font-size="13" fill="#0071e3" font-weight="bold">条件成立?</text>
+          <path d="M180 60 L250 40" stroke="#2997ff" stroke-width="2" marker-end="url(#a3)"/>
+          <text x="210" y="40" text-anchor="middle" font-size="11" fill="#248a3d">是</text>
+          <rect x="255" y="15" width="120" height="50" rx="10" fill="#e8f5ee" stroke="#248a3d" stroke-width="2"/>
+          <text x="315" y="44" text-anchor="middle" font-size="13" fill="#248a3d" font-weight="bold">then 分支</text>
+          <path d="M180 60 L250 90" stroke="#2997ff" stroke-width="2" marker-end="url(#a3)"/>
+          <text x="210" y="100" text-anchor="middle" font-size="11" fill="#d70015">否</text>
+          <rect x="255" y="70" width="120" height="50" rx="10" fill="#fdecec" stroke="#d70015" stroke-width="2"/>
+          <text x="315" y="99" text-anchor="middle" font-size="13" fill="#d70015" font-weight="bold">else 分支</text>
+          <path d="M375 40 L440 40 L440 20" stroke="#2997ff" stroke-width="2" fill="none"/>
+          <text x="400" y="20" text-anchor="middle" font-size="11" fill="#6e6e73">for 循环</text>
+          <rect x="410" y="15" width="100" height="50" rx="10" fill="none" stroke="#b25000" stroke-width="2"/>
+          <text x="460" y="44" text-anchor="middle" font-size="13" fill="#b25000" font-weight="bold">do ... done</text>
+          <defs><marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#2997ff"/></marker></defs>
+        </svg>
+      </div>
+      <p><strong>语法</strong>：</p>
+      <pre><span class="c"># if：做判断（注意 [ ] 内侧两边都要有空格）</span>
+if [ -f "fastq/$id.fastq" ]; then
+  echo "$id 文件存在"
+else
+  echo "$id 文件缺失"
+fi
+
+<span class="c"># for：对列表里的每一项重复做（遍历 *.fastq 常用）</span>
+for f in fastq/*.fastq; do
+  echo "处理 $f"
+done
+
+<span class="c"># while read：逐行读文件（读样本列表常用）</span>
+while IFS= read -r line; do
+  echo "$line"
+done &lt; samples.txt</pre>
+      <p><strong>常用测试条件（<code>test</code> / <code>[ ]</code>）</strong>：</p>
+      <table>
+        <thead><tr><th>条件</th><th>含义</th></tr></thead>
+        <tbody>
+          <tr><td><code>[ -f file ]</code></td><td>文件存在且是普通文件</td></tr>
+          <tr><td><code>[ -d dir ]</code></td><td>目录存在</td></tr>
+          <tr><td><code>[ -z "$s" ]</code></td><td>字符串为空</td></tr>
+          <tr><td><code>[ -n "$s" ]</code></td><td>字符串非空</td></tr>
+          <tr><td><code>[ "$a" = "$b" ]</code></td><td>两个字符串相等</td></tr>
+        </tbody>
+      </table>
+      <p><strong>退出码 + 逻辑连接</strong>：</p>
+      <pre>grep "ERROR" run1.log
+echo $?          <span class="c"># 0 = 成功，非 0 = 失败</span>
+
+[ -f file ] &amp;&amp; echo "存在" || echo "不存在"
+<span class="c"># &amp;&amp;：前面成功才执行后面；||：前面失败才执行后面</span></pre>
+      <div class="callout err"><span class="tag">边界 / 失败场景</span>
+        <p style="margin:6px 0 0"><strong><code>[ ]</code> 少了空格</strong>：<code>[ -f "$f"]</code> 或 <code>["$a" = "$b"]</code> 都会报语法错误——<code>[</code> 本身是一个命令，必须和参数用空格隔开。</p>
+        <p style="margin:6px 0 0"><strong>测试里变量不引</strong>：<code>[ $s = yes ]</code> 当 <code>s</code> 为空时展开成 <code>[ = yes ]</code>，报 <code>unary operator expected</code>。要写 <code>[ "$s" = yes ]</code>。</p>
+        <p style="margin:6px 0 0"><strong><code>while read</code> 丢最后一行</strong>：如果文件最后一行没有换行符，朴素 <code>while read</code> 会读不到它（可加 <code>|| [ -n "$line" ]</code> 处理）。</p>
+      </div>
+      <div class="callout tip"><span class="tag">进阶提示（可跳过）</span><p style="margin:6px 0 0">脚本开头加 <code>set -euo pipefail</code>：<code>-e</code> 遇到错误立即退出、<code>-u</code> 用了未定义变量就报错、<code>-o pipefail</code> 让管道任何一环失败都算失败。这是「生产级脚本」的标配，能提前挡住很多 bug。</p></div>
+      <p><strong>工程场景为什么需要它</strong>：没有判断，脚本遇到「文件缺失」就崩；没有循环，就退回到手敲几百次。控制流让脚本能<strong>应对真实世界的不确定性</strong>——这正是「脚本」和「命令」的本质区别。</p>
+      <p><strong>衔接</strong>：本课 <code>for</code> 循环和上一课 <code>xargs</code> 都能「批量处理」——<code>xargs</code> 擅长「把很多参数一次喂给一个命令」，<code>for</code> 擅长「对每一项做多步操作」。下一课 Cron 会把脚本<strong>定时自动运行</strong>，脚本是 Cron 的前提。</p>
+    </div>
+  </section>
+
+  <!-- 3. GUIDED PRACTICE -->
+  <section>
+    <h2><span class="num">03</span> Guided Practice 引导练习</h2>
+    <p>跟着敲一遍，看每条的预期输出，理解「为什么」。</p>
+    <div class="card">
+      <pre><span class="c"># 1. 写第一个脚本并运行（先 bash 运行，再加权限运行）</span>
+cat &gt; hello.sh &lt;&lt;'EOF'
+#!/bin/bash
+echo "Hello, sequencing center"
+echo "Today: $(date +%F)"
+EOF
+bash hello.sh
+<span class="c"># Hello, sequencing center</span>
+<span class="c"># Today: 2026-11-01        ← $(date +%F) 被替换成当天日期</span>
+
+<span class="c"># 2. 变量赋值与取值（注意等号两边无空格）</span>
+sample=SRR1001
+echo "$sample"
+<span class="c"># SRR1001</span>
+
+<span class="c"># 3. 引号的区别：单引号不展开，双引号展开</span>
+echo '$sample'   <span class="c"># → $sample</span>
+echo "$sample"   <span class="c"># → SRR1001</span>
+
+<span class="c"># 4. for 循环遍历 fastq 文件</span>
+for f in fastq/*.fastq; do echo "处理 $f"; done
+<span class="c"># 处理 fastq/SRR1001.fastq</span>
+<span class="c"># 处理 fastq/SRR1002.fastq</span>
+<span class="c"># 处理 fastq/SRR1003.fastq</span></pre>
+      <p class="muted">为什么写脚本要先 <code>bash hello.sh</code> 而不是 <code>./hello.sh</code>？因为新文件还没有 <code>x</code> 权限，<code>./hello.sh</code> 会 <code>Permission denied</code>。先 <code>bash</code> 跑通，再 <code>chmod +x</code> 用 <code>./</code> 跑，体会两种方式的区别。</p>
+    </div>
+  </section>
+
+  <!-- 4. LAB -->
+  <section>
+    <h2><span class="num">04</span> Intensive Lab 强化实验（14 题）</h2>
+    <p>在 <code>tmux</code> 里开一个 pane 写脚本、一个 pane 运行验证。练习数据在 <code>github/lesson14/data/</code>（先 <code>cd</code> 进去）。</p>
+
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation（基础巩固）</div>
+      <div class="goal">1.1 写 <code>hello.sh</code>：shebang + 注释 + 三行输出，加执行权限后用 <code>./hello.sh</code> 运行</div>
+      <div class="field"><b>Hint</b>：<code>chmod +x hello.sh</code> 后再 <code>./hello.sh</code></div>
+      <div class="field"><b>Verification</b>：<code>./hello.sh</code> 能直接运行，不报 <code>Permission denied</code></div>
+    </div>
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation</div>
+      <div class="goal">1.2 定义变量 <code>PREFIX=gse65496_</code> 和 <code>THREADS=4</code>，用 <code>echo</code> 打印一行「前缀是…，线程数…」</div>
+      <div class="field"><b>Hint</b>：<code>echo "前缀 $PREFIX，线程 $THREADS"</code></div>
+      <div class="field"><b>Verification</b>：输出正确展开变量值，等号两边无空格</div>
+    </div>
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation</div>
+      <div class="goal">1.3 用命令替换把当前时间 <code>$(date +%H:%M)</code> 存进变量并打印</div>
+      <div class="field"><b>Hint</b>：<code>now=$(date +%H:%M); echo "现在是 $now"</code></div>
+      <div class="field"><b>Verification</b>：打印出真实的当前时间</div>
+    </div>
+    <div class="task">
+      <div class="level l1">Level 1 · Foundation</div>
+      <div class="goal">1.4 用 <code>read -p</code> 读入一个样本 ID，回显「你要处理的是 XX」</div>
+      <div class="field"><b>Hint</b>：<code>read -p "输入样本 ID: " id; echo "你要处理的是 $id"</code></div>
+      <div class="field"><b>Verification</b>：输入 <code>SRR1001</code> 后正确回显</div>
+    </div>
+
+    <div class="task">
+      <div class="level l2">Level 2 · Integration（组合 ≥2 概念）</div>
+      <div class="goal">2.1 写脚本 <code>list_fastq.sh</code>：用 <code>for</code> 循环列出 <code>fastq/</code> 下所有 <code>*.fastq</code> 文件名</div>
+      <div class="field"><b>Hint</b>：<code>for f in fastq/*.fastq; do echo "$f"; done</code></div>
+      <div class="field"><b>Verification</b>：输出 3 个 fastq 文件名</div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.2 在循环里用 <code>wc -l</code> 统计每个 fastq 的 read 数（行数 ÷ 4）</div>
+      <div class="field"><b>Hint</b>：<code>lines=$(wc -l &lt; "$f"); reads=$((lines / 4))</code>，再打印文件名和 reads</div>
+      <div class="field"><b>Verification</b>：分别输出 <code>2 / 3 / 1 reads</code></div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.3 用 <code>if [ -f ]</code> 检查 <code>samples.txt</code> 里的每个样本，对应 fastq 是否存在</div>
+      <div class="field"><b>Hint</b>：<code>while IFS= read -r id; do if [ -f "fastq/$id.fastq" ]; then …; done &lt; samples.txt</code></div>
+      <div class="field"><b>Verification</b>：<code>SRR1001~1003: OK</code>，<code>SRR1004: MISSING</code></div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.4 用 <code>source config.txt</code> 载入 <code>PREFIX/THREADS/OUTDIR</code>，并打印 <code>PREFIX</code></div>
+      <div class="field"><b>Hint</b>：<code>source config.txt</code> 后变量就可用；<code>echo "$PREFIX"</code></div>
+      <div class="field"><b>Verification</b>：打印 <code>gse65496_</code></div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.5 用 <code>for</code> 循环 + 变量，给每个 fastq 打印「加前缀后的新名字」</div>
+      <div class="field"><b>Hint</b>：<code>for f in fastq/*.fastq; do echo "$f → ${PREFIX}${f}"; done</code></div>
+      <div class="field"><b>Verification</b>：每个文件名前都加了 <code>gse65496_</code></div>
+    </div>
+    <div class="task">
+      <div class="level l2">Level 2 · Integration</div>
+      <div class="goal">2.6 用 <code>for</code> 循环统计 <code>logs/</code> 下每个 <code>.log</code> 的 <code>ERROR</code> 数</div>
+      <div class="field"><b>Hint</b>：<code>for f in logs/*.log; do echo "$f: $(grep -c ERROR "$f")"; done</code></div>
+      <div class="field"><b>Verification</b>：<code>run1.log: 2</code>，<code>run2.log: 1</code></div>
+    </div>
+
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering（工程实战）</div>
+      <div class="goal">3.1 写完整脚本 <code>run_report.sh</code>：遍历 fastq 统计 read 数，把结果追加进 <code>report.txt</code></div>
+      <div class="field"><b>Hint</b>：用变量存 <code>OUT=report.txt</code>；循环里 <code>echo "$f: $reads reads" &gt;&gt; "$OUT"</code></div>
+      <div class="field"><b>Verification</b>：<code>cat report.txt</code> 看到 3 行统计结果</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering</div>
+      <div class="goal">3.2 给脚本加 <code>set -euo pipefail</code> 和「目录不存在就报错退出」的保护</div>
+      <div class="field"><b>Hint</b>：<code>[ -d "$DIR" ] || { echo "目录不存在" &gt;&amp;2; exit 1; }</code></div>
+      <div class="field"><b>Verification</b>：传一个不存在的目录，脚本报错并以非 0 退出</div>
+    </div>
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering</div>
+      <div class="goal">3.3 用 <code>if [ -f ]</code> 判断样本缺失：遍历 <code>samples.txt</code>，缺失的样本写入 <code>missing.txt</code>，齐全的打印 OK</div>
+      <div class="field"><b>Hint</b>：循环里 <code>if [ -f ... ]; then echo OK; else echo "$id" &gt;&gt; missing.txt; fi</code></div>
+      <div class="field"><b>Verification</b>：<code>missing.txt</code> 里只有 <code>SRR1004</code></div>
+    </div>
+    <div class="task">
+      <div class="level l3">Level 3 · Engineering</div>
+      <div class="goal">3.4 写一个「三个月后同事能看懂」的脚本：开头有 <code>usage</code> 说明 + 注释 + 输出文件命名清晰</div>
+      <div class="field"><b>Hint</b>：脚本前几行注释写明「做什么 / 怎么用 / 输入输出」；给脚本起语义化名字</div>
+      <div class="field"><b>Verification</b>：不看正文、只看注释和 <code>usage</code> 就能复用到别的目录</div>
+    </div>
+  </section>
+
+  <!-- 5. DEBUG -->
+  <section>
+    <h2><span class="num">05</span> Debug Challenge 排错挑战（5 题）</h2>
+    <p>每题先自己想，再展开看答案。</p>
+
+    <details class="dbg">
+      <summary>Debug 1 · -bash: ./script.sh: Permission denied</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：写了 <code>script.sh</code>，用 <code>./script.sh</code> 运行却报 <code>Permission denied</code>，但用 <code>bash script.sh</code> 又能跑。</div>
+        <div class="think">💭 Think：<code>./</code> 运行和 <code>bash</code> 运行，对文件有什么不同要求？</div>
+        <div class="step"><b>Answer</b>：<code>./script.sh</code> 需要文件有「执行权限 <code>x</code>」；<code>bash script.sh</code> 是把文件当数据喂给 bash，不需要 <code>x</code>。</div>
+        <div class="explain">🔧 修复：<code>chmod +x script.sh</code> 后再 <code>./script.sh</code>（回顾 Lesson 03 权限位）。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 2 · name: command not found（等号两边多了空格）</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：脚本里写 <code>name = value</code>，报 <code>name: command not found</code>。</div>
+        <div class="think">💭 Think：shell 怎么理解 <code>name = value</code> 这一行？</div>
+        <div class="step"><b>Answer</b>：shell 把它当成「运行命令 <code>name</code>，参数是 <code>=</code> 和 <code>value</code>」，而不是赋值。赋值必须 <code>name=value</code>，等号两边不能有空格。</div>
+        <div class="explain">🔧 修复：去掉空格 <code>name=value</code>。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 3 · /bin/bash^M: bad interpreter（Windows 换行符）</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：在 Windows 编辑器里写好脚本传到服务器，运行报 <code>/bin/bash^M: bad interpreter: No such file or directory</code>。</div>
+        <div class="think">💭 Think：那个 <code>^M</code> 是什么？</div>
+        <div class="step"><b>Answer</b>：Windows 换行是 <code>\r\n</code>，Linux 是 <code>\n</code>，多出来的 <code>\r</code>（显示为 <code>^M</code>）粘在了 shebang 后面。</div>
+        <div class="explain">🔧 修复：<code>dos2unix script.sh</code> 转换，或用 <code>sed -i 's/\r$//' script.sh</code> 去掉行尾 <code>\r</code>。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 4 · [: =: unary operator expected（测试里变量为空）</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：写 <code>[ $status = OK ]</code>，当 <code>status</code> 为空时报 <code>unary operator expected</code>。</div>
+        <div class="think">💭 Think：<code>status</code> 为空时，这一行展开成什么？</div>
+        <div class="step"><b>Answer</b>：展开成 <code>[ = OK ]</code>，<code>=</code> 前面没有操作数，<code>[</code> 报语法错误。</div>
+        <div class="explain">🔧 修复：给变量加引号 <code>[ "$status" = OK ]</code>，空字符串也是一个合法操作数。</div>
+      </div>
+    </details>
+
+    <details class="dbg">
+      <summary>Debug 5 · while read 读文件，最后一行丢了</summary>
+      <div class="ans">
+        <div class="step"><b>Problem</b>：<code>while read line; do …; done &lt; samples.txt</code> 循环比文件行数少一次，最后一行没被处理。</div>
+        <div class="think">💭 Think：什么情况下 <code>read</code> 会「读到了内容却返回失败」？</div>
+        <div class="step"><b>Answer</b>：当文件<strong>最后一行没有换行符</strong>时，<code>read</code> 读到了内容却返回非 0，循环提前结束。</div>
+        <div class="explain">🔧 修复：<code>while IFS= read -r line || [ -n "$line" ]; do …; done</code> —— 即使 <code>read</code> 返回非 0，只要 <code>$line</code> 非空也处理一次。</div>
+      </div>
+    </details>
+  </section>
+
+  <!-- 6. SCENARIOS -->
+  <section>
+    <h2><span class="num">06</span> Engineering Scenarios 工程场景（4 题）</h2>
+    <p>先写自己的方案，再看参考答案。</p>
+
+    <details>
+      <summary>Scenario 1 · 把「每周一的手工流程」自动化成脚本</summary>
+      <div class="ans">
+        <p><b>题目</b>：每周一要对 <code>fastq/</code> 做 read 统计 + 检查样本缺失 + 统计日志 ERROR，最后出一份报告。请把它写成一个脚本，别人一条命令就能跑。</p>
+        <p><b>参考答案</b>：</p>
+        <pre>#!/bin/bash
+# qc_weekly.sh — 每周一质控：read 数 + 样本缺失 + ERROR 统计
+set -euo pipefail
+
+DIR="${1:-fastq}"
+OUT="qc_report.txt"
+
+[ -d "$DIR" ] || { echo "目录 $DIR 不存在" &gt;&amp;2; exit 1; }
+: &gt; "$OUT"
+
+for f in "$DIR"/*.fastq; do
+  [ -f "$f" ] || continue
+  lines=$(wc -l &lt; "$f")
+  echo "$f: $((lines / 4)) reads" &gt;&gt; "$OUT"
+done
+
+while IFS= read -r id || [ -n "$id" ]; do
+  [ -f "$DIR/$id.fastq" ] || echo "MISSING: $id" &gt;&gt; "$OUT"
+done &lt; samples.txt
+
+echo "done: $OUT"</pre>
+        <p class="muted">💡 可交接性：注释写清了「做什么」；<code>DIR</code> 用参数 + 默认值，换目录不用改脚本；输出统一进 <code>qc_report.txt</code>。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scenario 2 · 设计「三个月后同事能接手」的脚本，要注意什么</summary>
+      <div class="ans">
+        <p><b>题目</b>：你要休假三个月，把脚本交给同事。列出至少 4 件「让同事一眼看懂」的事。</p>
+        <p><b>参考答案</b>：① 开头注释写「目的 / 用法 / 输入 / 输出」；② 脚本名语义化（<code>run_qc.sh</code> 而不是 <code>a.sh</code>）；③ 用变量而不是把路径写死；④ <code>set -euo pipefail</code> 让出错就停，不产出半成品；⑤ 破坏性操作前加检查或提示。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scenario 3 · for 循环 vs xargs，什么时候用哪个</summary>
+      <div class="ans">
+        <p><b>题目</b>：上一课学了 <code>xargs</code>，本课又学了 <code>for</code>。批量处理文件时，什么情况选 <code>xargs</code>、什么情况选 <code>for</code>？</p>
+        <p><b>参考答案</b>：<code>xargs</code> 擅长「把很多参数<strong>一次</strong>喂给一个命令」（如 <code>find … -print0 | xargs -0 rm</code>），参数自动分批、空格安全；<code>for</code> 擅长「对每一项做<strong>多步操作</strong>」（如先统计、再判断、再写入），逻辑清晰可写多行。判断标准：<strong>只做一个动作 → xargs；每项要多步处理或要判断 → for</strong>。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Scenario 4 · 脚本跑到一半停了，怎么排查留下多少半成品</summary>
+      <div class="ans">
+        <p><b>题目</b>：一个脚本处理 500 个文件，跑到第 200 个时报错退出。你怎么知道「做到哪了」、怎么防止重跑时从头再来？</p>
+        <p><b>参考答案</b>：① 每处理一个文件就打印进度 <code>echo "done: $f"</code>，出错时看最后一条就知道进度；② 结果写到独立输出文件（<code>&gt;&gt;</code> 追加），失败重跑前先看已有多少条；③ 用 <code>set -e</code> 让错误立即停，避免继续产出错误结果；④ 更工程化可以加「跳过已完成的」检查（<code>[ -f "output/$id.done" ] &amp;&amp; continue</code>）。</p>
+      </div>
+    </details>
+  </section>
+
+  <!-- 7. BOSS FIGHT -->
+  <section>
+    <h2><span class="num">07</span> Boss Fight 终极挑战（15–20 min）</h2>
+    <div class="card">
+      <p><strong>任务</strong>：写一个生产级的 <code>run_qc.sh</code>，实现「一键质控报告」。要求：</p>
+      <ul>
+        <li>接收一个目录参数（默认 <code>fastq</code>），目录不存在要<strong>报错退出</strong></li>
+        <li>遍历目录下所有 <code>*.fastq</code>，统计每个的 read 数（行数 ÷ 4）</li>
+        <li>结果写入 <code>qc_report.txt</code>（先清空再写入）</li>
+        <li>开头有 <code>set -euo pipefail</code> 和清晰的注释（可交接）</li>
+        <li><strong>故意埋的坑</strong>：目录里混入了一个非 fastq 文件（或样本缺失），脚本要能跳过/继续，而不是崩溃</li>
+      </ul>
+      <p><strong>交付物</strong>（可度量）：</p>
+      <ol>
+        <li><code>run_qc.sh</code> 脚本（能 <code>./run_qc.sh</code> 直接运行）</li>
+        <li><code>qc_report.txt</code> 报告，内容 = 每个 fastq 的 read 数</li>
+        <li>一条「传错误目录 → 脚本报错退出」的验证截图</li>
+      </ol>
+      <div class="callout warn"><span class="tag">故意埋的坑</span><p style="margin:6px 0 0">① 目录不存在要 <code>exit 1</code>；② 循环里混入非文件/缺失项要 <code>continue</code> 跳过——这两处就是本课 debug 的落点。</p></div>
+      <details><summary>参考答案 / 验收清单</summary><div class="ans">
+        <pre>#!/bin/bash
+# run_qc.sh — 统计目录下所有 FASTQ 的 read 数，输出报告
+set -euo pipefail
+
+DIR="${1:-fastq}"
+OUT="qc_report.txt"
+
+[ -d "$DIR" ] || { echo "错误：目录 $DIR 不存在" &gt;&amp;2; exit 1; }
+
+: &gt; "$OUT"
+
+for f in "$DIR"/*.fastq; do
+  [ -f "$f" ] || { echo "跳过（不是文件）：$f" &gt;&amp;2; continue; }
+  lines=$(wc -l &lt; "$f")
+  reads=$((lines / 4))
+  echo "$f: $reads reads" &gt;&gt; "$OUT"
+done
+
+echo "报告已生成：$OUT（共 $(wc -l &lt; "$OUT") 个文件）"</pre>
+        <p class="muted">✅ 验收：<code>cat qc_report.txt</code> 有 3 行 read 统计；<code>./run_qc.sh not_exist</code> 报错且 <code>echo $?</code> 非 0。</p>
+      </div></details>
+    </div>
+  </section>
+
+  <!-- 8. CHECKPOINTS -->
+  <section>
+    <h2><span class="num">08</span> Checkpoints 检查点</h2>
+    <table>
+      <thead><tr><th>时间</th><th>自检问题（能答上才算过）</th></tr></thead>
+      <tbody>
+        <tr><td>20 min</td><td><code>bash script.sh</code> 和 <code>./script.sh</code> 的区别？shebang 是干什么的？</td></tr>
+        <tr><td>40 min</td><td>变量赋值为什么等号两边不能有空格？单引号和双引号有什么区别？</td></tr>
+        <tr><td>60 min</td><td><code>[ -f "$f" ]</code> 里为什么变量要加引号、<code>[</code> 后面为什么要空格？</td></tr>
+        <tr><td>85 min</td><td><code>for</code> 和 <code>xargs</code> 各适合什么场景？<code>set -euo pipefail</code> 三部分各防什么？</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 9. ANSWER KEY -->
+  <section>
+    <h2><span class="num">09</span> Answer Key 参考答案</h2>
+    <details><summary>Lab 关键答案（点击展开）</summary><div class="ans">
+      <p><b>2.2 read 数统计</b>：<code>lines=$(wc -l &lt; "$f"); reads=$((lines / 4)); echo "$f: $reads reads"</code>。要点：<code>wc -l &lt; "$f"</code> 用重定向输入，输出只有数字不带文件名。</p>
+      <p><b>2.3 样本检查</b>：<code>while IFS= read -r id; do if [ -f "fastq/$id.fastq" ]; then echo "$id: OK"; else echo "$id: MISSING"; fi; done &lt; samples.txt</code>。</p>
+      <p><b>3.3 缺失样本</b>：在 <code>else</code> 分支写 <code>echo "$id" &gt;&gt; missing.txt</code>，最后 <code>cat missing.txt</code> 应只剩 <code>SRR1004</code>。</p>
+      <p class="muted">其余 Lab 答案已写在每题的 Hint/Verification 里，照着做即见分晓。</p>
+    </div></details>
+  </section>
+
+  <!-- 10. ANKI -->
+  <section>
+    <h2><span class="num">10</span> Anki Deck 记忆卡</h2>
+    <p>本课 Anki 卡已生成到 <code>github/anki/lesson14-bash-script.tsv</code>（可直接导入，约 70 张）。核心卡一览：</p>
+    <table>
+      <thead><tr><th>Front</th><th>Back</th></tr></thead>
+      <tbody>
+        <tr><td>脚本第一行 <code>#!/bin/bash</code> 叫什么？作用？</td><td>shebang（sha-bang），告诉系统用哪个解释器执行这个脚本</td></tr>
+        <tr><td><code>bash script.sh</code> 和 <code>./script.sh</code> 的区别？</td><td>前者不需要执行权限，直接交给 bash；后者需要 <code>chmod +x</code>，按 shebang 决定解释器</td></tr>
+        <tr><td>变量赋值为什么等号两边不能有空格？</td><td>有空格会被当成「执行命令」，报 <code>command not found</code></td></tr>
+        <tr><td><code>$(命令)</code> 是干什么的？</td><td>命令替换：把命令的输出捕获成值（现代替代反引号）</td></tr>
+        <tr><td>单引号和双引号的区别？</td><td>单引号字面量不展开 <code>$</code>；双引号展开变量</td></tr>
+        <tr><td><code>[ -f "$f" ]</code> 里变量为什么要加引号？</td><td>变量为空时 <code>[ -f ]</code> 会报 <code>unary operator expected</code></td></tr>
+        <tr><td><code>for f in fastq/*.fastq</code> 做什么？</td><td>遍历 glob 匹配到的每个文件，逐项执行循环体</td></tr>
+        <tr><td><code>$?</code> 表示什么？</td><td>上一条命令的退出码，0 = 成功，非 0 = 失败</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 11. STOP -->
+  <section>
+    <div class="stop">
+      <h2>🚦 STOP — 先 push 再说</h2>
+      <p style="font-size:18px; margin:12px 0;">今天的脚本和 Boss Fight 成果，还没 push 到 GitHub，这课就不算完成。</p>
+      <pre style="text-align:left; display:inline-block; margin:12px 0;"><code>git add .
+git commit -m "Lesson 14: Bash Script"
+git push origin main</code></pre>
+      <p>Go push it now, loser 😈</p>
+    </div>
+  </section>
+
+</div>
+<script>
+  function toggleTheme() {
+    const b = document.body;
+    const isDark = b.getAttribute('data-theme') === 'dark';
+    b.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeBtn').textContent = isDark ? '🌙 Dark mode' : '☀️ Light mode';
+  }
+</script>
+</body>
+</html>

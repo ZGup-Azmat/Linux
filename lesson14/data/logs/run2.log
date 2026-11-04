@@ -1,0 +1,4 @@
+[2026-11-01 10:02:11] INFO  Starting alignment for SRR1002
+[2026-11-01 10:10:03] INFO  Alignment complete
+[2026-11-01 10:11:40] ERROR bam index missing
+[2026-11-01 10:12:00] INFO  Done

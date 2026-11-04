@@ -1,23 +1,94 @@
-i / Esc	进入插入模式 / 返回普通模式
-:wq / :q!	保存退出 / 放弃修改退出
-h j k l	左 下 上 右
-dd / yy / p	删行 / 复制行 / 粘贴
-u	撤销
-/pattern	查找（n 下一个，N 上一个）
-:%s/old/new/g	全文替换
-tmux new -s name	新建命名会话
-tmux ls	列出所有会话
-tmux attach -t name	重新接回会话
-Ctrl-b d	脱离会话（任务继续跑）
-Ctrl-b % / Ctrl-b "	左右分屏 / 上下分屏
-Vim 三模式？	普通 / 插入 / 命令行
-卡在插入模式怎么办？	按 Esc 回普通模式
-tmux 三层结构？	session 会话 → window 窗口 → pane 窗格
-tmux 核心价值？	断线任务不死（detach/attach）
-prefix 前缀键默认是？	Ctrl-b
-替换漏 /g 会怎样？	只替换每行第一个匹配
-vim 报 E37	改了没保存就 :q，用 :wq 或 :q!
-vim 报 E492	命令大小写错，如 :WQ 应写 :wq
-vim 报 E212	无写权限或目录不存在
-方向键打出 A B C D	用 hjkl 替代
-tmux attach 报 no sessions	先 tmux ls 查会话
+Vim 为什么被称为「模式化」编辑器？	同一个按键在不同模式下含义不同：普通模式负责移动/删除/复制，插入模式负责打字，命令行模式负责保存/退出/查找替换。
+Vim 的三个核心模式分别是什么、各自做什么？	普通模式(Normal，移动/删除/复制)、插入模式(Insert，打字)、命令行模式(Command-line，以 `:` 开头，保存/退出/查找替换)。
+用 `vim notes.txt` 打开文件后，默认处于哪种模式？	普通模式 Normal。
+tmux 从上到下的三层结构是什么？	session 会话 → window 窗口 → pane 窗格。
+tmux 最核心的价值是什么？	会话可以 detach 脱离、attach 接回，断线/关电脑任务都不停（任务长在服务器上，不挂在你的 ssh 连接上）。
+tmux 的 prefix 前缀键默认是什么？它的作用？	`Ctrl-b`；所有 tmux 会话内的命令都要先按它，向 tmux 表明接下来的键是控制命令。
+为什么生信里几小时到几天的任务必须用 tmux？	远程 ssh 一断任务就废；tmux 让任务跑在服务器会话里、不依赖 ssh 连接，断线后 attach 回来还在跑。
+为什么服务器上没有图形界面时，改文件只能靠 vim/nano 这类终端编辑器？	无 GUI，只能用终端编辑器改配置、写脚本。
+如果不把 6 小时比对放进 tmux、而是直接 ssh 前台跑，Wi-Fi 一抖会怎样？	ssh 断开，任务挂在你断掉的连接上、直接没了（前功尽弃）；放进 tmux 则断线只断 ssh、不断会话。
+用 vim 打开一个文件用什么命令？	`vim notes.txt`（打开后进入普通模式）。
+普通模式进入插入模式按哪个键？还有哪两个可选？	`i`（光标前插入）；也可 `a`（光标后追加）、`o`（下方新起一行）。
+`:wq`、`:q`、`:q!` 分别是什么？	保存并退出 / 退出（没改时）/ 放弃修改强制退出。
+`:%s/tumor/normal/g` 的作用？	全文把所有 `tumor` 替换成 `normal`，`g` 表示每行所有匹配都换。
+`tmux new -s rna` 的作用？	新建一个名为 `rna` 的命名会话。
+`tmux ls` 和 `tmux attach -t rna` 分别做什么？	列出所有会话 / 重新接回名为 `rna` 的会话。
+在 tmux 里脱离（detach）会话的按键序列？	先按 `Ctrl-b`，再按 `d`（任务继续在后台跑）。
+tmux 里左右分屏和上下分屏分别按什么？	`Ctrl-b %` 左右分屏；`Ctrl-b "` 上下分屏。
+tmux 里切换窗格、关闭当前窗格、新建窗口分别按什么？	`Ctrl-b` + 方向键；`Ctrl-b x`；`Ctrl-b c`。
+退出当前窗格/会话用什么命令？	`exit`。
+卡在 vim 插入模式里乱打字、方向键出乱码，第一步按什么？	`Esc` 回普通模式（任何时候按都有效）。
+在 vim 里从任意位置跳回文件开头/结尾？	`gg` 开头；`G` 结尾。
+vim 里查找一个模式、并跳到下一个/上一个匹配？	`/pattern` 查找，`n` 下一个，`N` 上一个。
+为什么普通模式移动光标建议用 `hjkl` 而不是方向键？	某些老旧终端里方向键在插入模式会变成转义序列显示成 ABCD；`hjkl` 是 vim 原生方向键，永远可靠。
+vim 里撤销和重做分别按什么？	`u` 撤销；`Ctrl-r` 重做。
+vim 里复制一行并粘贴到下一行怎么做？	`yy` 复制当前行，`p` 粘贴到下一行。
+tmux 里不再需要某个分屏窗格，怎么退出它？	`exit`（或 `Ctrl-b x` 关闭当前窗格）。
+在服务器上要把 `run_pipeline.sh` 里的一个参数改掉，写出「打开→改→保存退出」完整按键序列。	`vim run_pipeline.sh` → 移动光标到目标行 → `i` 进入插入 → 改数字 → `Esc` → `:wq`。
+拿到样本清单 `samples.tsv`，要把里面所有 `tumor` 一次性改成 `normal`，写一条 vim 命令。	`:%s/tumor/normal/g`。
+昨天建了命名会话 `align` 跑任务，今天回来怎么接回？	`tmux ls` 确认还在 → `tmux attach -t align`。
+新建一个命名会话 `test` 并马上左右分屏。	`tmux new -s test` → `Ctrl-b %`。
+在 vim 普通模式里删除光标所在整行。	`dd`。
+在 vim 里把光标移到行首/行尾。	`0` 行首；`$` 行尾。
+在 vim 里把当前行复制一份到下一行。	`yy` 然后 `p`。
+在 vim 里删除光标后到词尾（一个词）。	`dw`。
+要在 tmux 里上下分屏（而不是左右），按什么？	`Ctrl-b "`。
+三个月后新同事看 `tmux ls` 要一眼知道谁在跑什么，会话该怎么命名？写两个例子。	用「任务类型_项目名」约定：如 `align_PRAD`、`qc_RNA`。
+把样本清单里所有 `SRR` 前缀统一改成 `SAMPLE`，写一条 vim 命令。	`:%s/SRR/SAMPLE/g`。
+改乱了文件想放弃修改直接退出，写出按键序列。	`Esc` 回普通 → `:q!`。
+在 tmux 里跑 `sleep 300` 并验证「断线任务不死」，写出完整操作。	`tmux new -s long` → `sleep 300` → `Ctrl-b d` 脱离 → `tmux attach -t long`（接回后 sleep 还在跑）。
+解释「vim 命令 = 动作 + 范围」心法，用 `dd` 和 `dw` 举例。	`dd` = 删除(d)整行范围；`dw` = 删除(d)一个词(word)。d 是动作，第二个字符限定范围。
+`:%s/tumor/normal/g` 里的 `%` 和 `g` 分别代表什么？	`%` = 作用于全文件所有行；`g` = global，每行内所有匹配都替换（不只第一个）。
+解释 tmux 里 session / window / pane 三者的包含关系。	一个 session 会话可包含多个 window 窗口，一个 window 可切分成多个 pane 窗格。
+`tmux attach -t align` 里 `-t` 的含义？	`-t` 指定目标会话（target），后接会话名 `align`。
+为什么 tmux 所有会话内命令都要先按 `Ctrl-b`？	`Ctrl-b` 是 prefix 前缀键，向 tmux 表明「下一个键是发给 tmux 的控制命令」，而不是发给前台程序的普通输入。
+vim 里按 `:` 的作用是什么？	进入命令行模式，之后输入的 `:w`/`:q`/`:wq`/`:%s` 都是命令。
+`Ctrl-b %` 这条按键序列拆成两步分别发生什么？	先按 `Ctrl-b` 进入 tmux 命令前缀，再按 `%` 触发「左右分屏」。
+为什么 `:%s` 替换要在「先 `Esc` 回普通模式，再按 `:`」之后才能执行？	`:%s` 是命令行模式命令，必须先按 `:` 进入命令行模式（先 `Esc` 确保回到普通模式）。
+改了文件后直接 `:q`，vim 报 `E37: No write since last change`，怎么处理？	想保存就 `:wq`；想放弃就 `:q!`（`!` 表示强制执行/放弃安全检查）。
+输入 `:WQ` 报 `E492: Not an editor command`，为什么？	vim 命令区分大小写，必须小写 `:wq`；`:WQ` 不存在。
+插入模式下按方向键，屏幕冒出 A B C D 乱码，原因和解决？	老旧终端把方向键当转义序列（如 ^[[A）显示成 ABCD；先 `Esc` 回普通模式，改用 `hjkl` 移动。
+`tmux attach` 报 `no sessions`，怎么排查？	先 `tmux ls` 看有没有会话；没有就是没建过或重启过，有则是名字打错，用 `tmux attach -t 正确名`。
+vim 里 `:w` 保存报 `E212: Can't open file for writing`，可能原因和排查？	无写权限或目录不存在；`:pwd` 看当前目录、`ls -l` 看权限，换可写目录（如 /tmp 或家目录）或 root 时 `sudo`。
+昨天明明建了 tmux 会话，今天 `tmux attach` 却报 no sessions，最可能发生了什么？	服务器重启过（重启会清掉所有 tmux 会话），需要重新 `tmux new -s 名` 再跑任务。
+在 tmux 里想「离开」却狂按 `Ctrl-c`，结果把正在跑的比对打断了，按错了什么？	tmux 前缀键是 `Ctrl-b` 不是 `Ctrl-c`；`Ctrl-c` 是打断前台任务。脱离应该用 `Ctrl-b d`。
+用 `:%s/tumor/normal` 替换后，发现某行行尾还有一个 `tumor` 残留，为什么？	漏了 `/g`，只替换每行第一个匹配；改成 `:%s/tumor/normal/g`。
+在 vim 里 `dd` 删了一行以为找不回来，恢复方法有哪些？	`dd` 是剪切不是删除，行还在寄存器里：按 `p` 粘贴回来，或 `u` 撤销。
+分屏后忘了自己身处 tmux 想退出，怎么判断和退出？	看屏幕底部状态条提示在 tmux 里；用 `exit` 退出当前窗格。
+`:q` 和 `:q!` 的区别？	`:q` 正常退出（改了没保存会被 E37 拦截）；`:q!` 放弃修改、强制退出。
+`:wq` 和 `:q!` 的区别？	`:wq` 保存并退出；`:q!` 不保存强制退出。
+`dd`、`x`、`dw` 删除的范围各是什么？	`dd` 整行；`x` 一个字符；`dw` 一个词。
+tmux 里 `Ctrl-b %` 和 `Ctrl-b "` 的区别？	`%` 左右分屏；`"` 上下分屏。
+vim 普通模式里 `i` 和 `a` 进入插入模式的区别？	`i` 在当前光标前插入；`a` 在当前光标后追加。
+ssh 到服务器要改 `run_pipeline.sh` 里一个参数，用哪个模式打字、哪个键保存退出？	`i` 进入插入模式打字，`Esc` 回普通模式，`:wq` 保存退出。
+你要跑 6 小时 RNA 比对但 Wi-Fi 不稳，怎么保证断线任务不死？	`tmux new -s align_PRAD` → 跑比对 → `Ctrl-b d` 脱离；回来 `tmux attach -t align_PRAD`。
+一个 3000 行样本清单要把所有 `SRR12345678` 改成 `SRR99999999`，最快方法？	`vim 清单` → `:%s/SRR12345678/SRR99999999/g`（`g` 保证每行所有匹配都换）。
+服务器上有个 20GB 的 `.fastq.gz`，你要编辑处理它的脚本但不想下载，用什么？	直接 `vim 脚本.sh` 远程编辑，无需下载、无需图形界面。
+服务器无图形界面，要批量把 VCF 里所有样本名 `normal` 改成 `tumor`，用什么命令？	`vim 文件` → `:%s/normal/tumor/g`。
+你和同事共用服务器，三个月后新同事看 `tmux ls` 怎么快速搞清谁在跑什么？	靠命名约定：会话名 = 任务类型_项目名，如 `qc_RNA`、`align_PRAD`、`call_WES`。
+你想一边 `tail -f` 看比对日志一边改脚本，用什么组合？	tmux 分屏：`Ctrl-b %` 左右分屏，左窗 `vim` 改脚本、右窗 `tail -f 日志`。
+在 tmux 里跑了长任务要下班，怎么「关电脑走人但任务继续」？	`Ctrl-b d` 脱离会话（任务继续在服务器跑），关电脑；回来 `tmux attach` 接回。
+老板要改 GTF 里某基因的注释，3000 行一个个找太慢，怎么定位？	`vim 文件` → `/基因名` 查找 → `n` 跳下一个 → 定位后修改。
+要给脚本加执行权限但普通用户无 root，用什么？	`chmod +x run_pipeline.sh`（不需要 sudo）。
+改 3000 行清单里的 SRR 编号：A 用鼠标一个个改；B 用 vim 的 `:%s` 全文替换；C 一个个 grep 找。选哪个、为什么？	B：`:%s/SRR.../.../g` 一条命令全文替换，快且可复现；鼠标又慢又易漏。
+用 vim 把 RNA-seq 样本清单 `samples.tsv` 里所有 `tumor` 标签改成 `normal`，写命令。	`:%s/tumor/normal/g`。
+在 vim 里编辑 VCF，把所有样本名 `NA12878` 统一改成 `SAMPLE1`，写命令。	`:%s/NA12878/SAMPLE1/g`。
+编辑 `genome.fa` 的注释想定位到某个 contig 名，用什么键？	`/contig名` 查找，`n` 下一个。
+在 tmux 里跑几小时的 scRNA-seq 比对/质控任务，为什么用 tmux 而不是直接前台跑？	断线/关电脑任务不中断；detach 后 attach 回来继续看结果。
+批量改 3000 行 `counts.tsv` 里的基因名（把 `ENSG` 前缀改成 `gene_`），写一条 vim 命令。	`:%s/ENSG/gene_/g`。
+给 tmux 会话命名体现生信任务，写两个「一眼看懂」的例子。	`align_PRAD`（PRAD 比对）、`qc_RNA`（RNA 质控）。
+用 vim 修比对脚本 `run_pipeline.sh`，把所有 `tumor` 替换成 `normal` 且不能漏，写命令并说明关键点。	`:%s/tumor/normal/g`；必须加 `g`，否则每行只替换第一个、残留 tumor。
+原本要「左右分屏」，现在改成「上下分屏」，按键怎么变？	`Ctrl-b %` 改成 `Ctrl-b "`。
+原来会话名是 `rna`，项目改名成 PRAD 后，重建会话命令怎么写？	`tmux new -s align_PRAD`（命名改成新项目）。
+原来替换只写了 `:%s/tumor/normal`（没 g），如果某行有两个 tumor 会发生什么？	只替换该行第一个 tumor，行尾第二个残留。
+原来用 vim 打开普通文件，现在改的是只读系统配置且无 root，`:w` 保存会怎样？	报 `E212` 无写权限；换可写目录，或 root 时 `sudo`。
+原来直接在终端前台跑脚本，现在要求断线后继续跑，怎么改造？	把任务放进 tmux 会话里跑，`Ctrl-b d` 脱离，回来 attach。
+原来用方向键移动光标，在老旧终端 vim 里出乱码，改成什么？	`hjkl` 四键移动。
+`dd` 到底是删除还是剪切？为什么这点重要？	是剪切（进寄存器），误删了 `p` 能贴回来、`u` 能撤销。
+tmux 的 `Ctrl-b` 和 `Ctrl-c` 各是什么？为什么容易混？	`Ctrl-b` = tmux 前缀（控制会话）；`Ctrl-c` = 打断前台任务；狂按 `Ctrl-c` 会误杀任务。
+`attach` 报 no sessions 除了「会话丢了」还有什么解释？	可能服务器重启过（tmux 会话被清空），或从来没建过会话。
+综合：跑 6 小时 PRAD 比对，用 vim 改好 `run_pipeline.sh` 参数，再用 tmux 命名会话跑、detach、回来 attach，写出完整流程。	`tmux new -s align_PRAD` → `vim run_pipeline.sh`（`i` 改参数、`Esc`、`:wq`）→ 启动比对 → `Ctrl-b d` 脱离 → 回来 `tmux attach -t align_PRAD`。
+综合 Boss 战：脚本里替换漏了 `/g` 导致行尾残留 tumor，同时要分屏边改边看日志，写出「发现→修复」过程。	发现某行行尾还有 tumor（漏 /g）→ 重跑 `:%s/tumor/normal/g` 修复 → `tmux new -s debug_PRAD` → `Ctrl-b %` 分屏：左窗 `vim`、右窗 `tail -f results.log`。
+综合：新同事交接，用 vim + tmux 把「改配置、跑任务、断线续跑、边看日志」串起来。	vim 改脚本 → `tmux new -s 名` 会话里跑任务 → `Ctrl-b d` 脱离 → `tmux attach -t 名` 接回 → `Ctrl-b %` 分屏看日志。
+综合：给你 `samples.tsv` 和 20GB 的 `reads.fastq.gz` 比对脚本，完成「脚本里 tumor 改 normal、加执行权限、tmux 里跑并断线续跑」，写出步骤。	`vim run_pipeline.sh` → `:%s/tumor/normal/g` → `:wq` → `chmod +x run_pipeline.sh` → `tmux new -s align` → `./run_pipeline.sh` → `Ctrl-b d` → `tmux attach -t align`。
+综合：一条 tmux 会话从创建到彻底退出的完整生命周期命令。	`tmux new -s rna` → 干活 → `Ctrl-b d` 脱离 → `tmux ls` 确认 → `tmux attach -t rna` 接回 → `exit` 退出会话。

@@ -1,18 +1,97 @@
-grep "pattern" file	打印文件里所有含 pattern 的行（整行输出）
-grep -i	忽略大小写（error 也匹配 Error/ERROR）
-grep -n	显示行号，方便跳到出错位置
-grep -v	反选：输出不含 pattern 的行
-grep -r	递归搜索整个目录（含子目录）
-grep -c	统计匹配的行数（不是出现次数）
-grep -l	只列出含匹配的文件名，不输出内容
-grep -o	只输出匹配的那部分文字，配合 wc -l 数次数
-grep -E	启用扩展正则，让 | + 等符号生效
-grep 全称是什么？	global regular expression print（全局正则表达式打印）
-find 和 grep 的区别？	find 按文件名/属性找文件，grep 在文件内容里找文本
-grep -c 数的是行还是次数？	行数；要数总次数用 grep -o "词" | wc -l
-正则里的 . 是什么？	任意单个字符；想匹配真正的点号要转义成 \.
-正则里的 ^ 和 $ 是什么？	^ 锚定行首，$ 锚定行尾
-grep "Error" 无结果但文件有 error	grep 默认区分大小写，加 -i 忽略大小写
-搜短语 "disk full" 结果不对	加引号：grep "disk full" log，否则空格被当参数分隔
-grep "chr1." 匹配到了 chr1A	. 是任意字符，想匹配点号用 grep "chr1\."
-grep "error|failed" 的 | 没生效	加 -E：grep -E "error|failed"，或 grep -e error -e failed
+grep 的全称是什么？g/r/e/p 分别代表什么？	grep = global regular expression print（全局正则表达式打印）：g-lobal、r-egular、e-xpression、p-rint。
+`find` 和 `grep` 的分工区别是什么？为什么说它们是排查的黄金搭档？	`find` 找文件（按文件名/属性定位文件），`grep` 找内容（在文件里搜匹配行）；先 find 定位文件、再 grep 钻进文件内容。
+grep 匹配的基本单位是「整行」还是「单个单词」？这会带来什么后果？	整行——只要某行任意位置包含模式，整行都会输出，所以可能输出一长串或含意料之外的内容。
+什么是正则表达式？grep 用哪个 flag 开启「扩展正则」？	用「模式」灵活匹配文本的语言（锚点/字符类/量词等）；加 `-E` 开启扩展正则（让 `|`、`+` 生效）。
+在 grep 正则里，`^` 和 `$` 两个符号分别表示什么？	`^` 锚定行首，`$` 锚定行尾；用来限定匹配出现在行的开头/结尾。
+正则里 `[0-9]` 这种方括号结构叫什么？作用是什么？	字符类（character class），匹配方括号内任意一个字符；`[0-9]` 匹配任意单个数字。
+grep 默认匹配是区分大小写还是不区分？不区分要加什么 flag？	默认区分大小写（`grep "Error"` 匹配不到 `error`）；要忽略大小写加 `-i`。
+为什么排查问题时「先 grep 出错行」是标准第一步？	几万行日志、几千行基因表，grep 一秒定位相关行，比人眼翻快几千倍且不漏。
+`grep "error" align.log` 这条命令做什么？	打印 align.log 里所有包含 `error` 的行。
+`grep -i` 的作用是什么？	忽略大小写进行匹配（`error` 也能匹配 `ERROR`/`Error`）。
+`grep -n` 的作用是什么？	输出匹配行时带上行号，方便跳到出错位置。
+`grep -v` 的作用是什么？	反选（invert）——输出「不包含」模式的行。
+`grep -r` 的作用是什么？	递归搜索整个目录（连同所有子目录）里的文件。
+`grep -c` 的作用是什么？	统计匹配的「行数」（不是出现次数）。
+`grep -l` 的作用是什么？	只列出「含匹配内容」的文件名，不输出匹配行内容。
+`grep -o` 的作用是什么？	只输出匹配到的部分（而非整行），配合 `wc -l` 可统计总出现次数。
+`grep -E` 的作用是什么？	开启扩展正则（extended regex），让 `|`、`+` 等元字符生效。
+搜索时遇到二进制文件乱码，`grep -a` 和 `grep -I` 分别怎么处理？	`-a` 把二进制当作文本处理；`-I` 跳过（忽略）二进制文件，避免乱码。
+日志里想只捞「ERROR 级别」的行（排除 INFO 里提到 error 的干扰），该用哪个锚点符号？	用 `^` 锚定行首：`grep -E "^ERROR" align.log`。
+想统计「某个词出现了多少次」（而非多少行），回忆该用什么组合？	`grep -o "pattern" file | wc -l`——`-o` 每次匹配输出一次，`wc -l` 数总次数。
+从 VCF 里只保留常染色体 chr1–chr22 记录（排除 chrX/chrY），回忆用什么正则思路？	`grep -E "^chr[0-9]+" sample.vcf`（`^` 锚行首 + `[0-9]+` 匹配一个以上数字，chrX/chrY 被排除）。
+要匹配真正的点号（如 `.bam` 结尾），正则里该写什么？	用 `\.` 转义：`grep "\.bam$" files.txt`。
+grep 正则里的 `*` 和 shell 通配符 `*` 含义一样吗？分别是什么？	不一样。正则 `*` 表示「前一个字符零或多个」，作用在紧邻的前一个字符上（`ab*`=a 后跟零或多个 b）；shell 的 `*` 是匹配任意文件名的通配符。
+想搜索含空格的短语（如 "disk full"），命令该怎么写？为什么？	`grep "disk full" log`——必须加引号，否则 shell 把空格当参数分隔，`disk` 成模式、`full`/`log` 被当文件名。
+grep 里 `+` 和 `|` 两个元字符默认生效吗？需要什么前提？	默认不生效，需加 `-E`（扩展正则）才分别被当作「一个或多个」和「或」。
+在 align.log 里找出所有含 error 的行。写命令。	`grep "error" align.log`
+忽略大小写地搜 error（同时匹配 Error/ERROR）。写命令。	`grep -i "error" align.log`
+带行号地搜 TP53。写命令。	`grep -n "TP53" gene_expression.tsv`
+输出所有不含 INFO 的行。写命令。	`grep -v "INFO" align.log`
+带行号且忽略大小写地搜 error（两个 flag 叠加）。写命令。	`grep -ni "error" align.log`（flag 可叠加）
+递归搜 data/ 下所有文件里的 TP53。写命令。	`grep -r "TP53" data/`
+找出哪些 .tsv 文件含 TP53，只列文件名。写命令。	`grep -l "TP53" *.tsv`
+统计每个 .log 文件里 error 的行数，做成错误概览。写命令。	`grep -c "error" *.log`
+找出以 ERROR 开头的行（排除 INFO 里提到 error 的干扰）。写命令。	`grep -E "^ERROR" align.log`
+统计日志里 error 的「总出现次数」（不是行数）。写命令。	`grep -o "error" align.log | wc -l`
+用正则匹配 chr 后跟一个以上数字的 VCF 记录（排除 chrX）。写命令。	`grep -E "^chr[0-9]+" sample.vcf`
+从日志里同时捞 error 或 failed 两种错误。写命令。	`grep -E "error|failed" align.log`
+匹配以 `.bam` 结尾的行（点号要转义）。写命令。	`grep "\.bam$" files.txt`
+匹配日期格式开头的行（如 2026-09-22）。写命令。	`grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" log`
+先 find 出所有 .log 文件，再在这些文件里带行号搜 error。写一条命令。	`find . -name "*.log" -exec grep -n "error" {} \;`
+写一条「查某基因在哪些样本表里出现」的可交接命令，带注释说明用途。	`grep -l "TP53" data/*.tsv  # 列出含 TP53 的样本表文件名`
+`grep -o "error" align.log | wc -l` 中，`-o` 和 `wc -l` 分别贡献了什么？	`-o` 让每次匹配只输出匹配词本身（一行一个）；`wc -l` 再数这些行，从而得到「总出现次数」。
+`grep -E "^chr[0-9]+" sample.vcf` 里，`^` 和 `[0-9]+` 各起什么作用？	`^` 锚定行首（排除行中间出现的 chr 数字）；`[0-9]+` 匹配一个以上数字（chr1/chr22 匹配、chrX 不匹配）。
+`grep -rn "error" logs/` 中，`-r` 和 `-n` 各贡献什么？	`-r` 递归搜索目录，`-n` 显示行号；合起来递归搜并标出行号与文件名。
+`find . -name "*.log" -exec grep -n "error" {} \;` 中，`-exec` 和 `{}` 是什么？	`-exec` 对 find 找到的每个文件执行后续命令，`{}` 是当前文件名占位符，`\;` 表示命令结束。
+`grep "\.bam$" files.txt` 里，`\.` 和 `$` 分别做了什么？	`\.` 把点号转义成真正的点号，`$` 锚定行尾；合起来匹配「以 .bam 结尾」的行。
+`grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}"` 里，`{4}` 和 `{2}` 是什么？	量词——`[0-9]{4}` 恰好 4 个数字（年）、`[0-9]{2}` 恰好 2 个数字（月/日），拼出 YYYY-MM-DD。
+为什么 `grep -c "error" *.log` 输出是「文件名:数字」而不是一个总数？	`-c` 对每个文件分别统计匹配行数，所以每个文件名后跟一个数字，合起来是错误概览。
+`grep -l "TP53" *.tsv` 相比 `grep "TP53" *.tsv` 输出上差在哪？	`-l` 只输出「含匹配的文件名」；不加 `-l` 会输出每个匹配的完整行（且带文件名前缀）。
+你运行 `grep "Error" align.log`，文件里明明有 error 却没输出。为什么？怎么修？	grep 默认区分大小写，`Error`（大写 E）≠ `error`（全小写）。修复：`grep -i "error" align.log`。
+你想搜短语 "disk full"，运行 `grep disk full log` 结果不对。为什么？	没加引号，shell 把 `disk` 当模式、`full` 和 `log` 当文件名。修复：`grep "disk full" log`。
+你运行 `grep "chr1." sample.vcf` 想找 "chr1."，却匹配到 chr1A、chr1x。为什么？怎么修？	正则里 `.` 是「任意单字符」。修复：转义为 `grep "chr1\." sample.vcf`。
+你运行 `grep -c "error" align.log` 结果比预期少（一行有多个 error 只算 1）。为什么？想数总次数怎么做？	`-c` 数的是「匹配的行数」不是「出现次数」。数总次数用 `grep -o "error" align.log | wc -l`。
+你运行 `grep "error|failed" align.log` 想搜两种错误，但 `|` 没当「或」用。为什么？怎么修？	基础正则里 `|` 是普通字符，需 `-E`：`grep -E "error|failed" align.log`（或 `grep -e error -e failed`）。
+你 `grep -r "TP53" /` 从根目录递归搜，结果极慢甚至卡住。问题在哪？	`-r` 会钻进所有子目录，从 `/` 开始等于全盘扫描。应限定目录，如 `grep -r "TP53" data/`。
+grep 搜索时屏幕上出现大量乱码，你怀疑搜到了二进制文件。怎么修复？	二进制文件被当文本输出导致乱码。用 `-I` 跳过二进制文件，或 `-a` 强制当文本处理。
+你运行 `grep -v "INFO" align.log`，期望只剩 ERROR，结果 WARNING 等行也出来了。这是 bug 吗？为什么？	不是 bug。`-v` 只排除含 INFO 的行，其他所有行（ERROR/WARNING 等）都会保留。
+`grep -c "error" *.log` 对空文件和无匹配文件都输出 0，如何区分「没匹配」和「文件根本不存在」？	数字无法区分；先用 `ls *.log` 确认文件存在，或用 `grep -l "error" *.log`（无匹配的文件不会出现在 -l 输出里）。
+`grep -c`（数行数）和 `grep -o | wc -l`（数次数）的核心区别？各自什么时候用？	`-c` 统计「匹配的行数」，一行多次只算 1；`grep -o ... | wc -l` 统计「总出现次数」。想知道多少行报错用 `-c`，想知道错误总共出现多少次用 `-o | wc -l`。
+`grep "error" align.log` 和 `grep -E "^ERROR" align.log` 结果可能差在哪？	前者匹配任意位置含 error 的行（含 INFO 里提到 error 的）；后者只匹配「行首是 ERROR」的行，排除 INFO 干扰。
+`grep -l "TP53" *.tsv` 和 `grep "TP53" *.tsv` 输出区别？	`-l` 只输出含匹配的文件名清单；不加 `-l` 输出每个匹配的完整行（含文件名前缀）。
+正则里 `*` 和 `+` 的区别？	`*` 表示前一个字符「零或多个」；`+` 表示前一个字符「一个或多个」（`+` 需 `-E`）。
+处理二进制文件时，`-a` 和 `-I` 的区别？	`-a` 把二进制当作文本强行处理；`-I` 跳过二进制文件（忽略它们）。
+你 SSH 到无图形界面的服务器，一个 5 万行的日志要立刻定位所有 error 行。第一步用什么命令？为什么适合这种环境？	`grep "error" align.log`——纯文本、无需图形界面、秒级定位，是排查第一步。
+基因表达目录有 500 个 .tsv，想知道 TP53 出现在哪些样本表，只要文件名清单。写命令。	`grep -l "TP53" data/*.tsv`
+统计每个日志文件里 error 的行数，做一份「错误概览」交给同事。写命令。	`grep -c "error" *.log`
+VCF 里染色体字段是 chr1…chr22、chrX、chrY，只要常染色体记录。写命令。	`grep -E "^chr[0-9]+" sample.vcf`
+你在 tmux 分屏里做日志排查：左屏 grep 搜错误、右屏看原始日志。这个布局的目的？	左屏 grep 快速定位错误行，右屏 cat 对照原文看上下文，不用来回滚动一个终端。
+主管要三个月后能交接，给一条「查某基因在哪些样本表出现」的命令，要求有注释、可复用。写出来。	`grep -l "TP53" data/*.tsv  # 列出含 TP53 的样本表文件名`，注释说明用途，他人可直接复用。
+一个大目录里混着二进制数据，你想搜 TP53 但跳过二进制只搜文本。用什么 flag？	`grep -rI "TP53" data/`（`-I` 跳过二进制文件）。
+你在服务器上有一个 5GB 的 `reads.fastq.gz`，不能解压到磁盘，想搜里面的某段序列 ID。该从哪个思路开始？	[Extension] 不整体解压、直接流式处理：`zgrep "pattern" reads.fastq.gz` 或 `zcat reads.fastq.gz | grep "pattern"`（zcat/zgrep 是后续课程命令，本课只记「不落盘解压 + grep」的思路）。
+统计一个 VCF 文件的变异记录数，同时跳过 `#` 开头的 header。写 pipeline。	`grep -v "^#" sample.vcf | wc -l`——`-v` 排除 header 行，`wc -l` 数剩余记录。
+从 alignment log 里捞所有 error 行并带行号，方便跳到出错位置。写命令。	`grep -n "error" align.log`
+基因表达表 gene_expression.tsv 里找 TP53（抑癌基因）的所有行。写命令。	`grep "TP53" gene_expression.tsv`
+基因表达表里基因名大小写不规范，想忽略大小写搜 tp53（同时匹配 TP53/tp53）。写命令。	`grep -i "tp53" gene_expression.tsv`
+想知道「TP53 在哪些样本表里表达」，只要文件名清单。写命令。	`grep -l "TP53" *.tsv`
+从比对日志里同时捞 error 和 failed 两类错误。写命令。	`grep -E "error|failed" align.log`
+从文件清单里筛出以 `.bam` 结尾的行（BAM 文件）。写命令。	`grep "\.bam$" files.txt`
+统计 RNA-seq 表达矩阵 counts.tsv 里某基因名出现多少行，用哪个 flag？它数的是行还是次数？	`grep -c "基因名" counts.tsv`——数的是匹配的「行数」，不是总次数。
+原命令 `grep -E "^ERROR" align.log` 只匹配行首 ERROR。如果日志的 ERROR 前面有时间戳（如 `2026-09-22 ERROR: ...`），这条命令还能匹配到吗？为什么？	不能——`^ERROR` 要求行首就是 ERROR，前面有时间戳就不匹配。应改用 `grep " ERROR" align.log`（ERROR 前带空格）或更贴合实际格式的模式。
+原命令 `grep -c "error" *.log` 只统计 error；现在还要同时统计 failed，怎么改？	用扩展正则：`grep -cE "error|failed" *.log`。
+原命令 `grep "error" align.log` 会连 "errors"、"errorhandler" 也匹配。想只匹配独立单词 error，该怎么做？	用词边界：`grep -E "\berror\b" align.log`。[Extension]（`\b` 是词边界，课件仅作进阶提示）
+如果文件是 `reads.fastq`（未压缩）而不是 `.fastq.gz`，grep 命令本身需要改吗？	grep 本身不用改，它直接读文本文件：`grep "pattern" reads.fastq` 即可（.gz 才需 zcat/zgrep 配合，属后续课程）。
+原来 `grep -l "TP53" *.tsv` 只在当前目录找；现在 .tsv 分散在多个子目录里，怎么改？	加 `-r` 递归：`grep -rl "TP53" data/`。
+原来要「找出错误行」，现在要「找出所有不是 INFO 的行并带行号」。组合 flag 怎么写？	`grep -nv "INFO" align.log`
+`grep -c` 统计的「行数」和「次数」在什么情况下会不同？举例。	同一行里 error 出现多次时，`-c` 只算 1 行；要数总次数用 `grep -o "error" | wc -l`。
+grep 匹配单位是整行，这会带来什么「意外输出」？	只要行内任意位置含模式，整行都输出——可能输出非常长的一行，或包含你没想到会匹配的内容。
+grep 默认是「子串匹配」还是「整词匹配」？这会导致什么坑？	子串匹配——`grep "error"` 也会匹配 errors、errorhandler 等包含 error 的词；要整词用 `\b`（[Extension]）。
+`grep -r pattern /` 有什么风险？	从根目录递归会扫全盘所有子目录和文件，极慢且可能命中二进制/无权限文件。
+含空格的模式不加引号会怎样？	shell 把空格当参数分隔，`grep disk full log` 变成「搜 disk，在 full 和 log 两个文件里找」。
+grep 搜到二进制文件会怎样？两种处理办法？	输出乱码；`-a` 强制当文本处理，或 `-I` 跳过二进制文件。
+Boss 战任务：在 tmux 里对 `grep_battle/`（含 align.log 和 gene_expression.tsv）完成①找 ERROR 行带行号 ②精确取 ERROR 级别行 ③列含 TP53 的文件 ④统计 error 行数 ⑤统计 error 总次数并对比。写出这五条命令。	①`grep -n "ERROR" align.log` ②`grep -E "^ERROR" align.log` ③`grep -l "TP53" *.tsv` ④`grep -c "error" align.log` ⑤`grep -o "error" align.log | wc -l`；④数行数、⑤数次数，两个数字不同。
+综合：服务器上有 reads.fastq、sample.vcf、counts.tsv、align.log。分别：统计 VCF 变异记录数（跳 header）、找 align.log 里 error 行带行号、列含 TP53 的 .tsv 文件、统计 error 总次数。	`grep -v "^#" sample.vcf | wc -l`；`grep -n "error" align.log`；`grep -l "TP53" *.tsv`；`grep -o "error" align.log | wc -l`。
+一条完整日志排查流程，从「定位」到「精确」到「统计」，按顺序写出三步并说明各自作用。	①`grep -n "error" align.log` 快速定位+行号 ②`grep -E "^ERROR" align.log` 锚定行首排除 INFO 干扰 ③`grep -o "error" align.log | wc -l` 数总次数；由粗到细。
+find 与 grep 如何配合完成「先定位文件、再搜内容」的两步排查？写出命令并说明分工。	`find . -name "*.log" -exec grep -n "error" {} \;`——find 按文件名定位 .log 文件，grep 在内容里搜 error；一个找文件、一个找内容。
+写一段可交接的「基因检索」方案，包含递归搜、列文件名、统计行数三种能力，并说明各自适用场景。	`grep -r "TP53" data/`（跨目录找内容）；`grep -l "TP53" *.tsv`（只要文件名清单）；`grep -c "error" *.log`（每文件错误概览）；分别对应「搜内容/圈范围/做报表」。
+Boss Fight 埋的坑：你写 `grep -E "chr1."` 想找「chr1 后跟点号」，结果 chr1A、chr1x 也出来了。请说明发现过程、根因、修复命令。	发现：结果多出 chr1A/chr1x 等预期外匹配；根因：`.` 是任意字符不是点号；修复：`grep -E "chr1\."`，并截图「发现→修复」留证。

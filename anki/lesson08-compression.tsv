@@ -1,25 +1,100 @@
-gzip file	把单个文件压成 file.gz（默认删除原文件）
-gunzip file.gz	解压还原原文件
-gzip -k	压缩但保留原文件（keep）
-gzip -c file > out.gz	输出到 stdout，保留原文件
-gzip -d file.gz	解压（等价 gunzip）
-zcat file.gz	不解压直接读内容（看开头用 zcat | head）
-zgrep pattern file.gz	不解压直接搜内容（grep 的压缩版）
-tar -czf a.tar.gz dir/	打包 + gzip 压缩（c=create z=gzip f=file）
-tar -tzf a.tar.gz	只列出归档内容，不解压
-tar -xzf a.tar.gz	解压还原
-tar -xzf a.tar.gz -C dir	解压到指定目录 dir
-tar -cjf a.tar.bz2 dir/	用 bzip2 压缩打包（-j）
-tar -cJf a.tar.xz dir/	用 xz 压缩打包（-J）
-gzip 和 tar 的分工？	gzip 压单个文件，tar 打包多个文件/目录
-.tar 和 .tar.gz 区别？	.tar 只打包不压缩，.tar.gz 打包+压缩
-gzip 默认会对原文件做什么？	删除原文件（保留用 -k 或 -c）
-哪些格式不该再压缩？	.bam / .jpg / .png / .gz / .zip（已压缩，再压不缩）
-gzip / bzip2 / xz 怎么选？	gzip 快压缩率中，bzip2 更小较慢，xz 最小最慢
-zip 什么时候用？	和 Windows 用户交换时（跨平台）
-tar -xz 报 Refusing to read from terminal	漏了 -f，加 -f 文件名
-tar -xf sample.fastq.gz 报 not a tar archive	.gz 单文件不是 tar 包，用 zcat 看内容
-gzip x.gz 报 already has .gz suffix	文件已压缩，别再压（先 gunzip 或跳过）
-gunzip 报 already exists; not overwriting	同名文件已存在，删旧的或用 -f 强制覆盖
-zcat data.tar 报 not in gzip format	data.tar 未压缩，用 tar -tf 查看
-创建 tar 时漏了 -z 会怎样？	生成未压缩的 .tar（即使文件名叫 .tar.gz），解压时强制 -z 会报 not in gzip format
+`gzip` 和 `tar` 在压缩任务里的分工是什么？	`gzip` 只压缩单个文件；`tar` 负责把多个文件/目录打包成一个归档。两者合体（`tar -z`）才产出 `.tar.gz`。
+`.tar` 和 `.tar.gz` 有什么本质区别？	`.tar` 只打包不压缩；`.tar.gz`（tarball）是先打包再用 gzip 压缩。文件名带 `.gz` 不代表一定真压缩过。
+为什么测序原始数据（FASTQ）几乎都以 `.fastq.gz` 形式存储和上传？	FASTQ 是纯文本，gzip 能压掉 60–75%；`.fastq.gz` 是 NCBI/ENA/GEO 的行业通用格式，省磁盘空间，且生信工具能直接读取。
+什么是 tarball？	`tar` 加 gzip（`-z`）压缩后得到的 `.tar.gz` 文件的俗称，即"打包 + 压缩"的组合产物。
+`gzip` 默认行为里一个容易被忽略的"破坏性"动作是什么？	默认删除原文件，只留下 `.gz`。要保留原文件须加 `-k` 或用 `-c`。
+什么叫"已压缩格式"？为什么不能再压？	本身已压缩的格式（`.bam` 的 BGZF、`.jpg`、`.png`、`.gz`、`.zip`），再套 gzip 只会烧 CPU、大小几乎不变。
+`zcat` / `zgrep` / `zless` 三者的共同点是什么？	都能不解压直接对 `.gz` 文件操作（读内容 / 搜 / 翻页），不在磁盘上产生解压后的大文件。
+`gzip`、`bzip2`、`xz`、`zip` 在"压缩率 vs 速度"上如何取舍？	gzip 最快、压缩率中等；bzip2 更慢但更小；xz 最小但最慢、解压占内存高；zip 用于和 Windows 跨平台交换。
+`gzip -k file` 做什么？	把 file 压成 file.gz，但保留原文件（-k = keep）。
+`gzip -d file.gz` 和 `gunzip file.gz` 是什么关系？	完全等价，都是解压（-d = decompress）。
+`gzip -c file > out.gz` 的用途是什么？	把压缩结果写到 stdout（-c），重定向到 out.gz，同时保留原文件。
+`tar -czf a.tar.gz dir/` 里每个字母 c、z、f 分别代表什么？	c=create 创建归档；z=gzip 压缩；f=file 指定归档文件名 a.tar.gz。整体=打包 dir 并 gzip 压缩。
+`tar -tzf a.tar.gz` 做什么？	只列出归档内容（t=list），不解压。
+`tar -xzf a.tar.gz` 做什么？	解压还原归档（x=extract、z=gzip、f=文件名）。
+`tar -czvf a.tar.gz dir/` 相比 `tar -czf` 多了什么、有什么用？	多了 v（verbose），创建时打印每个被打包的文件名，用于确认哪些文件进了归档。
+`tar -xzf a.tar.gz -C restored/` 中 `-C` 的作用？	把解压结果放到 restored/ 目录，而不是当前目录。
+`tar -cjf` 和 `tar -cJf` 分别用什么压缩算法？	`-j` 用 bzip2（产出 `.tar.bz2`）；`-J` 用 xz（产出 `.tar.xz`）。
+`zcat file.gz` 做什么？	不解压直接把压缩内容写到 stdout（等价于 `gunzip -c`）。
+`zgrep "ERROR" align.log.gz` 做什么？	不解压直接在 gzip 压缩的日志里搜索 "ERROR"（grep 的压缩版）。
+`zip archive.zip f1 f2` 和 `unzip archive.zip` 分别做什么？使用前要注意什么？	zip 打包成 .zip（跨平台）、unzip 解压。注意 Ubuntu Server 最小安装可能未预装，需 `sudo apt install zip unzip`。
+想确认一个 5GB 的 `.fastq.gz` 数据没坏、read header 还在，最省资源的思路是什么？	`zcat sample.fastq.gz | head -n 4`：流式只读前 4 行就停，不落盘、不占额外空间。
+想"看一眼"归档 project.tar.gz 里到底有什么，又不想解压，用什么命令？	`tar -tzf project.tar.gz`。
+想同时压缩一个目录下所有 `.fastq`（逐个压成 `.gz`，不打包），一条命令？	`gzip *.fastq`（gzip 支持多文件，逐个压缩）。
+用一条命令把项目打包并自动带上当天日期命名，怎么写？	`tar -czf project_$(date +%F).tar.gz project/`（`$(date +%F)` 生成如 2026-10-03）。
+FASTQ 一条 read 占几行？这跟"统计 read 数"有什么关系？	4 行（@ID、序列、+、质量）。read 数 = 总行数 / 4。
+现代 GNU tar 读（-x/-t）时能自动识别 gzip/bzip2/xz，那"创建"时还需要显式加 `-z` 吗？	需要。创建（-c）必须显式加 `-z` 才会 gzip 压缩，否则产出的是未压缩的 `.tar`。
+想要 bzip2 或 xz 压缩的 tar 包，分别用什么 flag？	bzip2 用 `-j`（`.tar.bz2`），xz 用 `-J`（`.tar.xz`）。
+把 `sample.fastq` 压缩成 `.gz`（允许删原文件）。写出命令。	`gzip sample.fastq` → 得到 `sample.fastq.gz`，原文件被删除。
+压缩 `sample.fastq`，但必须保留原文件。写出命令。	`gzip -k sample.fastq`（-k 保留原文件）。
+不解压查看 `sample.fastq.gz` 的前 4 行。写出命令。	`zcat sample.fastq.gz | head -n 4`。
+把 `project/` 目录打包并 gzip 压缩成一个归档。写出命令。	`tar -czf project.tar.gz project/`。
+只列出 `project.tar.gz` 的内容，不解压。写出命令。	`tar -tzf project.tar.gz`。
+解压 `project.tar.gz` 到 `restored/` 目录（不是当前目录）。写出命令。	`mkdir restored && tar -xzf project.tar.gz -C restored`。
+把 `raw_data/` 和 `results/` 两个目录一起打包成一个 tarball。写出命令。	`tar -czf both.tar.gz raw_data/ results/`。
+统计 `sample.fastq.gz` 的行数，不解压。写出命令。	`zcat sample.fastq.gz | wc -l`。
+不解压在 `align.log.gz` 里搜索 "ERROR"。写出命令（含先把 log 压缩的步骤）。	先 `gzip -k align.log`（若还没压），再 `zgrep "ERROR" align.log.gz`。
+压缩目录下所有 `.fastq`，且保留原文件，一条命令。写出命令。	`gzip -k *.fastq`。
+用 xz 把大文件 `genome.fa` 压到最小（长期归档）。写出命令。	`xz genome.fa`（产出 genome.fa.xz），或 `tar -cJf genome.fa.tar.xz genome.fa`。
+用 bzip2 打包压缩 `dir/` 目录。写出命令。	`tar -cjf archive.tar.bz2 dir/`。
+把项目打包成带日期的归档名，三个月后同事能一眼看懂。写出命令。	`tar -czf project_$(date +%F).tar.gz project/`。
+解压一个用 xz 压缩的 tar 包 `archive.tar.xz`。写出命令。	`tar -xJf archive.tar.xz`（GNU tar 读时也能自动识别，`tar -xf archive.tar.xz` 亦可）。
+解压 `.tar.gz` 归档的同时显示处理过程（verbose）。写出命令。	`tar -xzvf archive.tar.gz`。
+`zcat sample.fastq.gz | wc -l` 里，为什么用 `zcat` 而不是先 `gunzip` 再 `wc`？	zcat 流式读取、不落盘，省磁盘空间和解压大文件的时间；wc 直接统计行数。
+`tar -czf project.tar.gz project/` 里的 `-z` 到底是给哪一步用的？	给打包后的 `.tar` 做 gzip 压缩；没有 `-z` 就只是 tar 打包（不压缩）。
+如果删掉 `tar -czf project.tar.gz project/` 里的 `-z`，变成 `tar -cf ...`，结果会怎样？	得到未压缩的 `.tar`（文件名仍叫 .tar.gz）；之后用 `-xzf` 强制解压会报 "not in gzip format"。
+`tar -xzf archive.tar.gz -C restored` 中，`-f` 和 `-C` 各管什么？	`-f` 指定要操作的归档文件名（后紧跟文件名）；`-C` 指定解压目标目录（restored）。
+`gzip -c file > file.gz` 为什么要用 `-c` 加重定向，而不是直接 `gzip file`？	因为 `gzip file` 会删除原文件；`-c` 把压缩结果输出到 stdout，配合重定向既得到 .gz 又保留原文件。
+`zgrep "ERROR" align.log.gz` 内部做了哪些事？	先流式解压读取 .gz 内容，再对它执行 grep 匹配，但不在磁盘上产生解压文件。
+`tar -tzf project.tar.gz` 里 t 和 f 各是什么作用？为什么 t 前面通常也加 z？	t=list 列内容，f=file 指定归档文件；加 z 让 tar 先 gzip 解压再读（GNU tar 读时能自动识别，但显式写更规范、跨系统更稳）。
+`gzip -k *.fastq` 和 `tar -czf raw.tar.gz raw_data/` 这两个做法目标上有什么不同？	前者把每个文件单独压成 .gz，生信工具能逐个直接读；后者把所有文件打成一个包，适合传输/备份，但工具不能按单个文件读包内内容。
+运行 `tar -xz data.tar.gz` 报 "Refusing to read archive contents from terminal (missing -f option?)"。原因和修复？	漏了 -f（文件名）。tar 没 -f 就从终端读归档，于是拒绝。改为 `tar -xzf data.tar.gz`。
+`tar -xf sample.fastq.gz` 报 "This does not look like a tar archive"。为什么？	sample.fastq.gz 是 gzip 压缩的单个文件，不是 tar 包。要看内容用 `zcat`，不是 `tar`。
+`gzip sample.fastq.gz` 报 "already has .gz suffix -- unchanged"。为什么？	文件已是 .gz，gzip 检测到后缀拒绝二次压缩（防止变成 .gz.gz）。先 gunzip 还原或干脆别压。
+`gunzip sample.fastq.gz` 报 "already exists; not overwriting"。原因和解决？	当前目录已存在 sample.fastq，gzip 默认不覆盖。删旧文件或用 `gunzip -f` 强制覆盖。
+`zcat data.tar` 报 "not in gzip format"。为什么？	data.tar 是未压缩的 tar 包，zcat 只认 gzip 格式。改用 `tar -tf data.tar` 查看。
+打包时写成 `tar -cf comp_battle.tar.gz raw_data/ results/`（漏了 -z），随后 `tar -xzf comp_battle.tar.gz` 报 "gzip: stdin: not in gzip format"。为什么？	创建时漏 -z，文件名虽是 .tar.gz，实际是未压缩的 .tar。解压强制 -z 却碰到非 gzip 数据，报错。删掉重来 `tar -czf`。
+运行 `gzip project/` 想压缩整个目录，结果报错。为什么？正确做法？	gzip 只能压单个文件，不能压目录。打包目录用 tar：`tar -czf project.tar.gz project/`。
+你 gzip 了一个 `alignment.bam`，发现压缩后大小几乎没变。原因？	.bam 本身是 BGZF 压缩的，再 gzip 几乎不缩、纯浪费 CPU。已压缩格式（.bam/.jpg/.png/.gz/.zip）不该再压。
+解压 project.tar.gz 到当前目录后，发现自己原有的同名文件被覆盖了。以后怎么避免？	解压前先 `tar -tzf` 看清里面有什么；或解压到独立目录 `tar -xzf ... -C 新目录`。
+你写 `zcat sample.fastq`（普通未压缩 FASTQ）想查看，结果报 "not in gzip format"。原因和修复？	zcat 只认 gzip。普通文件直接用 `head`/`cat` 查看，不需要 zcat。
+`gzip file` 与 `gzip -k file` 的区别？	前者压缩后删除原文件；后者（-k）保留原文件，.gz 和原文件并存。
+`.gz` 和 `.tar.gz` 有什么区别？为什么不能对 `.gz` 用 tar 解压？	`.gz` 是单个文件的 gzip 压缩；`.tar.gz` 是多文件先 tar 打包再 gzip 压缩。对 .gz 用 tar 会报 "not a tar archive"。
+gzip / bzip2 / xz 三者的速度和压缩率如何排序？	速度：gzip 最快 > bzip2 > xz 最慢；压缩率（更小）：xz > bzip2 > gzip。
+`gunzip file.gz` 与 `gzip -d file.gz` 有什么区别？	没有区别，两者等价，都是解压。
+压缩 500 个 .fastq 时，"逐个 gzip" 和 "tar 打成一个包"哪个更适合后续生信工具直接读取？为什么？	逐个 gzip（.fastq.gz）。fastqc 等工具能直接读 .gz；tar 打成一个包，工具无法按单个文件读取包内内容。
+服务器磁盘满了，500 个 .fastq 占满空间，但后续 fastqc 等工具还要能直接读这些文件。怎么压缩最合适？	`gzip -k *.fastq`（或逐个 gzip）压成 .fastq.gz；工具能直接读 .gz，省 60–75% 空间。不要 tar 成大包（工具不能按文件读）。
+要把整个项目（raw_data/ + results/ + scripts/）发给合作者，让对方三个月后也能立刻看懂。怎么做？	`tar -czf project_$(date +%F).tar.gz raw_data/ results/ scripts/`——带日期、多目录、-z 压缩，一个文件发走；对方 `tar -xzf` 还原结构。
+一个 5GB 的 .fastq.gz，只想确认前 4 行数据头没坏，不想解压整个文件。怎么做？	`zcat sample.fastq.gz | head -n 4`：流式只读前 4 行就停，不落盘、秒回。
+要归档 alignment.bam（已压缩）和 counts.txt（纯文本）两个文件，压缩策略怎么定？	.bam 已 BGZF 压缩，别再 gzip；只压纯文本 `gzip counts.txt`。若要一起打包 `tar -czf archive.tar.gz alignment.bam counts.txt.gz`（打包方便传输，gzip 层对 bam 收益有限）。
+SSH 到无图形界面的服务器，一个 20GB 的 .fastq.gz 想快速判断它是否含数据，不该先完整解压。优先什么思路？	`zcat big.fastq.gz | head -n 4`（或 zless/zgrep 抽查），流式读少量行验证，不落盘。
+你在 tmux 左屏跑 gzip/tar 压缩，右屏要实时验证压缩结果和大小变化。右屏用什么命令？	`ls -lh`（看大小变化）、`tar -tzf`（看归档内容）、`zcat ... | head`（确认数据完好）。
+需要长期归档、追求最小体积的基因组大索引文件，但不在乎耗时。选哪个工具？	xz（压缩率最高）：`xz genome.fa` 或 `tar -cJf genome.fa.tar.xz genome.fa`。
+要和用 Windows 的同事交换一批数据，对方没有 tar/gzip 习惯。发什么格式？	zip：`zip data.zip f1 f2 ...`（跨平台，Windows 原生支持）。注意 Ubuntu 最小安装可能要先 `sudo apt install zip unzip`。
+想把整个 raw_data/ 打包成 .tar.gz 备份，但担心解压时覆盖当前目录同名文件。打包后第一步该做什么？	先 `tar -tzf` 列出归档内容确认有什么，再决定解压到哪（或用 -C 指定安全目录）。
+测序中心下机一个 5GB 的 SRR12345678.fastq，磁盘快满。压缩它并验证前 4 行数据头没坏，怎么做？	`gzip SRR12345678.fastq`（省 60–75%），然后 `zcat SRR12345678.fastq.gz | head -n 4` 验证。
+一个 .fastq.gz 里有 8,000,000 行，read 数是多少？为什么？	2,000,000 条 read。FASTQ 一条 read 占 4 行，8,000,000 / 4 = 2,000,000。
+不解压统计一个 .vcf.gz 里（去掉 # 注释行）的变异记录数。写出命令。	`zcat sample.vcf.gz | grep -v "^#" | wc -l`。
+不解压直接查看一个 RNA-seq 的 counts.tsv.gz 前几行（含表头）。写出命令。	`zcat counts.tsv.gz | head -n 5`（或 `zless counts.tsv.gz`）。
+想不解压检查 scRNA-seq 的 .fastq.gz 里有多少 read（按 @ 开头的 header 数）。写出命令。	`zcat cells.fastq.gz | grep -c "^@"`。
+一堆 TCGA 的 .fastq.gz 要统一 gzip 压缩并保留原文件，一条命令。写出命令。	`gzip -k *.fastq`。
+一个 alignment.log 想压缩后仍能随时搜 "ERROR"，怎么做？	`gzip -k align.log`，之后 `zgrep "ERROR" align.log.gz`。
+为什么说 .fastq.gz 是测序行业"和全世界交换数据"的入场券？	因为 NCBI、ENA、GEO 上传的原始数据几乎都是 .fastq.gz，学会 gzip + zcat 就能处理这些标准格式。
+需求从"查看 .gz 前 4 行"变成"翻页浏览整个 .gz 文件"，用什么命令替代？	用 `zless file.gz`（不解压分页浏览）。
+原来用 `gzip *.fastq`（会删原文件），现在要求保留原文件，怎么改？	加 -k：`gzip -k *.fastq`。
+原来命令是 `zcat file.gz | head -n 4`，现在要搜文件里的 "ERROR" 而不是看前 4 行，怎么改？	把 head 换成 grep 的压缩版：`zgrep "ERROR" file.gz`。
+原来打包用 `tar -czf a.tar.gz dir/`（gzip 压缩），现在要 xz 压缩，怎么改？	把 -z 换成 -J：`tar -cJf a.tar.xz dir/`。
+原来解压到当前目录 `tar -xzf a.tar.gz`，现在要解压到 out/ 目录，怎么改？	加 -C：`tar -xzf a.tar.gz -C out/`（先 mkdir out）。
+原来要 gzip 压缩单个 FASTQ，现在需求变成"把整个目录打包发给合作者"，工具要从 gzip 换成什么？	换成 tar：`tar -czf project.tar.gz project/`（gzip 管单文件，tar 管打包目录）。
+gzip 默认会删除原文件——如果不希望删，两个解决办法是什么？	`gzip -k file`（保留）或 `gzip -c file > file.gz`（输出到 stdout，原文件不动）。
+文件名是 .tar.gz 但创建时漏了 -z，会发生什么？	文件实际是未压缩的 .tar（只是名字带 .gz）。用 -xzf 强制解压会报 "not in gzip format"。
+解压 .tar.gz 会覆盖当前目录同名文件吗？怎么规避？	会。解压前先 `tar -tzf` 查看内容，或 `-C` 解压到独立目录。
+gzip 支持同时压多个文件吗？结果是什么样？	支持，`gzip *.fastq` 会逐个把每个文件压成对应的 .gz（不是打成一个包）。
+至少列出 3 个"已压缩格式"，并说明为什么再压无效。	.bam（BGZF）、.jpg、.png、.gz、.zip——本身已压缩，再 gzip 只烧 CPU、几乎不缩。
+完整做一遍"压缩 + 打包 + 验证"：把 project/ 里的 .fastq 逐个 gzip（保留原文件），再整个目录打成带日期的 .tar.gz，并列出归档内容确认。写出命令序列。	1) `gzip -k project/raw_data/*.fastq`；2) `tar -czf project_$(date +%F).tar.gz project/`；3) `tar -tzf project_$(date +%F).tar.gz`。
+一个 .fastq.gz 需要：①看前 4 行 ②统计行数 ③搜 header 数量，全程不解压。写出三条命令。	① `zcat f.fastq.gz | head -n 4`；② `zcat f.fastq.gz | wc -l`；③ `zcat f.fastq.gz | grep -c "^@"`。
+服务器上有 reads.fastq.gz、sample.vcf.gz、align.log。请完成：①统计 FASTQ read 数 ②统计 VCF 变异记录数（跳过 # 注释）③把 align.log 压缩并保留原文件。	① `zcat reads.fastq.gz | wc -l` 再除以 4（或 `grep -c "^@"`）；② `zcat sample.vcf.gz | grep -v "^#" | wc -l`；③ `gzip -k align.log`。
+你要交付项目：raw_data/（2个.fastq）+ results/（counts.tsv）。要求：每个 .fastq 用 gzip -k 压缩；整个项目打成带日期 .tar.gz；验证归档里两个目录都在；最后确认某个 .fastq.gz 数据完好。写出完整流程。	`gzip -k raw_data/*.fastq`；`tar -czf project_$(date +%F).tar.gz raw_data/ results/`；`tar -tzf ...` 确认目录；`zcat raw_data/x.fastq.gz | head -n 4` 确认数据。
+排查错误流程：`tar -cf wrong.tar.gz project/` 后 `tar -xzf wrong.tar.gz` 报 not in gzip format。说明问题在哪、如何修复并验证成功。	创建漏了 -z，wrong.tar.gz 实为未压缩 .tar。修复：删掉重来 `tar -czf wrong.tar.gz project/`；再 `tar -tzf wrong.tar.gz` 验证成功。
+要把 raw_data/ + results/ 打包发合作者（对方是 Windows），并保证三个月后能看懂命名。选什么工具/格式？写出命令。	用 zip：`zip project_$(date +%F).zip raw_data/ results/`（Windows 原生支持、跨平台；仅 Linux 之间传输才用 tar.gz）。
+在 tmux 分屏里做"压缩 + 验证"：左屏执行压缩打包，右屏验证。右屏要依次用什么命令验证？	`ls -lh`（看大小变化）→ `tar -tzf`（看归档内容）→ `zcat ... | head -n 4`（确认数据完好）。

@@ -1,0 +1,69 @@
+脚本（shell script）是什么？	把一条条命令按顺序写进文本文件，交给 shell 从上到下逐行执行。
+脚本第一行 #!/bin/bash 叫什么？作用？	shebang（sha-bang），告诉系统用哪个解释器（bash）执行这个脚本。
+变量是什么？	给值起名字的「盒子」，赋值 name=value，取值用 $name。
+$(命令) 是什么？作用？	命令替换（command substitution）：把命令的输出捕获成一个值，可存进变量或直接使用。
+$? 表示什么？	上一条命令的退出码（exit status）：0 = 成功，非 0 = 失败。
+退出码 0 和非 0 分别表示什么？	0 = 命令成功；非 0 = 命令失败（if 和 &&/|| 都靠它判断）。
+什么是控制流（control flow）？	让脚本能做判断（if）和重复干活（for/while）的语法结构。
+`[ -f file ]` 判断什么？	文件存在且是普通文件（-f = file）。
+让脚本可执行、能用 ./ 运行的命令？	chmod +x script.sh（加执行权限 x 位）。
+bash script.sh 和 ./script.sh 的区别？	bash 运行不需要执行权限，直接交给 bash；./ 运行需要 chmod +x，按 shebang 决定解释器。
+读用户键盘输入存进变量的命令？	read -p "提示: " 变量名。
+把 config.txt 里的变量载入当前 shell/脚本的命令？	source config.txt（或 . config.txt）。
+`wc -l < file` 和 `wc -l file` 的输出有什么不同？	wc -l < file 只输出数字（无文件名）；wc -l file 输出「数字 文件名」。
+bash 里做整数除法（如 行数/4）的写法？	$(( 表达式 ))，例如 reads=$((lines / 4))。
+判断字符串为空的测试写法？	[ -z "$s" ]（-z = zero/空）；非空用 [ -n "$s" ]。
+判断两个字符串相等怎么写？	[ "$a" = "$b" ]。
+glob *.fastq 会匹配什么？	当前目录下所有以 .fastq 结尾的文件（由 shell 展开成文件列表）。
+`grep -c "ERROR" file` 输出什么？	匹配到 ERROR 的行数（-c = count）。
+一条 FASTQ read 占几行？	4 行（@header / 序列 / +header / 质量）。read 数 = 总行数 / 4。
+把命令输出追加到文件用什么？	>> file（追加）；> file 是覆盖。
+写一个脚本统计 fastq/ 下每个 *.fastq 的 read 数，怎么写核心循环？	for f in fastq/*.fastq; do lines=$(wc -l < "$f"); echo "$f: $((lines/4)) reads"; done
+检查 samples.txt 里每个样本对应的 fastq 是否存在，怎么写？	while IFS= read -r id; do if [ -f "fastq/$id.fastq" ]; then echo OK; else echo MISSING; fi; done < samples.txt
+给脚本加「目录不存在就报错退出」的保护，怎么写？	[ -d "$DIR" ] || { echo "目录不存在" >&2; exit 1; }
+把变量 TODAY 设为当天日期（YYYY-MM-DD）？	TODAY=$(date +%F)
+用变量 OUT 存文件名，并在循环里把结果追加进去？	OUT=report.txt; ...; echo "$f: $n reads" >> "$OUT"
+脚本开头加「生产级保护」的一行是什么？各防什么？	set -euo pipefail；-e 出错即停、-u 未定义变量报错、-o pipefail 管道失败算失败。
+打印「每个 *.log 的 ERROR 数」的一行命令？	for f in logs/*.log; do echo "$f: $(grep -c ERROR "$f")"; done
+遍历 samples.txt 并打印每行的脚本片段？	while IFS= read -r line; do echo "$line"; done < samples.txt
+用 if 判断变量 status 是否等于 OK？	if [ "$status" = OK ]; then ...; fi（变量要加引号）
+写脚本：先清空 report.txt 再写入？	: > report.txt（或 > report.txt），清空后后续 >> 追加。
+解释 `for f in fastq/*.fastq; do echo "$f"; done` 每一步做什么？	glob 展开成文件列表 → for 每次取一个文件名存进 f → echo 打印。
+解释 `lines=$(wc -l < "$f")` 里为什么要 < 重定向？	wc -l < "$f" 让 wc 只读文件内容，输出不带文件名，方便算术运算。
+解释 `while IFS= read -r line; do ...; done < file` 中 IFS= 和 -r 的作用？	IFS= 防止行首尾空白被吃掉；-r 防止反斜杠被特殊处理；保证逐行原样读取。
+解释 `[ -f "$f" ] || continue` 在循环里的作用？	若 $f 不是普通文件（如 glob 无匹配/目录），跳过本次循环不处理，避免出错。
+./script.sh 报 Permission denied，但 bash script.sh 能跑，为什么？怎么修？	./ 运行需要执行权限 x 位；修复：chmod +x script.sh。
+写 name = value 报 name: command not found，为什么？	等号两边有空格被当成执行命令 name；赋值必须 name=value。
+报 /bin/bash^M: bad interpreter，是什么原因？	脚本是 Windows 换行 \r\n，shebang 后多了 \r（^M）；用 dos2unix 或 sed -i 's/\r$//' 修复。
+`[ $status = OK ]` 在 status 为空时报 unary operator expected，为什么？怎么修？	展开成 [ = OK ]，= 前无操作数；修复：给变量加引号 [ "$status" = OK ]。
+while read 读文件时最后一行丢了，为什么？怎么修？	文件最后一行无换行符时 read 读到了却返回非 0；修复：while IFS= read -r line || [ -n "$line" ]。
+脚本里 `[ "$a" = "$b" ]` 写成了 `[ "$a"="$b" ]`，会怎样？	少了空格，[ 命令无法正确解析，报语法错误；[ 后面和内侧都要空格。
+for 循环遍历的 glob 一个文件都没匹配到时会怎样？	循环体仍执行一次，$f 是字面量 fastq/*.fastq；所以要加 [ -f "$f" ] || continue 保护。
+`echo $name` 当 name 含空格时可能出什么问题？	词拆分：一个值被拆成多个参数；用 "$name" 加引号保持整体。
+单引号 ' 和双引号 " 的区别？	单引号内 $ 不展开（字面量）；双引号内 $ 会展开成变量值。
+for 循环和 xargs 各适合什么场景？	xargs 一次喂参给单个命令（批量删除/移动）；for 对每项做多步操作或判断。
+> 和 >> 的区别？	> 覆盖写入（先清空）；>> 追加写入（不覆盖）。
+&& 和 || 的区别？	&& 前面成功才执行后面；|| 前面失败才执行后面。
+命令替换 $( ) 和反引号 ` ` 的关系？	功能相同，$( ) 是现代推荐写法，可嵌套、更清晰。
+服务器上有 500 个 FASTQ，要统计每个的 read 数写进一个报告，用什么结构？	for 循环遍历 *.fastq，wc -l 取行数除以 4，结果 >> 追加到报告文件。
+要检查一批样本里哪些缺 fastq 文件，用什么结构？	while read 读样本列表 + if [ -f ] 判断，缺失的记下来。
+脚本要「换目录不改代码」怎么设计？	用变量/参数接收目录（DIR="${1:-默认值}"），路径不写死。
+脚本要交给同事，最少做哪三件事让它可交接？	开头注释写目的/用法/输入输出 + 语义化命名 + set -euo pipefail。
+统计一个 FASTQ 文件 read 数的思路？	总行数 / 4（每条 read 4 行）；或 grep -c "^@" 数 header（仅未压缩时）。
+检查样本 SRR1004 的 fastq 是否存在的判断？	if [ -f "fastq/SRR1004.fastq" ]; then ...; fi
+统计 logs 下每个 log 的 ERROR 数用于质控，怎么写循环？	for f in logs/*.log; do echo "$f: $(grep -c ERROR "$f")"; done
+为什么统计 read 数用 wc -l 得到的是行数而不是 read 数？	FASTQ 每条 read 占 4 行，read 数 = 行数 ÷ 4。
+如果 fastq 变成压缩的 .fastq.gz，read 统计命令要怎么改？	用 zcat 替代 cat：zcat "$f" | wc -l（先解压流再数行，再 /4）。
+需求从「打印文件名」变成「统计 read 数」，循环体怎么改？	循环不变，循环体从 echo "$f" 改成 wc -l + 除法 + 输出。
+脚本默认处理 fastq 目录，想处理别的目录怎么办？	传参数：./run_qc.sh 其他目录；脚本里用 DIR="${1:-fastq}"。
+为什么变量赋值 name = value 是错的？	空格让 shell 把它当「执行命令 name」；正确 name=value。
+为什么测试里变量要加引号 [ "$s" = OK ]？	变量为空时避免展开成 [ = OK ] 报 unary operator expected。
+Windows 编辑的脚本直接传到 Linux 会有什么坑？	换行符 \r\n 与 \n 不兼容，shebang 后多 \r，报 bad interpreter。
+glob 无匹配时 for 循环会有一次「空跑」，怎么防？	循环体内 [ -f "$f" ] || continue 跳过非文件项。
+完整写一个「统计 read 数 + 检查目录存在 + 输出报告」的脚本骨架？	set -euo pipefail; DIR="${1:-fastq}"; [ -d "$DIR" ] || exit 1; for f in "$DIR"/*.fastq; do ...; done > report
+要「统计 read 数 + 样本缺失 + ERROR 数」三件事合到一个报告，怎么组织？	一个脚本里：for 循环统计 read 写入报告 → while read 检查缺失追加 → for 循环统计 ERROR 追加。
+脚本失败重跑时不想从头再来，可以怎么设计？	结果追加到独立文件 + 每处理一个打印进度 + 检查「已完成」标记跳过。
+解释 `echo "处理 $f"` 里为什么要用双引号包住整个字符串？	让 $f 正确展开并作为一个整体参数，避免空格/特殊字符被拆开。
+脚本里 # 开头的一行是什么？	注释，不会被 shell 执行，用来给人类读。
+运行脚本时报 command not found: 某条命令，最可能什么原因？	命令名拼错、或该命令没安装、或脚本里把命令和参数连写没空格。
+[ -z "$s" ] 和 [ -n "$s" ] 分别判断什么？	-z 判断字符串为空；-n 判断字符串非空。

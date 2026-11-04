@@ -1,26 +1,100 @@
-cmd1 | cmd2	把 cmd1 的 stdout 喂给 cmd2 的 stdin（数据从左流向右）
-head -n N	取前 N 行
-tail -n N	取后 N 行
-wc -l	数行数
-sort	按字典序排序
-sort -n	按数字大小排序
-sort -nr	按数字降序排序
-uniq	去掉「相邻」的重复行
-uniq -c	去重并计数（前面通常要 sort）
-cut -f1	取第一列（Tab 分隔）
-tee file	把数据写进文件，同时继续传给下一个命令
-tee -a file	追加写文件（不覆盖），同时继续传
-> file	把 stdout 覆盖写进文件（已有文件会被清空）
->> file	把 stdout 追加写进文件
-管道传的是哪个流？	只传 stdout→stdin；stderr 不经过管道，直接上屏
-uniq 去掉什么重复？	只去「相邻」重复；想全去重要先 sort
-FASTQ 一条 read 占几行？	4 行：@header / sequence / + / quality
-数 FASTQ 的 read 数怎么写？	zcat f.fastq.gz | grep -c "^@"（或 wc -l 再 ÷4）
-数 VCF 变异记录（跳过 # 头）怎么写？	grep -v "^#" sample.vcf | wc -l
-管道和重定向的区别？	| 把输出接给下一个「命令」，> 把输出写进「文件」
-tee 的作用？	一份写文件留档、一份继续走管道，跑一遍得两样
-uniq 计数不对（同一基因拆成多行）	忘了先 sort，改成 sort | uniq -c
-grep x | ls 结果只剩目录列表	ls 不读 stdin，管道右边要换成读 stdin 的命令
-管道后报错还是打到屏幕	报错是 stderr，不走管道，加 2>/dev/null 静音
-cat f.fastq | wc -l 得到 8 但只有 2 条 read	FASTQ 每 read 4 行，8/4=2；数 read 用 grep -c "^@"
-grep x log > out.txt 把旧 out.txt 覆盖了	> 是覆盖；用 >> 追加，或先 cp 备份
+`|` 管道把左边命令的什么流连接到右边命令的什么流？	左边命令的 stdout（标准输出）→ 右边命令的 stdin（标准输入）；stderr 不经过管道
+管道里多个命令串起来时，数据按什么方向、什么顺序流动？	从左到右，按书写顺序逐级传递：`cmd1 | cmd2 | cmd3` 中 cmd1 的 stdout 喂给 cmd2 的 stdin，cmd2 的 stdout 再喂给 cmd3
+为什么管道能让一个 5 GB 的 .fastq.gz 不用先解压落盘就完成统计？	因为管道是流式传递：命令边输出边流进下一个命令，中间结果不落盘、不额外占空间，一条命令一气呵成
+`uniq` 去掉的是「全部重复」还是「相邻重复」？	只去掉「相邻重复」。`a a b a` 经 uniq 后仍是 `a b a`（第三个 a 与前一个不相邻），要彻底去重必须先 `sort`
+FASTQ 格式里一条 read 占几行？这四行分别是什么？	4 行：`@header`（@ 开头）/ 序列 seq / `+` / 质量 quality。所以 `wc -l` 数出的行数要 ÷4 才是 read 数
+管道 `|` 和重定向 `>` 各自的用途区别是什么？	`|` 把 stdout 送给「下一个命令」的 stdin；`>` 把 stdout 写进「文件」。`|` 后接命令，`>` 后接文件名
+`tee` 在管道中间起什么作用？	一份写进文件（留档/检查点），一份继续往下传，不打断流水线；默认覆盖，追加用 `tee -a`
+为什么管道右边接 `ls`、`cd`、`rm` 这类命令通常没有意义？	因为它们不读 stdin。管道只对「读 stdin 的命令」（如 grep/sort/wc/head）有意义，不读 stdin 的命令会无视管道喂来的数据
+`head -n N` 和 `tail -n N` 分别做什么？	`head -n N` 取前 N 行；`tail -n N` 取后 N 行
+`wc -l` 统计的是什么？	输入中的「行数」（不是记录数，也不是 FASTQ 的 read 数）
+`sort` / `sort -n` / `sort -nr` 分别是什么排序？	`sort` 字典序排序；`sort -n` 按数字大小升序；`sort -nr` 按数字大小降序
+`uniq` 和 `uniq -c` 的区别？	`uniq` 去掉相邻重复行；`uniq -c` 在去重同时统计每行相邻重复出现的次数
+`cut -f1` 默认用什么分隔符切列？取的是哪一列？	默认 Tab 分隔；`-f1` 取第一列
+`tee file` 和 `tee -a file` 的区别？	`tee file` 覆盖写入文件；`tee -a file` 追加写入文件（保留原内容）
+`> file` 和 `>> file` 的区别？	`>` 覆盖写入（文件已存在会被清空重写）；`>>` 追加写入
+`grep -c "^@"` 在 FASTQ 场景里统计的是什么？	以 `@` 开头的行数，即 read 数（因为 FASTQ 里每条 read 的 header 行以 @ 开头）
+`grep -v "^#" sample.vcf` 里 `-v` 的作用是什么？	反选（取反）：只输出「不」以 `#` 开头的行，即跳过 VCF 的注释头和列头
+`grep -c "^>" genome.fa` 统计的是什么？	以 `>` 开头的行数，即 FASTA 文件里序列的条数
+想统计 FASTQ 的 read 数，除了「数总行数再 ÷4」之外，还能用什么更直接的思路？	统计以 `@` 开头的 header 行，如 `grep -c "^@" reads.fastq` 或 `grep "^@" reads.fastq | wc -l`
+统计一个 VCF 里的变异记录数量、跳过 `#` 开头的注释头，pipeline 该怎么搭？	`grep -v "^#" sample.vcf | wc -l`
+想把 ERROR 行存成文件留档、同时马上知道一共有几行、且不想跑两遍，应该用什么命令插在管道中间？	`tee`，例如 `grep "ERROR" align.log | tee errors.txt | wc -l`
+为什么 `sort | uniq -c` 是统计重复次数的标准前两步？这两个的顺序能倒过来吗？	不能倒。`sort` 把相同项排到一起（相邻），`uniq -c` 才能正确合并计数；若先 uniq 再 sort，非相邻的相同项会被漏计
+在 `sort -nr | head -n 10` 里，为什么 `sort -nr` 必须放在 `head` 之前？	必须先按次数降序排好，`head -n 10` 取到的才是有意义的 Top 10；若先 head 再 sort，取到的只是文件开头任意 10 行
+`cat reads.fastq | wc -l` 输出 8，同事说这是 2 条 read，两者为什么都是对的？	`wc -l` 数的是行，FASTQ 每 read 4 行，8 行 ÷ 4 = 2 条 read
+不落盘地数一个 `.fastq.gz` 的 read 数，pipeline 第一段应该用什么命令？为什么？	`zcat`。它能流式解压 gz 并把内容输出到 stdout，供后续 grep/wc 使用，不用先解压出完整文件
+`cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10` 这条命令最终回答的是什么生信问题？	找出 counts.tsv 第一列（基因名）里出现次数最多的 top 10 基因
+列出当前目录下所有 `.fastq` 文件（用 ls 的详细列表过滤出 .fastq 结尾的行），怎么写一条管道？	`ls -l | grep "\.fastq$"`
+用管道统计 `reads.fastq` 的总行数	`cat reads.fastq | wc -l`（或直接 `wc -l reads.fastq`）
+用管道数出 `reads.fastq` 里的 read 数	`grep "^@" reads.fastq | wc -l`（或 `cat reads.fastq | grep "^@" | wc -l`）
+用管道只显示 `reads.fastq` 的前 4 行（也就是第一条 read）	`cat reads.fastq | head -n 4`
+统计 `genes.txt` 里每个基因各出现几次	`cat genes.txt | sort | uniq -c`
+找出 `genes.txt` 里出现次数最多的 top 2 基因	`cat genes.txt | sort | uniq -c | sort -nr | head -n 2`
+不生成解压文件，直接数 `reads.fastq.gz` 里的 read 数	`zcat reads.fastq.gz | grep -c "^@"`（或 `zcat reads.fastq.gz | grep "^@" | wc -l`）
+统计 `sample.vcf` 的变异记录数（跳过 `#` 开头的注释头）	`grep -v "^#" sample.vcf | wc -l`
+统计 `counts.tsv` 第一列（基因名）里每个值各出现多少次	`cut -f1 counts.tsv | sort | uniq -c`
+统计 `genome.fa` 里有多少条序列	`grep -c "^>" genome.fa`
+一条命令找出 `counts.tsv` 第一列出现最多的 top 10 基因，并让同事能改数字复用	`cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10`，N 在 `head -n N` 处改
+用一条可复用命令统计某个 `.fastq.gz` 的 read 数（含 zcat + grep + wc）	`zcat sample.fastq.gz | grep -c "^@"`（或用 `wc -l` 得总行数再 ÷4）
+把 `reads.fastq` 里 @ 开头的 header 行存成 `headers.txt`，同时数出 header 行数	`cat reads.fastq | grep "^@" | tee headers.txt | wc -l`
+把 `align.log` 里的 ERROR 行存成 `errors.txt`，同时把行数打印到屏幕	`grep "ERROR" align.log | tee errors.txt | wc -l`
+拆解 `cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10` 每一段的作用	`cut -f1` 取第一列基因名 → `sort` 让相同基因相邻 → `uniq -c` 统计相邻重复次数 → `sort -nr` 按次数降序 → `head -n 10` 取前 10
+在 `cat genes.txt | sort | uniq -c` 里，第一个 `sort` 为什么必须有？	让相同基因名排到一起（相邻），`uniq -c` 才能正确统计每个基因的总出现次数
+在 `... | uniq -c | sort -nr | head -n 2` 里，`sort -nr` 和 `head -n 2` 为什么顺序不能反？	先 `sort -nr` 把计数从高到低排好，`head -n 2` 取到的才是最高频的前 2；反过来会先取任意前 2 行再排序，失去 top 的意义
+在 `grep "^@" reads.fastq | wc -l` 里，为什么不能直接用 `wc -l` 数整个文件？	直接 `wc -l` 数的是所有行（含 seq、+、quality），结果会是 read 数的 4 倍；先用 grep 过滤出 @ header 行再数才是 read 数
+在 `grep -v "^#" sample.vcf | wc -l` 里，为什么需要 `-v`？如果去掉 `-v` 会怎样？	`-v` 是反选。去掉 `-v` 会变成只留下 # 开头行再计数，数的是注释头数量而非变异记录
+在 `grep "ERROR" align.log | tee errors.txt | wc -l` 里，`tee` 做了什么？换成 `>` 行不行？	`tee` 一份写进 errors.txt、一份继续传给 wc。换成 `>` 会把数据全部写进文件、不再向下传，wc 就拿不到输入了
+`zcat reads.fastq.gz | grep "^@" | wc -l` 三段各起什么作用？	`zcat` 流式解压输出内容 → `grep "^@"` 过滤出 read header 行 → `wc -l` 数 header 行数 = read 数
+在 `cat reads.fastq | head -n 4` 里，head 输出什么、为什么是「第一条 read」？	输出前 4 行。因为 FASTQ 每条 read 固定 4 行（@header/seq/+/quality），前 4 行正好是第一条 read 的完整内容
+拆解 `ls -l | grep "\.fastq$"` 每一段在做什么	`ls -l` 列出所有文件的详细行；`|` 把整块文本喂给 grep；`grep "\.fastq$"` 只留下以 `.fastq` 结尾的行
+你运行 `grep "SRR" reads.fastq | ls`，结果屏幕上只出现目录列表，看不到 grep 结果。问题在哪？怎么改？	`ls` 不读 stdin，管道喂给它的数据被无视。改成读 stdin 的命令，如 `grep "SRR" reads.fastq | wc -l`
+你运行 `cat genes.txt | uniq -c`，发现 TP53 出现两次却没被合并计数。首先怀疑什么？如何修？	`uniq` 只去相邻重复，TP53 两次不相邻所以没合并。先 `sort`：`cat genes.txt | sort | uniq -c`
+你运行 `grep -r "error" . | wc -l`，屏幕还是不断冒出 `Permission denied`。为什么管道没把这些报错「接住」？怎么静音？	管道只传 stdout，`Permission denied` 是 stderr，直接上屏绕过管道。静音加 `2>/dev/null`（Lesson 10 细讲）
+你运行 `cat reads.fastq | wc -l` 得到 8，但你以为是 2 条 read。为什么是 8 而不是 2？	`wc -l` 数的是行不是 read。FASTQ 每 read 4 行（@header/seq/+/quality），8 行 = 2 条 read。直接数 read 用 `grep -c "^@"`
+你运行 `grep ERROR align.log > errors.txt`，结果昨天的 errors.txt 被静默清空覆盖了。为什么？以后怎么办？	`>` 在文件已存在时直接截断重写且不提示。要保留旧内容用 `>>` 追加，或先备份（如 `cp errors.txt errors.txt.bak`）
+你写 `grep "ERROR" align.log | result.txt`，shell 报错或结果不对。哪里错了？	`|` 后面只能接命令，不能接文件名；接文件名要用 `>`。正确写法 `grep "ERROR" align.log > result.txt`
+你运行 `sort genes.txt | uniq -c | head -n 2`，却发现没做降序，结果不是最高频的两个基因。缺了哪一步？	缺了 `sort -nr`。应写成 `sort genes.txt | uniq -c | sort -nr | head -n 2`，先按次数降序再取前 2
+你运行 `echo hi | read x` 之后再 `echo $x`，发现 `$x` 是空的。为什么变量没被赋值？	管道里每个命令跑在各自的子进程里，右边 `read x` 对变量的修改不会传回你的 shell，所以父 shell 里 `$x` 仍为空
+你统计 `counts.tsv` 第一列出现次数时用了 `cut -f1 counts.tsv | uniq -c`，结果很多重复基因被拆成多行。原因和修复？	少了 `sort`。`uniq` 只合并相邻重复，非相邻的相同基因会被各自计数。改为 `cut -f1 counts.tsv | sort | uniq -c`
+你运行一个大文件排序 `sort huge.tsv`，命令迟迟不输出、像卡住了。这是 bug 吗？	不是。`sort` 要等全部输入读完才能输出，大文件会先整体缓冲，看起来像卡住属正常现象，耐心等它读完
+你运行 `yes | head -n 3`，输出 3 行 y 之后 stderr 报了一句 broken pipe。这是致命错误吗？为什么会出现？	不是致命错误。head 读到 3 行就提前退出，上游 yes 还在写时发现管道下游已关闭，于是报 broken pipe，无害
+`grep -c "^@" file.fastq` 和 `cat file.fastq | wc -l` 得到的数为什么不同？	前者数的是 @ 开头行 = read 数；后者数的是全部行数 = read 数 × 4（FASTQ 每 read 4 行）
+`sort -n` 和 `sort -nr` 的区别？	`sort -n` 数字升序；`sort -nr` 数字降序（r = reverse）
+`tee file` 和 `> file` 在「数据去向」上的本质区别？	`tee file` 既写文件又把数据继续往下传（可放管道中间）；`> file` 只把数据写进文件，不再向下游传
+`|` 和 `>` 后面分别应该接什么？	`|` 后接命令（把 stdout 连到该命令的 stdin）；`>` 后接文件名（把 stdout 写进文件）
+单独 `uniq` 去重 vs `sort | uniq` 去重，结果差异在哪？	单独 `uniq` 只去相邻重复（`a a b a`→`a b a`）；先 `sort` 再 `uniq` 才真正去掉所有重复
+SSH 到服务器，发现 `SRR12345678.fastq.gz` 有 5 GB，要数里面几条 read，但不能解压、不能额外占 5 GB。一条命令怎么做？	`zcat SRR12345678.fastq.gz | grep -c "^@"`（流式边解边数，不落盘）；或 `zcat ... | wc -l` 得总行数再 ÷4
+`sample.vcf` 前 50 行全是 `##` 注释和列头，你要统计真正的变异记录有多少条	`grep -v "^#" sample.vcf | wc -l`
+一个基因表达表有几万行，要找出现次数最多的 top 10 基因，命令要能改个数字就换成 top 20	`cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10`；把末尾 10 改成 20 即可
+排查日志时想把 ERROR 行存成 `errors.txt` 留档，同时马上知道一共几行，不想跑两遍	`grep "ERROR" align.log | tee errors.txt | wc -l`
+在 tmux 分屏里做「测序数据体检」，左屏跑统计管道，右屏想核对原文，右屏应该用什么命令看文件？	右屏用 `cat`（普通文件）或 `zcat`（gz 文件）直接查看原文核对，与左屏管道结果对照
+服务器上有个 20 GB 的 `.fastq.gz`，无图形界面，你想先快速确认它里面到底有没有 read 数据，优先怎么做？	用管道流式读头部或统计，如 `zcat sample.fastq.gz | head -n 4` 看第一条 read，或 `zcat ... | grep -c "^@"` 数 read，不落盘
+你要写一条「找 top N 基因」的管道给三个月后的同事，要求有注释、N 好改，你会怎么组织？	写 `cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10`，注释注明「N 在 head -n N 处修改」，命令可读、参数集中
+实验室让你核对一个 alignment log 里的 ERROR 数量，还要把这批 ERROR 行存档给同事复现，一步到位怎么做？	`grep "ERROR" align.log | tee errors.txt | wc -l`，存档 + 计数一次完成
+你需要在 tmux 里完成「测序数据体检」，最后要把一份统计结果存盘留证据，应该用什么把管道中间结果同时落盘？	`tee`，例如 `... | tee gene_counts.txt | ...`，一份存盘、一份继续往下走
+数一个 `.fastq.gz` 的 read 数，不生成解压文件，写出完整 pipeline	`zcat sample.fastq.gz | grep -c "^@"`（或 `zcat sample.fastq.gz | grep "^@" | wc -l`）
+数一个 FASTA 文件 `genome.fa` 里有多少条序列（用 grep 直接计数）	`grep -c "^>" genome.fa`
+统计 `sample.vcf` 里真正的变异记录数（跳过所有 # 开头行）	`grep -v "^#" sample.vcf | wc -l`
+从 RNA-seq 的 `counts.tsv` 第一列找出出现次数最多的 top 10 基因	`cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10`
+想快速看一个 FASTQ 文件第一条 read 的 4 行内容，用管道怎么写？	`cat reads.fastq | head -n 4`（gz 则 `zcat reads.fastq.gz | head -n 4`）
+统计 FASTQ 的 read 数时，为什么用 `grep "^@"` 比「数行再换算」更稳妥？	`grep "^@"` 直接数 @ 开头的 header 行，一步得到 read 数，不用记 ÷4 换算，也避免把行数误当 read 数
+一个 scRNA-seq 的 counts.tsv 有几十万行，找第一列出现频率最高的 top N 基因，这条通用 pipeline 是什么？	`cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n N`
+你想核对一个比对流程产生的 alignment log 里有多少 ERROR，同时把 ERROR 行存档，怎么写？	`grep "ERROR" align.log | tee errors.txt | wc -l`
+处理 TCGA 的样本文件时，你要数 `sample.fastq.gz` 里的 read 数但不能落盘，为什么首选 zcat 管道而不是先解压？	因为 gz 可能几个 GB，先解压会占额外磁盘和大量时间；zcat 流式解压进管道，边解边数，不落盘
+现有 `... | head -n 10`，需求从 Top 10 改为 Top 50，改哪里？	把 `head -n 10` 改成 `head -n 50`
+现有 `... | sort -nr | head -n 10`，需求从「降序」改成「升序」，怎么改？	把 `sort -nr` 改成 `sort -n`
+现有 `grep "ERROR" align.log | tee errors.txt | wc -l`，第二天想追加而不是覆盖 errors.txt，怎么改？	把 `tee errors.txt` 改成 `tee -a errors.txt`
+现有 `grep -v "^#" sample.vcf | wc -l`，如果 VCF 的注释头是 `##` 开头，`^#` 能匹配吗？为什么？	能。`^#` 匹配任何以 `#` 开头的行，`##` 和单个 `#` 都会被匹配掉
+现有 `cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 10`，如果文件是 gz 压缩的 counts.tsv.gz，第一段 cut 之前要加什么？	加 `zcat counts.tsv.gz |`，变成 `zcat counts.tsv.gz | cut -f1 | sort | uniq -c | sort -nr | head -n 10`
+现有命令用普通 `.fastq` 文件（`cat file.fastq | ...`），如果换成 `.fastq.gz`，最前面一步怎么改？	把 `cat file.fastq` 换成 `zcat file.fastq.gz`，其余管道段不变
+`grep "\.fastq$"` 里 `.` 前面为什么要加反斜杠 `\`？	正则里 `.` 匹配任意字符；`\.` 才匹配字面句点。不加 `\` 会把 `.fastq` 误匹配成「任意字符 + fastq」
+`grep "^@"` 里 `^` 的作用是什么？为什么不能只用 `grep "@"`？	`^` 锚定行首，只匹配 @ 开头的 header 行；去掉 `^` 会把序列或质量行里含 @ 的行也误算进去
+`uniq -c` 输出的格式是什么？（先什么后什么）	每行形如 `N 内容`，N 是出现次数，次数在左边。所以后面接 `sort -nr` 才能按 N 排序
+在 `grep -v "^#" sample.vcf | wc -l` 里，为什么用 `^#` 而不是 `#`？	用 `^#` 只删「行首是 #」的注释头；若只用 `#` 会把数据行中间含 # 的内容也误删
+服务器上有一批文件：`reads.fastq.gz`、`sample.vcf`、`genes.txt`、`align.log`。请分别给出：read 数、变异数、每个基因出现次数、top 2、ERROR 存档+计数的命令	read 数 `zcat reads.fastq.gz | grep -c "^@"`；变异数 `grep -v "^#" sample.vcf | wc -l`；基因计数 `cat genes.txt | sort | uniq -c`；top2 `cat genes.txt | sort | uniq -c | sort -nr | head -n 2`；ERROR `grep "ERROR" align.log | tee errors.txt | wc -l`
+Boss 战任务：对一个小测序项目做「数据体检」，要统计 read 数、变异记录数、每个基因出现次数、top 2，并用 tee 把基因计数存成 gene_counts.txt 同时打印。列出关键命令	`grep -c "^@" reads.fastq`（read 数）；`grep -v "^#" sample.vcf | wc -l`（变异数）；`cat genes.txt | sort | uniq -c`（基因计数）；`... | sort -nr | head -n 2`（top2）；`cat genes.txt | sort | uniq -c | tee gene_counts.txt`（存盘+打印）
+检查一个压缩 FASTQ 的 read 数、查看前几个 header、并把统计结果保存下来，如何组织一次完整操作？	组合 `zcat`、`grep`、`head`、`wc`、`tee`，如 `zcat reads.fastq.gz | grep "^@" | tee headers.txt | wc -l`，再 `head headers.txt` 看前几个 header
+你要在 tmux 里完成一次「测序数据体检」：左屏跑统计、右屏核对原文、最后把一份统计结果落盘并截图。给出大致工作流	左屏跑 `grep -c "^@" reads.fastq`、`grep -v "^#" sample.vcf | wc -l`、`cat genes.txt | sort | uniq -c | sort -nr | head -n 2`；右屏 `cat`/`zcat` 看原文核对；结果用 `tee` 存盘；截图留证并 git push
+「数据体检」时你发现基因计数错了——同一个基因被拆成好几行。请描述：现象、原因、修复、如何验证	现象=同一基因出现多行、计数错；原因=用了 `cat genes.txt | uniq -c` 漏了 sort，uniq 只去相邻重复；修复=`cat genes.txt | sort | uniq -c`；验证=对比修复前后，同一基因合并成一行且次数正确
+综合：给 `counts.tsv`（第一列基因名）、`reads.fastq.gz`、`sample.vcf`，写三条 pipeline 分别回答「哪个基因出现最多」「多少条 read」「多少条变异」	最多基因 `cut -f1 counts.tsv | sort | uniq -c | sort -nr | head -n 1`；read 数 `zcat reads.fastq.gz | grep -c "^@"`；变异数 `grep -v "^#" sample.vcf | wc -l`
+你要写一份可交接的「测序数据统计」脚本注释，把 read 数、变异数、top N 基因三条命令都写成带注释、可改参数的版本	`zcat X.fastq.gz | grep -c "^@"`（read 数）；`grep -v "^#" X.vcf | wc -l`（变异数）；`cut -f1 X.tsv | sort | uniq -c | sort -nr | head -n N`（top N，N 在 head 处改）

@@ -1,0 +1,5 @@
+[2026-11-01 09:12:01] INFO  Starting alignment for SRR1001
+[2026-11-01 09:15:44] ERROR read SRR1001 failed QC
+[2026-11-01 09:20:10] INFO  Alignment complete
+[2026-11-01 09:21:02] ERROR insufficient coverage on chr3
+[2026-11-01 09:30:00] INFO  Done

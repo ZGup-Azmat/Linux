@@ -1,23 +1,90 @@
-chmod +x	加执行权限（脚本必备）
-chmod 644	rw-r--r--（文件默认权限）
-chmod 755	rwxr-xr-x（脚本/目录常用）
-chmod 600	rw-------（私有文件）
-chmod 700	rwx------（私有目录）
-chmod 1777	sticky bit（防删别人文件）
-chmod -R	递归改整棵目录树的权限
-chown user:group	同时改属主和属组
-chgrp group	只改属组
-ls -ld	看目录本身的权限（不看内容）
-权限三元组是哪三类人？	属主 owner / 属组 group / 其他人 others
-r=4 w=2 x=1，rwx 加起来等于？	7
-755 展开成什么权限？	rwxr-xr-x
-目录的 x 权限有什么作用？	进入目录（cd）/ 访问里面文件
-目录没有 x 会怎样？	cd 报 Permission denied，哪怕有 r
-sticky bit 的作用？	只有文件属主能删自己的文件（/tmp 机制）
-符号模式里 = 和 + 的区别？	= 覆盖，+ 叠加
-八进制里 r w x 分别等于几？	r=4 w=2 x=1
-运行脚本报 Permission denied	缺执行权限，chmod +x
-cd 目录报 Permission denied	目录缺 x，chmod +x 目录
-chmod 报 Operation not permitted	你不是属主（需 root/sudo）
-能写目录却删不了别人的文件	sticky bit，只有属主能删
-读文件报 Permission denied 但文件有 r	父目录缺 x（沿途通行证）
+`ls -l` 输出第一列的 10 个字符整体是什么结构？	第 1 位是文件类型（`-` 文件 / `d` 目录 / `l` 软链接），后面 9 位分三组、每组 3 位，依次是属主(owner)、属组(group)、其他人(others) 的 rwx 权限，缺的权限用 `-` 占位。
+权限三元组中的「三类人」指哪三类？	属主 owner（创建者）、属组 group（同组成员）、其他人 others（除前两者外的所有人）。
+为什么 `rwx` 作用在「文件」和「目录」上含义不同？分别是什么？	文件：r=看内容(cat)、w=改内容、x=作为程序运行；目录：r=列出文件名(ls)、w=新建/删除/重命名文件、x=进入目录(cd)/访问里面文件。
+目录的 `x` 权限本质作用是什么？	是「通行证」——允许进入目录(cd)并访问内部文件；没有 x，哪怕你是属主、哪怕有 r，也进不去。
+为什么读一个文件时，除了文件本身要有 `r`，沿途每个父目录还需要 `x`？	x 是目录的「进入」权限，没有 x 连路径都走不到文件面前；读文件 = 沿途每个父目录都有 x + 文件本身有 r。
+sticky bit 的核心作用是什么？它是哪里的默认机制？	让「能写目录」和「能删别人的文件」解耦——谁都能写，但只有文件属主(或 root)能删；这正是 /tmp 目录(1777)的机制。
+为什么只有属主（或 root）能 chmod 改权限？	安全红线——否则任何用户都能把别人的文件改成自己可写；普通用户 chmod 别人的文件会报 Operation not permitted。
+符号模式里 `=` 和 `+` 的核心区别是什么？	`=` 是精确覆盖（把权限整体替换成指定值）；`+` 是叠加（在原有基础上增加）；`chmod g=rwx` 会整个替换组权限，而不是「再加一点」。
+`chmod 644 patient01.bam` 展开成什么权限？	`-rw-r--r--`：属主 rw-、属组 r--、其他人 r--（普通文件默认权限，umask 022 的结果）。
+`chmod 755 run_pipeline.sh` 展开成什么权限？常用于什么？	`-rwxr-xr-x`：属主 rwx、属组 r-x、其他 r-x；脚本/目录常用。
+`chmod 600`、`chmod 700` 分别展开成什么？分别用于什么？	600 = `-rw-------` 私有文件（只有属主能读写）；700 = `-rwx------` 私有目录（只有属主能读写进入）。
+`chown user:group file`、`chown user file`、`chown :group file` 三者区别？	`user:group` 同时改属主+属组；`user`（不带冒号）只改属主、属组不变；`:group` 只改属组、属主不变（等价 chgrp group file）。
+`chgrp bioinfo patient01.bam` 做什么？	只把文件的属组改成 bioinfo，属主不变。
+`ls -ld results` 和 `ls -l results` 有什么区别？	`-d` 看目录本身的权限信息；不加 -d 看的是目录里面内容的列表。
+`chmod -R g+r raw_data/` 里的 `-R` 是什么意思？	递归(recursive)，把目录和里面所有文件、子目录一起改权限。
+`chmod 1777 shared_tmp` 中第一位 `1` 和后面 `777` 分别代表什么？	第一位 1 = sticky bit（特殊权限）；777 = 所有人 rwx；组合效果：谁都能写，但只有文件属主能删。
+`chmod u+x` / `chmod g-w` / `chmod a=r` 分别做什么？	u+x 给属主加执行；g-w 去掉属组的写；a=r 把所有人精确设为只读（覆盖原有权限）。
+八进制里 r、w、x 各代表数字几？rwx 相加等于几？	r=4、w=2、x=1；rwx = 4+2+1 = 7。
+`chmod +x`（不带 u/g/o/a）默认作用于谁？	所有人（等价 `a+x`），会给属主/属组/其他人都加上执行权限。
+新建文件默认权限是多少？为什么脚本不能直接 `./` 运行？	默认 644（`-rw-r--r--`，umask 022 的结果），没有 x 执行位，所以必须 `chmod +x` 才能 `./` 运行。
+750 用符号模式等价怎么写？展开成什么权限？	`chmod u=rwx,g=r-x,o= file`，展开为 `-rwxr-x---`。
+775 展开成什么？为什么共享目录常用 775？	`-rwxrwxr-x`：属主和属组都是 rwx（组内可读写），其他人 r-x（组外只读）——正是「组内协作、组外只读」的标准方案。
+444 展开成什么？什么时候用？	`-r--r--r--`，所有人只读；用于 raw_data 等原始数据防误删。注意目录还需要 x 才能进入，目录通常要设成 555 或补 x。
+一个脚本报 `Permission denied`，但文件明明存在，最可能缺什么权限？怎么修？	缺执行位 x；`chmod +x script.sh`。
+为什么 `bash script.sh` 能运行一个没有 x 权限的脚本？	它绕过 x 直接让 bash 读文件内容执行；标准做法仍是加 x 后 `./` 运行。
+给 `run_pipeline.sh` 加上执行权限，让属主/属组/其他人都有 x。写命令。	`chmod +x run_pipeline.sh`（等价 `chmod a+x` 或 `chmod 755`）。
+把 `patient01.bam` 设成「只有属主能读写，组和其他人完全无权限」。写命令。	`chmod 600 patient01.bam`（→ `-rw-------`）。
+用符号模式去掉「其他人」对 `patient01.bam` 的读权限。写命令。	`chmod o-r patient01.bam`（从 644 出发 → `-rw-r-----`）。
+用一条命令同时把 `results/` 的属主设为 user、属组设为 bioinfo，并递归应用到整棵树。写命令。	`chown -R user:bioinfo results/`。
+只把 `patient01.bam` 的属组改成 bioinfo（属主不变）。写两种等价命令。	`chgrp bioinfo patient01.bam` 或 `chown :bioinfo patient01.bam`。
+给当前目录下所有 `.sh` 脚本批量加执行权限。写命令。	`chmod +x *.sh`（通配符匹配所有 .sh）。
+建一个私有目录 `private/`，只有你自己能进去和读写。写两条命令。	`mkdir private && chmod 700 private`（→ `drwx------`）。
+让共享目录「组内可读写、组外只读」，并把属组设为 bioinfo。写命令。	`chgrp bioinfo shared_data && chmod 775 shared_data`（→ `drwxrwxr-x ... bioinfo`）。
+把 `raw_data/` 整棵目录树设成「所有人只读」防误删。写命令。	`chmod -R 444 raw_data/`（注意目录若也变 444 会丢 x 进不去，目录需补 x，如 555）。
+让一个共享目录「谁都能写，但谁都不能删别人的文件」。用一条命令。	`chmod 1777 shared_inbox`（sticky bit + 777）。
+用符号模式把 `results/` 的组权限精确设为 rwx（覆盖），再用符号模式给组加写。分别写。	覆盖：`chmod g=rwx results`；加写：`chmod g+w results`。
+验证 `results/` 目录本身的权限和属主属组（不列出内容）。写命令。	`ls -ld results/`（看第 1 列权限、第 3 列属主、第 4 列属组）。
+把一个脚本从「运行报 Permission denied」修到「能成功运行」。写完整流程命令。	`chmod +x run_pipeline.sh && ./run_pipeline.sh`（先加 x，再运行）。
+拆解 `-rwxr-xr--` 这个权限字段：类型、属主、属组、其他各是什么？	类型 `-`（文件）；属主 `rwx`（7，可读可写可执行）；属组 `r-x`（5，可读可执行不可写）；其他 `r--`（4，只读）。
+`chmod 750 file` 中 7、5、0 三个数字分别对应哪类人、什么权限？	7=属主 rwx；5=属组 r-x（4+0+1）；0=其他人 ---（无任何权限）。
+为什么 755 = 4+2+1、4+0+1、4+0+1？逐个数字解释。	属主 4+2+1=7（rwx）；属组 4+0+1=5（r-x）；其他 4+0+1=5（r-x）；每位都是 r=4、w=2、x=1 相加。
+`ls -l patient01.bam` 输出 `-rw-r--r-- 1 user bioinfo ...`，逐列解释字段含义。	`-`=文件类型；`rw-r--r--`=权限；`1`=链接数；`user`=属主；`bioinfo`=属组；后面依次是大小、时间、文件名。
+`chown -R user:bioinfo pipeline/` 里每个部分（chown / -R / user:bioinfo / 目录）分别做什么？	chown=改属主属组；-R=递归整棵树；user:bioinfo=属主 user + 属组 bioinfo；pipeline/ 是目标目录。
+排查「写结果报 Permission denied」时，`ls -ld results/`、`ls -l results/`、`whoami` 三步分别查什么？	`ls -ld results/` 查目录本身有没有 w；`ls -l results/` 查里面目标文件的权限和属主；`whoami` 查自己是否用错账号（如昨天 sudo 今天普通用户）。
+权限字段 `drwxrwxrwt` 逐段拆解：为什么最后一位是 `t` 而不是 `x`？	`d`=目录；`rwx`=属主；`rwx`=属组；`rwt`=其他人，其中 `t` 表示「有 x 执行权限 + 同时有 sticky bit」，即 1777。
+运行 `./run_pipeline.sh` 报 `bash: ./run_pipeline.sh: Permission denied`，文件明明存在。原因和修复？	文件缺执行位 x（默认 644）。`ls -l` 看是 `-rw-r--r--`，用 `chmod +x run_pipeline.sh` 修复后再 `./` 运行。
+`cat patient01.bam` 报 Permission denied，但文件确认有 r。最先怀疑什么？	父目录缺 x（进入权限）。读文件 = 沿途每个父目录都有 x + 文件本身有 r；用 `ls -ld 父目录` 确认，缺 x 则 `chmod +x 父目录`。
+`cd results` 报 Permission denied，但 `ls -ld results` 显示 `drw-r--r--`。问题在哪？怎么修？	目录缺 x（执行/进入权限），r 只负责列出文件名；`chmod +x results` 后即可 cd。
+`chmod` 改权限报 `chmod: changing permissions of 'raw_data': Operation not permitted`。原因？	你不是该文件/目录的属主（可能是 root 或别人），只有属主或 root 能 chmod。`ls -ld` 看属主列，找属主或用 `sudo chmod`。
+在共享目录里 `rm SRR123_1.fastq.gz` 报 `Operation not permitted`，但目录明明是 777 所有人可写。原因？	目录设了 sticky bit（`drwxrwxrwt` 即 1777），只有文件属主(或 root)能删；你删的是别人的文件。让属主删或 `sudo rm`。
+你给 `raw_data/` 跑了 `chmod -R 644`，之后发现连自己都 `cd` 不进去了。为什么？怎么补救？	-R 把目录本身也设成 644，目录丢了 x（进入权限）。补救：给目录补回 x，如 `chmod 755 raw_data` 或 `find raw_data -type d -exec chmod 755 {} \;`。
+昨天 RNA 流程还能写结果，今天报 Permission denied，没人改代码。最可能根因是什么？	属主漂移——昨天用 sudo 跑（文件属主变成 root），今天普通用户跑写不进 root 的文件。`ls -l results/` 看属主、`whoami` 看当前账号。
+`chmod g=rwx` 之后，组权限变成 rwx，但组原有的 r 也没了。这是 bug 吗？为什么？	不是 bug，`=` 是覆盖语义，会把组原有权限整个替换成 rwx（或你指定的值），不是「再加一点」；想叠加用 `chmod g+w`。
+你 `chown user file`（不带冒号）想把文件完全转给别人，但发现属组还是你自己。为什么？	`chown user` 只改属主、属组不变；要同时改属组必须 `chown user:group`。
+普通用户想把文件属主改成 root 或别人，`chown` 报 Operation not permitted。为什么？	安全设计——否则你就能把文件「嫁祸」给 root/别人；改属主给别人需要 sudo。
+`chmod +x` 和 `chmod 755` 有什么区别？	`+x` 是符号模式，给所有人加 x（叠加、保留其他权限）；755 是八进制，把权限整体精确设为 rwxr-xr-x。结果可能相同，但语义不同。
+目录的 `r` 和文件的 `r` 有什么区别？	文件 r = 能看内容(cat)；目录 r = 能列出文件名(ls)，但不能进入或访问内容（那需要 x）。
+目录的 `w` 和文件的 `w` 有什么区别？	文件 w = 改文件内容；目录 w = 新建/删除/重命名目录里的文件（但删别人的文件还受 sticky bit 约束）。
+`chgrp bioinfo f` 和 `chown :bioinfo f` 有什么区别？	等价，都只改属组为 bioinfo、属主不变；chown 带冒号是另一种写法。
+`chown user file` 和 `chown user:group file` 的区别？	前者只改属主、属组不变；后者同时改属主+属组。
+`chmod 600 private`（目录）和 `chmod 700 private` 在「能否 cd」上有什么区别？	600 无 x → 连 cd 都进不去（哪怕属主）；700 有 x → 属主能进能读写。目录必须有 x 才能进入。
+sticky bit 目录（1777）和普通 777 目录在「删别人的文件」上有什么区别？	777 谁都能删任何文件；1777 只有文件属主(或 root)能删，其他人能写但删不了别人的。
+6 个研究员共用 `/data/PRAD/`：2 个负责人能读写删，4 个只能读。要求「三个月后新人能一眼看懂」。怎么设计？	用「组」而非逐个设人：`sudo groupadd prad_editors`；`sudo chgrp -R prad_editors /data/PRAD`；`chmod -R 775 /data/PRAD`；把负责人加进组 `usermod -aG prad_editors lead1 lead2`。权限写在组名上。
+离职交接，把 `pipeline/` 整棵树转给同事 newbie（属于 bioinfo 组），一条命令完成并保证他能读写。	`sudo chown -R newbie:bioinfo pipeline/`，之后 `ls -ld pipeline/` 确认第 3、4 列变成 newbie 和 bioinfo。
+共享服务器上几十个研究员同时干活，为什么 raw_data 权限要设「所有人能读、只有你能改」？	原始测序数据 rm 掉就永久丢失（几万元重测序成本）；数据的价值远高于便利，权限是防误删的闸门。
+你想让共享目录「谁都能放文件，但谁都不能删别人的文件」，用一个数字+一个命令，并说明它和 /tmp 的关系。	`chmod 1777 shared_inbox`；第一位 1 是 sticky，后三位 777 所有人可读写；这正是 /tmp 的默认权限。
+你 SSH 到无图形界面的服务器，要给 `PRAD_project/{raw_data,trimmed,results,logs}` 四个子目录设不同权限。写建目录+核心权限命令。	`mkdir -p PRAD_project/{raw_data,trimmed,results,logs}`；raw_data 设只读(目录 555/文件 444)、results 设 775 组可写、logs 设 1777 sticky、脚本 chmod +x。
+三个月后新同事接手，为什么把权限写在「组名」上比写在「具体人名」上更好？	组名自带语义（如 prad_editors），新人来了 `usermod -aG 组 新人` 一行搞定，不用逐个文件 chown；权限策略可交接、可维护。
+`raw_data/` 里的 `SRR123_1.fastq.gz` 是几万元重测序成本换来的原始数据，你该给它什么权限？为什么？	444（所有文件只读、目录补 x）——所有人能读，只有属主能改/删，防误删。
+给 `run_pipeline.sh`（内含比对 `bwa mem` + 变异检测 `bcftools`）加上可执行权限后运行。写命令。	`chmod +x run_pipeline.sh && ./run_pipeline.sh`。
+`tumor.vcf` 是病人隐私数据，只能你一个人读写，其他人完全无权限。写命令。	`chmod 600 tumor.vcf`（→ `-rw-------`）。
+一个 shared_data 目录用于团队放 `counts.tsv`、`*.bam`、alignment log，要求组内（bioinfo 组）能读写、组外只读。写完整方案。	`chgrp bioinfo shared_data && chmod 775 shared_data`（→ `drwxrwxr-x`）；组内 rwx、组外 r-x。
+排查「RNA 流程写结果一步报 Permission denied」，文件是昨天生成的 `counts.tsv`。按三层排查该先看什么？	`ls -ld results/` 看目录 w；`ls -l counts.tsv` 看文件属主权限；`whoami` 看是否用错账号。最常见是昨天 sudo 跑（属主变 root）。
+需求从「给一个脚本加 x」变成「给当前目录所有 .sh 加 x」，命令怎么改？	`chmod +x script.sh` → `chmod +x *.sh`（用通配符批量）。
+需求从「组可写」变成「组精确设为只读 r-x」，符号模式怎么改？	`chmod g+w dir` 是叠加写；要精确设为 r-x 用 `chmod g=rx dir`（覆盖）。
+如果 raw_data 目录不是只读，而是「组内可写、组外只读」，原来的 444 方案要改成什么？	改 `chmod 775 raw_data`（属主/组 rwx，其他 r-x），配合 `chgrp bioinfo raw_data`。
+权限字段从 `-rw-r--r--` 变成 `-rwxr-xr-x`，是执行了什么命令？	`chmod +x file`（所有人加 x）或 `chmod 755 file`。
+如果文件属主是 root、属组是 root，而你要以普通用户给它加 x，会发生什么？正确做法？	报 Operation not permitted；你不是属主无权 chmod。用 `sudo chmod +x file` 或找 root。
+`chmod -R 777 raw_data/` 有什么风险？	递归把目录里每一个文件、子目录都设成 777，等于把安全门全拆了，任何人都能改能删——最危险的误操作。
+`chmod a=x` 和 `chmod a+x` 有什么区别？	`a=x` 覆盖成只有 x（把 r、w 都清掉）；`a+x` 是叠加，在保留 r/w 基础上加 x。
+目录没有 x，但你有 r，你能 `ls` 出文件名吗？你能 cd 进去吗？	能 ls 列出文件名（r 的作用），但 cd 报 Permission denied（需要 x）。
+chown 之后，原属主还能再 chmod 这个文件吗？为什么？	不能（除非 root）——改了属主，原属主立刻失去控制权，再改权限得看新属主脸色。
+用 `chmod 644 private` 给一个目录设权限，结果自己都进不去，为什么？	目录的 644 = rw-r--r--，没有 x；目录没有 x 就无法进入，哪怕你是属主。
+完整交付物：给共享测序项目 PRAD_project 设权限——raw_data 只读、results 组可写(775+bioinfo)、logs sticky(1777)、脚本可执行，并留证。写流程。	`chmod -R 444 raw_data/`(目录补 x)；`chgrp bioinfo results && chmod 775 results`；`chmod 1777 logs`；`chmod +x run_pipeline.sh`；最后 `ls -lR` 截图留证。
+从「建脚本→运行报错→定位→修复→成功运行」走一遍完整闭环。写命令序列。	`echo 'echo hello' > run_pipeline.sh`；`chmod 644 run_pipeline.sh`；`./run_pipeline.sh` 报 Permission denied；`ls -l` 定位缺 x；`chmod +x run_pipeline.sh`；`./run_pipeline.sh` 成功输出 hello。
+排查「别人进不了你的目录」时，如何一步步判断是缺 r 还是缺 x，并给出证据？	`ls -ld 目录` 看权限位：缺 x → 无法 cd；缺 r → 无法列出文件名；对照权限位对症 chmod。形成「先看权限位→定位缺失项→对症 chmod」思路。
+交付一个权限方案时，为什么最后要用 `ls -lR` 截图/留证？	让三个月后接手的人一眼看懂整棵树的权限策略，是可交接、可验收的证据。
+服务器有 raw_data/(fastq.gz)、results/(counts.tsv)、logs/、run_pipeline.sh 四个对象，设计完整权限策略并写命令。	raw_data `chmod -R 444`(目录补 x) 防删；results `chgrp bioinfo && chmod 775` 组可写组外只读；logs `chmod 1777` sticky 防删别人日志；脚本 `chmod +x run_pipeline.sh`；`ls -lR` 留证。
+综合题：说出 `-rwxr-xr--` 每个字符含义 + 它的八进制值 + 用符号模式和八进制两种方式写出如何从 `-rw-r--r--` 得到它。	类型`-`文件；属主 rwx、属组 r-x、其他 r--；八进制=754。从 644 得到：符号 `chmod u+x,g+x,o-r` 或八进制 `chmod 754`。
+一个项目目录既要「组内协作读写」又要「组外只读」还要「防删别人文件」，这三个需求分别用什么权限机制实现？	组内读写=chgrp 设组 + 775(组 rwx)；组外只读=其他人的 r-x；防删别人文件=sticky bit(1777) 让只有属主能删。

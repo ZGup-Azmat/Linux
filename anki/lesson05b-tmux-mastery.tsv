@@ -1,27 +1,80 @@
-Ctrl-b c	新建窗口（当前会话里开一个新的"标签页"）
-Ctrl-b ,	重命名当前窗口，起个能看懂的名字
-Ctrl-b 0-9	直接跳到指定编号的窗口（编号从 0 开始）
-Ctrl-b n / p	切到下一个 / 上一个窗口
-Ctrl-b w	列出所有窗口，用方向键选
-Ctrl-b f	按名字查找窗口并跳过去
-Ctrl-b &	关闭当前窗口（会弹确认 y/n）
-Ctrl-b z	放大/还原当前窗格（临时全屏，最常用）
-Ctrl-b space	循环切换分屏布局
-Ctrl-b { / }	窗格左移 / 右移（交换两个窗格位置）
-Ctrl-b [ / ]	进入回滚复制模式（q 退出）/ 粘贴 tmux buffer
-Ctrl-b $	重命名当前会话
-tmux source ~/.tmux.conf	重新加载 tmux 配置，改完立即生效
-tmux kill-session -t name	关闭指定名字的会话
-set -g mouse on	开鼠标：滚轮回滚历史、点击切换窗格
-tmux rename-session -t old new	给会话重命名
-tmux 三层结构？	session 会话 → window 窗口 → pane 窗格
-window 和 pane 的区别？	window 是"标签页"（独立全屏），pane 是窗口里的分屏
-copy-mode 是什么？	回滚看历史 + 复制文字的模式，Ctrl-b [ 进入、q 退出
-tmux 配置文件在哪？	~/.tmux.conf，自己家目录，不需要 root 权限
-改了配置为什么不生效？	运行中的会话要 tmux source 重新加载，或开新会话自动读
-为什么改 prefix 要 unbind C-b？	不 unbind 旧前缀，新旧前缀并存，按键会混乱失灵
-鼠标滚轮在 tmux 里没反应	配置里加 set -g mouse on 然后 tmux source
-改了 ~/.tmux.conf 没生效	tmux source ~/.tmux.conf 重新加载
-Ctrl-b % 分屏没反应	检查前缀是否被改、是否真的在 tmux 会话里
-Ctrl-b ] 贴的不是系统剪贴板内容	tmux buffer 和系统剪贴板是两套，跨应用用 Ctrl+Shift+C/V
-窗格开太多迷路了	Ctrl-b w 看窗口列表、Ctrl-b q 看窗格编号、Ctrl-b z 放大当前
+tmux 的三层结构从大到小是什么？	session（会话）→ window（窗口）→ pane（窗格）；一个会话装多个窗口，一个窗口里再分多个窗格。
+在 tmux 里，window（窗口）是什么？它和「再开一个 ssh 终端」有什么区别？	window 是一个会话里的「全屏标签页」，有自己的编号和名字，用 `Ctrl-b` 系列键来回切；比开一堆独立终端窗口清爽，而且切换窗口不需要新开连接。
+tmux 的 pane（窗格）是什么？	pane 是窗口里的分屏；一个窗口可以左右/上下分成多个 pane，各 pane 独立运行命令（如左边 `vim`、右边 `tail -f`）。
+tmux 的 copy-mode（回滚复制模式）是做什么的？	用 `Ctrl-b [` 进入，可以 `PgUp`/`PgDn` 翻页回看终端已滚过去的历史输出，还能选中并复制文字，`q`（或 `Esc`）退出。
+`~/.tmux.conf` 这个文件的作用是什么？为什么普通用户也能改？	它把 tmux 的个人习惯（前缀键、鼠标、回滚行数、分屏快捷键）持久化；在用户自己家目录下，不需要 root 权限，改完 `tmux source ~/.tmux.conf` 生效。
+`Ctrl-b z` 的 zoom（缩放）和真正重新分屏有什么区别？	zoom 是「临时全屏」——把当前窗格临时放大到占满整个窗口，再按一次 `Ctrl-b z` 还原，不破坏原有分屏布局。
+tmux 内部的粘贴 buffer 和系统剪贴板是什么关系？	是两套、互不相通。`Ctrl-b ]` 贴的是 tmux 自己的 buffer；要跨应用（如贴到本地编辑器）得用终端自带的 `Ctrl+Shift+C/V`。
+为什么说 window 是 session 和 pane 之间的「中间层」？	三层关系是 session→window→pane：一个 session 装多个 window（每个是独立标签页），一个 window 里再分多个 pane；window 把「任务」和「一个任务里的分屏」隔开。
+tmux 配置里写错了一条（比如拼错选项名）会怎样？	通常不报错，那条配置静默失效、其它配置照常；所以发现某项没生效要怀疑拼写，逐条核对并 source 后验证。
+`Ctrl-b c` 和 `Ctrl-b ,` 分别做什么？	`Ctrl-b c` 新建一个窗口（当前会话内开新标签）；`Ctrl-b ,` 重命名当前窗口。
+`Ctrl-b w` 和 `Ctrl-b f` 分别做什么？	`Ctrl-b w` 列出所有窗口用方向键选；`Ctrl-b f` 按窗口名字查找并跳转。
+`Ctrl-b z`、`Ctrl-b space`、`Ctrl-b o` 分别做什么？	`Ctrl-b z` 缩放（当前窗格临时全屏/还原）；`Ctrl-b space` 循环切换分屏布局；`Ctrl-b o` 按顺序循环切换窗格。
+`Ctrl-b {` 和 `Ctrl-b }` 做什么？`Ctrl-b x` 呢？	`Ctrl-b {` 把当前窗格左移、`Ctrl-b }` 右移（交换位置）；`Ctrl-b x` 关闭当前窗格。
+`Ctrl-b [` 和 `Ctrl-b ]` 分别做什么？	`Ctrl-b [` 进入回滚/复制模式（copy-mode）；`Ctrl-b ]` 粘贴 tmux buffer 里刚才选中的文字。
+`tmux ls`、`tmux rename-session -t old new`、`tmux kill-session -t name`、`tmux kill-server` 分别做什么？	`tmux ls` 列出所有会话；`tmux rename-session -t old new` 重命名会话；`tmux kill-session -t name` 关闭指定会话；`tmux kill-server` 关闭所有会话（慎用）。
+`tmux source ~/.tmux.conf` 的作用是什么？	重新加载 tmux 配置，让刚改的 `~/.tmux.conf` 在当前会话立即生效，不用重启 tmux。
+调整 tmux 窗格边界大小的按键是什么？	按住前缀键（如 `Ctrl-b`）后，再按 `Ctrl+方向键`（←/→/↑/↓）微调边界，可重复按。
+`set -g mouse on`、`set -g history-limit 10000`、`set -g default-terminal "screen-256color"` 分别做什么？	开鼠标（滚轮回滚、点窗格切换）；回滚历史行数加大到 10000；设 256 色终端让 vim 配色更正常。
+`Ctrl-b $` 做什么？和 `tmux rename-session` 什么关系？	`Ctrl-b $` 在 tmux 里重命名当前会话；效果等价于命令行 `tmux rename-session -t <旧名> <新名>`。
+想新建一个窗口并给它起名 qc，完整按键序列是什么？	`Ctrl-b c`（新建）→ `Ctrl-b ,`（改名）→ 输入 `qc` 回车；状态栏显示 `0:qc*`。
+在多个窗口之间切换有哪几种按键方式？	`Ctrl-b 0..9` 直接跳指定编号；`Ctrl-b n` 下一个；`Ctrl-b p` 上一个；`Ctrl-b w` 列表选。
+进入 copy-mode 翻页看历史再退出，完整按键是什么？	`Ctrl-b [` 进入 → `PgUp`/`PgDn` 翻页 → `q`（或 `Esc`）退出。
+把当前窗格临时放大全屏再还原，按键是什么？	`Ctrl-b z` 放大，再按一次 `Ctrl-b z` 还原。
+如何关闭当前窗口？如何关闭当前窗格？	关闭窗口 `Ctrl-b &`（确认 y）；关闭窗格 `Ctrl-b x`。
+窗口很多时，想按名字快速跳到某个窗口，用什么键？	`Ctrl-b f`，输入窗口名片段回车，直接跳到匹配的窗口。
+分别回忆：关闭「窗口」「窗格」「会话」各用什么？	关窗口 `Ctrl-b &`（确认 y）；关窗格 `Ctrl-b x`；关会话 `tmux kill-session -t <名>`（或 `tmux kill-server` 全关）。
+要把前缀键从 `Ctrl-b` 改成 `Ctrl-a`，配置里需要写哪几条？	`set -g prefix C-a`；`unbind C-b`；`bind C-a send-prefix`。三条缺一不可，尤其 `unbind C-b` 防新旧前缀并存。
+想用 `|` 和 `-` 两个键分屏（比 `%` 和 `"` 好记），配置怎么写？	`bind | split-window -h`（左右分屏）；`bind - split-window -v`（上下分屏）。
+tmux 里鼠标滚轮不能回滚历史，要写什么配置并立即生效？	配置里加 `set -g mouse on`，然后 `tmux source ~/.tmux.conf` 加载；滚轮即可回滚、点窗格可切换。
+想把回滚历史加大到 10000 行并立即生效，操作是什么？	`echo "set -g history-limit 10000" >> ~/.tmux.conf`，然后 `tmux source ~/.tmux.conf`。
+想关闭一个名为 tmp 的会话，命令是什么？	`tmux kill-session -t tmp`。
+想给当前会话改个能看懂的名字，两种做法？	会话内按 `Ctrl-b $` 改名；或命令行 `tmux rename-session -t <旧名> <新名>`。
+两个窗格左右位置反了，想把它们对调，按键是什么？	`Ctrl-b {` 把当前窗格左移，`Ctrl-b }` 右移，来回按即可交换位置。
+窗格分得太窄看不清，想微调两个窗格之间的边界，怎么做？	按住前缀键 `Ctrl-b` 后，再按 `Ctrl+方向键` 微调边界，可重复按。
+要写一份可交接的 `~/.tmux.conf`（别人一看就懂每条在干嘛），至少应包含哪几类内容？	带注释的配置，至少：`set -g mouse on`（鼠标）、`set -g history-limit 10000`（历史）、`bind | split-window -h` 和 `bind - split-window -v`（分屏键），每条加 `#` 注释说明用途。
+在 tmux 里看日志时想把关键报错那行复制出来（开 mouse 后），完整操作？	`Ctrl-b [` 进 copy-mode → 鼠标拖动选中报错行（或 `Ctrl+Space` 开始选、`Alt+w` 复制）→ `Ctrl-b ]` 粘贴出来。
+配置里改前缀键只写了 `set -g prefix C-a` 却忘了 `unbind C-b`，会导致什么？怎么补？	新旧前缀（C-b 和 C-a）并存，`Ctrl-b %` 这类分屏键可能失灵/混乱；补上 `unbind C-b` 和 `bind C-a send-prefix`，再 `tmux source` 重载。
+你在一个窗格 `tail -f results.log`，想仔细看上面滚过去的一段日志，看完还要回到分屏干活。完整操作？	`Ctrl-b z` 放大日志窗格 → `Ctrl-b [` 进 copy-mode → `PgUp`/`PgDn` 翻看 → `q` 退出 → 再 `Ctrl-b z` 还原。
+解释改前缀的三条配置各自作用：`set -g prefix C-a`、`unbind C-b`、`bind C-a send-prefix`。	`set -g prefix C-a` 把前缀设为 C-a；`unbind C-b` 解绑旧的 C-b 前缀；`bind C-a send-prefix` 让 C-a 之后还能再按一次 C-a 打出字面 C-a [Extension]。
+解释 `bind | split-window -h` 这条配置的含义。	把 `|` 键绑定到 `split-window -h`，即按前缀+`|` 就执行左右（水平）分屏。
+解释这套布局是怎么搭的：窗口0 分屏（左 vim 右 tail -f）、窗口1 看结果。	窗口0 里 `Ctrl-b %` 左右分屏，左窗格跑 `vim run_pipeline.sh`、右窗格跑 `tail -f results.log`；`Ctrl-b c` 新开窗口1 看运行结果；用 `Ctrl-b z` 在日志和脚本间临时全屏切换。
+`Ctrl-b z` + `Ctrl-b [` 这个「连招」各自解决什么问题？为什么先 z 再 [？	`Ctrl-b z` 先把日志窗格放大到全屏（看得舒服），`Ctrl-b [` 再进入 copy-mode 翻历史；先放大是为了在足够大的区域里回滚阅读，`q` 退出后再 `Ctrl-b z` 还原分屏。
+「会话名=项目、窗口名=阶段」这个命名规范，分别解决什么问题？	会话名=项目让 `tmux ls` 时能区分不同项目；窗口名=阶段（qc/align/viz）让状态栏一眼看出「进行到哪一步」，三个月后 attach 回来仍可读懂。
+进 tmux 后鼠标滚轮不能回滚历史。原因是什么？怎么修？	tmux 默认 `mouse off`，滚轮事件不交给 tmux 处理。配置加 `set -g mouse on`，再 `tmux source ~/.tmux.conf` 加载即可。
+改了 `~/.tmux.conf`（新键位/鼠标）但没生效。最可能漏了哪一步？排查顺序是什么？	最可能漏了 `tmux source ~/.tmux.conf` 重载当前会话；排查顺序：`cat ~/.tmux.conf` 确认改对文件 → `tmux source` 加载 → 必要时新开会话验证（新会话自动读）。
+按 `Ctrl-b %` 没分屏。首先怀疑哪两点？如何确认前缀键？	① 是不是不在 tmux 里（看底部状态栏）；② 前缀键是否被改过（如改成 C-a）。用 `tmux show-options -g prefix` 查看当前前缀。
+`Ctrl-b ]` 贴出来的不是系统剪贴板的最新内容，为什么？	tmux 有自己独立的 buffer，和系统剪贴板是两套、不互通；跨应用粘贴用终端自带的 `Ctrl+Shift+C/V`，tmux 内部复制粘贴才用 copy-mode 选中 + `Ctrl-b ]`。
+窗口/窗格越开越多，忘了自己在哪。有哪些「看全景」的办法？	`Ctrl-b w` 列出所有窗口；`Ctrl-b q` 显示每个窗格编号（按编号跳）；`Ctrl-b z` 放大当前窗格理思路；`Ctrl-b x` 关掉多余窗格。
+改了 prefix 后，所有 `Ctrl-b` 开头的快捷键突然「按了没反应」。最可能的原因？	前缀已经被改成新键（如 C-a），所有命令都要用新前缀触发；忘了这一点就会怎么按都没反应。
+窗口开到了 10 个以上，`Ctrl-b 0..9` 跳不到第 10 个以后。怎么办？	编号从 0 开始，单键数字只覆盖 0–9；超过 9 个用 `Ctrl-b w` 列表选，或 `Ctrl-b n`/`p` 循环切换。
+在 copy-mode 里想退出，按了 `Ctrl-c`，会有什么问题？应该按什么？	`Ctrl-c` 是打断正在运行的命令（SIGINT），不是退出 copy-mode；退出应该按 `q` 或 `Esc`。
+窗口越开越多，状态栏里全变成 `bash` 分不清谁是谁。根因是什么？习惯上怎么避免？	根因是没给窗口起名，默认名取「当前命令」久了都变 `bash`；习惯上开窗口第一件事就 `Ctrl-b ,` 改成有意义的阶段名。
+tmux 的 window（窗口）和 pane（窗格）有什么区别？	window 是会话里的「标签页」（独立全屏，有编号和名字）；pane 是单个窗口里的分屏。窗口各自独立布局，窗格共享同一个窗口。
+`Ctrl-b w` 和 `Ctrl-b f` 都用于找窗口，有什么区别？	`Ctrl-b w` 列出所有窗口用方向键选；`Ctrl-b f` 按名字模糊查找直接跳过去。窗口多时 `f` 更快，浏览整体用 `w`。
+`Ctrl-b [` 和 `Ctrl-b ]` 有什么区别？	`Ctrl-b [` 进入 copy-mode（回滚翻页/复制）；`Ctrl-b ]` 粘贴 tmux buffer 里的文字。方向相反，别记混。
+`Ctrl-b x` 和 `Ctrl-b z` 都跟窗格有关，区别是什么？	`Ctrl-b x` 是关闭当前窗格；`Ctrl-b z` 是把当前窗格临时全屏/还原（zoom），不关闭任何东西。
+改配置后，`tmux source ~/.tmux.conf` 和重启 tmux 有什么区别？	source 让当前运行中的会话立即重读配置，不丢会话/窗口/窗格；重启 tmux 会杀掉当前环境（工作流丢失），只对新会话自动读配置。改配置优先用 source。
+`Ctrl-b n`/`p` 循环切换和 `Ctrl-b 0..9` 数字跳转，使用场景有何不同？	数字跳转适合窗口少且记住编号时直达；`n`/`p` 适合顺序浏览；窗口超过 9 个数字跳不到，只能用 `n`/`p` 或 `Ctrl-b w`。
+一个 RNA 项目要同时做质控、比对、可视化三件事，还偶尔看总日志。用 tmux 怎么组织让三个月后的自己（或同事）一眼看懂？	会话名=项目、窗口名=阶段：`tmux new -s PRAD`，窗口0 `Ctrl-b ,` 改名 `qc`，`Ctrl-b c` 新窗口改名 `align`，再 `Ctrl-b c` 改名 `viz`；状态栏 `0:qc 1:align 2:viz` 一眼可读。
+你在一个窗格里看日志，想同时对比另一个窗格里的脚本，但两个窗格都太小。最优做法是什么？	用 `Ctrl-b z` 临时放大：看日志时放大日志窗格、看完还原，改脚本时放大 vim 窗格。zoom 是临时全屏，不破坏分屏布局，比反复重新分屏优雅。
+换了一台新服务器，想一键带回自己那套 tmux 习惯（键位/鼠标/配色）。怎么做？	把习惯写进 `~/.tmux.conf`，换机器时 `scp ~/.tmux.conf 新机器:~/.tmux.conf` 拷过去；和 `~/.bashrc`、vim 配置一起组成 dotfiles 资产库。
+同时维护三个项目（PRAD 比对、雅思脚本、LeetCode 题解），怎么用多会话隔开互不干扰？	每个项目一个命名会话：`tmux new -s PRAD`、`-s ielts`、`-s lc`；`tmux ls` 看全局，`tmux attach -t <名>` 切项目。会话隔离 + 命名清晰 = 多项目并行不打架。
+SSH 到无图形界面的服务器，想一边 `vim` 改 pipeline 脚本、一边 `tail -f` 看运行日志，还要能临时全屏切换。布局怎么搭？	同一窗口 `Ctrl-b %` 左右分屏：左窗格 `vim run_pipeline.sh`、右窗格 `tail -f results.log`；`Ctrl-b z` 在两者间临时全屏切换，`Ctrl-b [` 回滚日志。
+三个月后你 `tmux attach` 回到一个项目，怎么最快速地想起「这个项目进行到哪了」？	靠命名：会话名=项目、窗口名=阶段（qc/align/viz）；attach 后扫一眼底部状态栏的窗口名就知道进度，不需要翻历史。
+比对任务在窗口 align 里跑，日志 `align.log` 不断滚动，你想回滚找一行报错并贴出来。完整操作？	`Ctrl-b z` 放大 → `Ctrl-b [` 进 copy-mode → `PgUp` 翻到报错 → 选中（鼠标拖动或 `Ctrl+Space`+`Alt+w`）→ `q` 退出 → `Ctrl-b ]` 贴出报错行。
+在一个窗口左窗格编辑 `run_pipeline.sh`、右窗格 `tail -f results.log` 实时看运行日志，这个生信工作流怎么搭？	`Ctrl-b %` 左右分屏：左 `vim run_pipeline.sh`、右 `tail -f results.log`；改脚本后 `Ctrl-b z` 放大日志窗看报错，`Ctrl-b [` 回滚，`q` 退出还原。
+一个 TCGA 前列腺癌（PRAD）分析项目，既要跑比对又要偶尔回来看总日志。怎么用「会话+窗口」两层组织？	会话名=PRAD（项目）；窗口0=align（比对）、窗口1=logs（总日志）；`Ctrl-b 0`/`Ctrl-b 1` 快速切，`Ctrl-b z`+`Ctrl-b [` 回滚看日志。
+想在 tmux 里同时监控一个 RNA-seq 任务：一个窗格 `tail -f` 看 FASTQ 质控日志、另一个窗格随时切去跑命令，两窗格都小。怎么办？	`Ctrl-b z` 临时放大当前窗格（看日志时放大日志、跑命令时放大命令窗），再按 `Ctrl-b z` 还原，不破坏分屏。
+在无 root 权限的 HPC 服务器上，想开 tmux 鼠标滚动来翻比对日志，为什么能自己做？写什么？	因为 `~/.tmux.conf` 在自己家目录、无需 root；写 `set -g mouse on` 到 `~/.tmux.conf`，再 `tmux source ~/.tmux.conf` 加载。
+如果把前缀从 `Ctrl-b` 改成了 `Ctrl-a`，原来习惯的 `Ctrl-b %` 分屏、`Ctrl-b z` 缩放该怎么按？	全部把 `Ctrl-b` 换成 `Ctrl-a`：`Ctrl-a %` 分屏、`Ctrl-a z` 缩放；且配置里要 `unbind C-b` 避免新旧前缀并存。
+如果回滚历史不够用（翻不了太多行），改哪个配置项？改成多少合理？	`set -g history-limit <行数>`，例如 10000；加大后 `tmux source` 加载，copy-mode 能翻更多行。
+`Ctrl-b &` 关闭窗口时，tmux 怎么防止手滑误关？	会弹确认 `kill-window xxx? (y/n)`，按 `y` 才真关，按别的键就取消。
+你在窗口1里 `Ctrl-b %` 分了屏，切回窗口0发现窗口0没有分屏。这正常吗？为什么？	正常。window 和 pane 是两层：每个窗口有自己独立的分屏布局，在一个窗口里分屏不会影响其它窗口。
+copy-mode 里退出，除了 `q` 还能按什么？	`Esc`（`q` 或 `Esc` 均可）；别用 `Ctrl-c`，那是打断正在运行的命令。
+Boss 战：搭一套「边改脚本、边看日志、边查结果」的完整工作流（含命名、分屏、zoom、回滚、脱离接回）。写出完整步骤。	`tmux new -s PRAD`；窗口0改名 `dev`、`Ctrl-b c` 新窗口改名 `logs`；窗口0 `Ctrl-b %` 分屏，左 `vim run_pipeline.sh`、右 `tail -f results.log`；`Ctrl-b z` 放大日志、`Ctrl-b [` 回滚找报错；写 `~/.tmux.conf`（mouse on + history-limit + 分屏键）并 source；`Ctrl-b d` 脱离、`tmux attach` 接回验证工作流没丢。
+完整配置一套自己的 tmux（开鼠标+加大历史+改前缀+自定义分屏），并让它生效。写出配置与生效步骤。	写 `~/.tmux.conf`：`set -g mouse on`、`set -g history-limit 10000`、`set -g prefix C-a` + `unbind C-b` + `bind C-a send-prefix`、`bind | split-window -h`、`bind - split-window -v`；保存后 `tmux source ~/.tmux.conf` 立即生效。
+搭「一边 vim 改脚本、一边 tail -f 看日志、还能切去第三个窗口看结果」的工作流，写出结构。	窗口0 `Ctrl-b %` 左右分屏（左 vim、右 tail -f）；`Ctrl-b c` 新开窗口1 看运行结果；`Ctrl-b 0`/`Ctrl-b 1` 切窗口，`Ctrl-b z` 临时放大，`Ctrl-b [` 回滚日志。
+「改了配置没生效」的完整排查步骤是什么？（按顺序）	① `cat ~/.tmux.conf` 确认改对了文件、内容正确；② `tmux source ~/.tmux.conf` 手动加载当前会话；③ 若还不行，新开一个会话验证（新会话自动读配置），以排除旧会话未重载。
+完整「鼠标失灵→修复」闭环：故意注释 mouse 后滚轮失灵，再修好。写出全过程。	注释掉 `set -g mouse on` → `tmux source` → 发现滚轮不能回滚 → 恢复 `set -g mouse on` → `tmux source` → 滚轮恢复；据此确认「滚轮靠 mouse on 这一条」。
+设计一套窗口/会话命名规范，让三个月后的人看状态栏就知道项目进度，并落地一个例子。	会话名=项目、窗口名=阶段：如 `tmux new -s PRAD`，窗口名 qc/align/viz；状态栏 `0:qc 1:align 2:viz`，一眼看出项目进行到哪一步。
